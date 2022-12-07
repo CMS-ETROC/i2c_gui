@@ -6,6 +6,7 @@ if TYPE_CHECKING:
 
 from .base_chip import Base_Chip
 from ..gui_helper import GUI_Helper
+from .address_space_controller import Address_Space_Controller
 
 import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
@@ -1097,6 +1098,9 @@ class ETROC2_Chip(Base_Chip):
             }
         )
 
+        for block in self._register_model["ETROC2"]["Register Blocks"]:
+            print(block)
+
         indexer_info = self._register_model["ETROC2"]["Register Blocks"]["Pixel Config"]["Indexer"]
         self._build_indexer_vars(indexer_info)
 
@@ -1133,6 +1137,20 @@ class ETROC2_Chip(Base_Chip):
             final_state = "Unmodified"
 
         self._parent._local_status_update(final_state)
+
+    #  Since there is the broadcast feature, we can not allow to write a full adress space
+    # because the broadcast feature would overwrite previous addresses, so we write in blocks
+    def write_all_address_space(self, address_space_name: str):
+        if address_space_name == "ETROC2":
+            self._logger.info("Writing full address space: {}".format(address_space_name))
+            address_space: Address_Space_Controller = self._address_space[address_space_name]
+            for block in self._register_model[address_space_name]["Register Blocks"]:
+                if "Indexer" in self._register_model[address_space_name]["Register Blocks"][block]:
+                    pass  # TODO: implement the block array writing
+                else:
+                    address_space.write_block(block)
+        else:
+            super().write_all_address_space(address_space_name)
 
     def config_i2c_address(self, address):
         self._i2c_address = address
