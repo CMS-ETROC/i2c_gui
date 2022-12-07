@@ -179,15 +179,21 @@ class Connection_Controller(GUI_Helper):
                 retVal[0] = 0x42
             return retVal
 
+        from . import __swap_endian__
         if self._max_seq_byte is None:
+            if __swap_endian__:
+                memory_address = self.swap_endian_16bit(memory_address)
             return self._iss.i2c.read_ad2(device_address, memory_address, byte_count)
         else:
             from math import ceil
             tmp = []
             seq_calls = ceil(byte_count/self._max_seq_byte)
             for i in range(seq_calls):
+                this_block_address = memory_address + i*self._max_seq_byte
+                if __swap_endian__:
+                    this_block_address = self.swap_endian_16bit(this_block_address)
                 bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
-                tmp += self._iss.i2c.read_ad2(device_address, memory_address + i*self._max_seq_byte, bytes_to_read)
+                tmp += self._iss.i2c.read_ad2(device_address, this_block_address, bytes_to_read)
             return tmp
 
     def write_device_memory(self, device_address: int, memory_address: int, data: list[int]):
@@ -198,15 +204,14 @@ class Connection_Controller(GUI_Helper):
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
-        from . import __swap_endian__
-        if __swap_endian__:
-            memory_address = self.swap_endian_16bit(memory_address)
-
         from . import __no_connect__
         if __no_connect__:
             return
 
+        from . import __swap_endian__
         if self._max_seq_byte is None:
+            if __swap_endian__:
+                memory_address = self.swap_endian_16bit(memory_address)
             self._iss.i2c.write_ad2(device_address, memory_address, data)
         else:
             from math import ceil
@@ -214,5 +219,8 @@ class Connection_Controller(GUI_Helper):
 
             seq_calls = ceil(byte_count/self._max_seq_byte)
             for i in range(seq_calls):
+                this_block_address = memory_address + i*self._max_seq_byte
+                if __swap_endian__:
+                    this_block_address = self.swap_endian_16bit(this_block_address)
                 bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
-                self._iss.i2c.write_ad2(device_address, memory_address + i*self._max_seq_byte, data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write])
+                self._iss.i2c.write_ad2(device_address, this_block_address, data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write])
