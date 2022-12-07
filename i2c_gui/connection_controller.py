@@ -11,9 +11,10 @@ from usb_iss import UsbIss
 
 class Connection_Controller(GUI_Helper):
     _parent: Base_GUI
-    def __init__(self, parent: Base_GUI):
+    def __init__(self, parent: Base_GUI, max_seq_byte = 8):
         super().__init__(parent, None, parent._logger)
         self._is_connected = False
+        self._max_seq_byte = max_seq_byte
 
         self._iss = UsbIss()
 
@@ -178,7 +179,16 @@ class Connection_Controller(GUI_Helper):
                 retVal[0] = 0x42
             return retVal
 
-        return self._iss.i2c.read_ad2(device_address, memory_address, byte_count)
+        if self._max_seq_byte is None:
+            return self._iss.i2c.read_ad2(device_address, memory_address, byte_count)
+        else:
+            from math import ceil
+            tmp = []
+            seq_calls = ceil(byte_count/self._max_seq_byte)
+            for i in range(seq_calls):
+                bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
+                tmp += self._iss.i2c.read_ad2(device_address, memory_address + i*self._max_seq_byte, bytes_to_read)
+            return tmp
 
     def write_device_memory(self, device_address: int, memory_address: int, data: list[int]):
         if not self.is_connected:
@@ -196,4 +206,13 @@ class Connection_Controller(GUI_Helper):
         if __no_connect__:
             return
 
-        self._iss.i2c.write_ad2(device_address, memory_address, data)
+        if self._max_seq_byte is None:
+            self._iss.i2c.write_ad2(device_address, memory_address, data)
+        else:
+            from math import ceil
+            byte_count = len(data)
+
+            seq_calls = ceil(byte_count/self._max_seq_byte)
+            for i in range(seq_calls):
+                bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
+                self._iss.i2c.write_ad2(device_address, memory_address + i*self._max_seq_byte, data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write])
