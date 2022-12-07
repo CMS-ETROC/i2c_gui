@@ -13,7 +13,7 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 
 class Base_Chip(GUI_Helper):
-    def __init__(self, parent: GUI_Helper, chip_name: str, i2c_controller: Connection_Controller, register_model = None, register_decoding = None):
+    def __init__(self, parent: GUI_Helper, chip_name: str, i2c_controller: Connection_Controller, register_model = None, register_decoding = None, indexer_info = None):
         super().__init__(parent, None, parent._logger)
 
         self._i2c_controller = i2c_controller
@@ -39,6 +39,9 @@ class Base_Chip(GUI_Helper):
                 "builder": self.empty_tab_builder
             }
         )
+
+        if indexer_info is not None:
+            self._build_indexer_vars(indexer_info)
 
         for address_space in self._register_model:
             decoding = None
@@ -101,13 +104,16 @@ class Base_Chip(GUI_Helper):
 
             if minimum is None and maximum is None:
                 continue
+            value = minimum
+            if value is None:
+                value=maximum
 
             self._indexer_vars[variable] = {
                 "variable": tk.StringVar(),
                 "min": minimum,
                 "max": maximum
             }
-            self._indexer_vars[variable]["variable"].set(minimum)
+            self._indexer_vars[variable]["variable"].set(value)
 
     def get_indexer_array(self, indexer_info):
         indexer_variables = indexer_info["vars"]

@@ -12,7 +12,7 @@ import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 
-def etroc2_column_row_to_base_address(block: str, column: int, row: int, broadcast: bool = False):
+def etroc2_column_row_to_base_address(block: str, column: int, row: int):
     address = 0b1000000000000000
 
     if block == "Pixel Config":
@@ -22,6 +22,7 @@ def etroc2_column_row_to_base_address(block: str, column: int, row: int, broadca
     else:
         raise RuntimeError("The etroc2 register block must be either 'Pixel Config' or 'Pixel Status'")
 
+    broadcast = False
     if broadcast:
         address = address | 0b0010000000000000
 
@@ -243,9 +244,9 @@ register_model = {
             },
             "Pixel Config": {  # Register Block
                 "Indexer":{
-                    "vars": ["block", "column", "row", "broadcast"],
-                    "min": [None,  0,  0, 0],
-                    "max": [None, 16, 16, 1],
+                    "vars": ["block", "column", "row"],
+                    "min": [None,  0,  0],
+                    "max": [None, 16, 16],
                     "function": etroc2_column_row_to_base_address,
                 },
                 "Registers": {
@@ -381,9 +382,9 @@ register_model = {
             },
             "Pixel Status": {  # Register Block
                 "Indexer":{
-                    "vars": ["block", "column", "row", "broadcast"],
-                    "min": [None,  0,  0, 0],
-                    "max": [None, 16, 16, 1],
+                    "vars": ["block", "column", "row"],
+                    "min": [None,  0,  0],
+                    "max": [None, 16, 16],
                     "function": etroc2_column_row_to_base_address,
                 },
                 "Registers": {
@@ -1055,8 +1056,22 @@ register_decoding = {
 }
 
 class ETROC2_Chip(Base_Chip):
+
+    _indexer_info = {
+        "vars": ["block", "column", "row", "broadcast"],
+        "min": [None,  0,  0, 0],
+        "max": [None, 16, 16, 1],
+    }
+
     def __init__(self, parent: GUI_Helper, i2c_controller: Connection_Controller):
-        super().__init__(parent=parent, chip_name="ETROC2", i2c_controller=i2c_controller, register_model=register_model, register_decoding=register_decoding)
+        super().__init__(
+            parent=parent,
+            chip_name="ETROC2",
+            i2c_controller=i2c_controller,
+            register_model=register_model,
+            register_decoding=register_decoding,
+            indexer_info = self._indexer_info
+        )
 
         self._i2c_address = None
         self._waveform_sampler_i2c_address = None
@@ -1097,12 +1112,6 @@ class ETROC2_Chip(Base_Chip):
                 "builder": self.pixel_decoded_builder,
             }
         )
-
-        for block in self._register_model["ETROC2"]["Register Blocks"]:
-            print(block)
-
-        indexer_info = self._register_model["ETROC2"]["Register Blocks"]["Pixel Config"]["Indexer"]
-        self._build_indexer_vars(indexer_info)
 
     def update_whether_modified(self):
         if self._i2c_address is not None:
