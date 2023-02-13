@@ -115,6 +115,12 @@ class Base_Chip(GUI_Helper):
             }
             self._indexer_vars[variable]["variable"].set(value)
 
+    def save_config(self):
+        pass
+
+    def load_config(self):
+        pass
+
     def get_indexer_array(self, indexer_info):
         indexer_variables = indexer_info["vars"]
         variables_min = indexer_info["min"]
