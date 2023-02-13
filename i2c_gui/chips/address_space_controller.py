@@ -41,7 +41,23 @@ class Address_Space_Controller(GUI_Helper):
                     self._register_map[block + "/" + register] = full_address
                     self._display_vars[full_address].set(hex_0fill(register_map[block]["Registers"][register]['default'], 8))
             elif "Indexer" in register_map[block]:
-                pass
+                indexer_info = register_map[block]['Indexer']
+                min_address, max_address, base_addresses = self._get_indexed_block_address_range(block, indexer_info, register_map[block]['Registers'])
+
+                if max_address >= min_address:
+                    self._blocks[block] = {
+                        "Base Address": min_address,
+                        "Length": max_address - min_address + 1
+                    }
+
+                for register in register_map[block]["Registers"]:
+                    offset = register_map[block]["Registers"][register]["offset"]
+                    for base_name in base_addresses:
+                        base_address = base_addresses[base_name]['base_address']
+                        full_address = base_address + offset
+                        full_register_name = block + "/" + register + base_name[base_name.find(':'):]
+                        self._register_map[full_register_name] = full_address
+                        self._display_vars[full_address].set(hex_0fill(register_map[block]["Registers"][register]['default'], 8))
             else:
                 self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address or does not have an indexer")
 
@@ -62,6 +78,59 @@ class Address_Space_Controller(GUI_Helper):
                         self._update_decoded_value(block, value, bits, regInfo)
                         register_var.trace('w', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_decoded_value(block, value, bits, position))
                         self._decoded_display_vars[block + "/" + value].trace('w', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_register(block, value, bits, position))
+
+    def _get_indexed_block_address_range(self, block_name, indexer_info, register_map):
+        indexer_function = indexer_info['function']
+
+        registers = {}
+        for idx in range(len(indexer_info['vars'])):
+            var = indexer_info['vars'][idx]
+            min = indexer_info['min'][idx]
+            max = indexer_info['max'][idx]
+
+            old_registers = registers
+            registers = {}
+
+            if var == "block" and min is None and max is None:
+                param = block_name
+                if len(old_registers) == 0:
+                    registers[param] = {
+                        'params': {'block': param},
+                    }
+                else:
+                    for old in old_registers:
+                        registers[old + ":" + param] = {}
+                        registers[old + ":" + param]['params'] = old_registers[old]['params']
+                        registers[old + ":" + param]['params']['block'] = str(param)
+            else:
+                for i in range(max - min):
+                    if len(old_registers) == 0:
+                        registers[i] = {
+                            'params': {var: i},
+                        }
+                    else:
+                        for old in old_registers:
+                            registers[old + ":" + str(i)] = {}
+                            registers[old + ":" + str(i)]['params'] = (old_registers[old]['params']).copy()
+                            registers[old + ":" + str(i)]['params'][var] = i
+
+        min_address = None
+        max_address = None
+        for key in registers:
+            address = indexer_function(**(registers[key]['params']))
+            registers[key]['base_address'] = address
+            if min_address is None or address < min_address:
+                min_address = address
+            if max_address is None or address > max_address:
+                max_address = address
+
+        max_offset = None
+        for register in register_map:
+            offset = register_map[register]['offset']
+            if max_offset is None or offset > max_offset:
+                max_offset = offset
+
+        return min_address, max_address + max_offset, registers
 
     @property
     def is_modified(self):
