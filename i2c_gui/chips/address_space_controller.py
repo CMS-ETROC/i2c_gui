@@ -153,13 +153,14 @@ class Address_Space_Controller(GUI_Helper):
         return (min_val, max_val)
 
     def update_i2c_address(self, address: int):
-        self._i2c_address = address
-        self._not_read = True
+        if address != self._i2c_address:
+            self._i2c_address = address
+            self._not_read = True
 
-        if address is not None:
-            self._logger.info("Updated address space '{}' to the I2C address {}".format(self._name, hex_0fill(address, 7)))
-        else:
-            self._logger.info("Reset the I2C address for the address space '{}'".format(self._name))
+            if address is not None:
+                self._logger.info("Updated address space '{}' to the I2C address {}".format(self._name, hex_0fill(address, 7)))
+            else:
+                self._logger.info("Reset the I2C address for the address space '{}'".format(self._name))
 
     def get_memory(self, register_name):
         return self._memory[self._register_map[register_name]]
