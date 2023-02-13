@@ -1168,6 +1168,7 @@ class ETROC2_Chip(Base_Chip):
         if "ETROC2" in self._address_space:
             address_space: Address_Space_Controller = self._address_space["ETROC2"]
             address_space.update_i2c_address(address)
+        self.update_whether_modified()
 
     def config_waveform_sampler_i2c_address(self, address):
         self._waveform_sampler_i2c_address = address
@@ -1176,6 +1177,7 @@ class ETROC2_Chip(Base_Chip):
         if "Waveform Sampler" in self._address_space:
             address_space: Address_Space_Controller = self._address_space["Waveform Sampler"]
             address_space.update_i2c_address(address)
+        self.update_whether_modified()
 
     def graphical_interface_builder(self, frame: ttk.Frame):
         pass
