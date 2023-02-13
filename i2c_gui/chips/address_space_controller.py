@@ -50,6 +50,12 @@ class Address_Space_Controller(GUI_Helper):
                         "Length": max_address - min_address + 1
                     }
 
+                for block_name in base_addresses:
+                    self._blocks[block_name] = {
+                        "Base Address": base_addresses[block_name]['base_address'],
+                        "Length": len(register_map[block]["Registers"])
+                    }
+
                 for register in register_map[block]["Registers"]:
                     offset = register_map[block]["Registers"][register]["offset"]
                     for base_name in base_addresses:
