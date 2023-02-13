@@ -195,7 +195,7 @@ class Connection_Controller(GUI_Helper):
                     this_block_address = self.swap_endian_16bit(this_block_address)
                 bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
                 tmp += self._iss.i2c.read_ad2(device_address, this_block_address, bytes_to_read)
-                sleep(0.0001)
+                sleep(0.00001)
             return tmp
 
     def write_device_memory(self, device_address: int, memory_address: int, data: list[int]):
@@ -227,4 +227,4 @@ class Connection_Controller(GUI_Helper):
                     this_block_address = self.swap_endian_16bit(this_block_address)
                 bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
                 self._iss.i2c.write_ad2(device_address, this_block_address, data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write])
-                sleep(0.0001)
+                sleep(0.00001)
