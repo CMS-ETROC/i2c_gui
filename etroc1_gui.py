@@ -6,6 +6,7 @@ import i2c_gui
 def main():
     root = tk.Tk()
     i2c_gui.__no_connect__ = True
+    i2c_gui.set_swap_endian()
     i2c_gui.set_platform(root.tk.call('tk', 'windowingsystem'))
 
     # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(name)s %(levelname)s:%(message)s')
