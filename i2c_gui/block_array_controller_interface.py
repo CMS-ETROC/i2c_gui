@@ -89,4 +89,4 @@ class Block_Array_Controller_Interface(Base_Interface):
         return False
 
     def _invalid_control_variable(self, variable: str, string: str):
-        self.send_message("Invalid value trying to be set for contorl variable '{}': {}".format(variable, string))
+        self.send_message("Invalid value trying to be set for control variable '{}': {}".format(variable, string))
