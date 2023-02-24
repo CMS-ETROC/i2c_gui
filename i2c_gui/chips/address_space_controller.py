@@ -44,11 +44,11 @@ class Address_Space_Controller(GUI_Helper):
                 indexer_info = register_map[block]['Indexer']
                 min_address, max_address, base_addresses = self._get_indexed_block_address_range(block, indexer_info, register_map[block]['Registers'])
 
-                #if max_address >= min_address:  # TODO: Are we sure that this block is needed? We do not define any registers in the register_map for it...
-                #    self._blocks[block] = {
-                #        "Base Address": min_address,
-                #        "Length": max_address - min_address + 1
-                #    }
+                if max_address >= min_address:  # Note: even though not frequently used, a block covering the whole array is needed for bulk read/write operations
+                    self._blocks[block] = {
+                        "Base Address": min_address,
+                        "Length": max_address - min_address + 1
+                    }
 
                 for block_name in base_addresses:
                     self._blocks[block_name] = {
