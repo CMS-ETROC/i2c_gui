@@ -1148,16 +1148,12 @@ class ETROC2_Chip(Base_Chip):
 
     #  Since there is the broadcast feature, we can not allow to write a full adress space
     # because the broadcast feature would overwrite previous addresses, so we write in blocks
+    # since they do not cover the broadcast range
     def write_all_address_space(self, address_space_name: str):
         if address_space_name == "ETROC2":
             self._logger.info("Writing full address space: {}".format(address_space_name))
-            #address_space: Address_Space_Controller = self._address_space[address_space_name]
             for block in self._register_model[address_space_name]["Register Blocks"]:
-                if "Indexer" in self._register_model[address_space_name]["Register Blocks"][block]:
-                    pass  # TODO: implement the block array writing
-                else:
-                    super().write_all_block(address_space_name, block)
-                    #address_space.write_block(block)
+                super().write_all_block(address_space_name, block)
         else:
             super().write_all_address_space(address_space_name)
 
