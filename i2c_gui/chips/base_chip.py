@@ -212,12 +212,6 @@ class Base_Chip(GUI_Helper):
         self.send_message("Reading block {} from address space {} of chip {}".format(block_name, address_space_name, self._chip_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
         address_space.read_block(block_name)
-        #if block_name in self._register_model[address_space_name]['Register Blocks']:
-        #    print(list(self._register_model[address_space_name]['Register Blocks'][block_name]['Registers'].keys()))
-        #else:
-        #    # TODO: probably an array block?
-        #    pass
-        #pass
 
     def write_all_block(self, address_space_name: str, block_name: str):
         self.send_message("Writing block {} from address space {} of chip {}".format(block_name, address_space_name, self._chip_name))
