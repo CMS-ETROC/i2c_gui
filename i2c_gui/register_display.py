@@ -15,6 +15,18 @@ class Register_Display(GUI_Helper):
         self._name = register_name
         self._enabled = False
         self._display_var = display_var
+        self._shadow_var = None
+
+    @property
+    def shadow_var(self):
+        return self._shadow_var
+
+    @shadow_var.setter
+    def shadow_var(self, val):
+        if val is None or isinstance(val, tk.Variable):
+            self._shadow_var = val
+        else:
+            raise RuntimeError("Wrong type for shadow variable: '{}'".format(type(val)))
 
     def enable(self):
         self._enabled = True
