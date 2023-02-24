@@ -12,7 +12,7 @@ import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 
-def etroc2_column_row_to_base_address(block: str, column: int, row: int):
+def etroc2_column_row_to_base_address(block: str, column: int, row: int, broadcast: bool = False):
     address = 0b1000000000000000
 
     if block == "Pixel Config":
@@ -22,7 +22,6 @@ def etroc2_column_row_to_base_address(block: str, column: int, row: int):
     else:
         raise RuntimeError("The etroc2 register block must be either 'Pixel Config' or 'Pixel Status'")
 
-    broadcast = False
     if broadcast:
         address = address | 0b0010000000000000
 
