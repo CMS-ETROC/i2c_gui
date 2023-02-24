@@ -252,6 +252,9 @@ class Base_Chip(GUI_Helper):
             return self._block_array_display_vars[address_space][block][var_name]
         return self._address_space[address_space].get_display_var(block + "/" + var_name)
 
+    def get_internal_var(self, address_space, block, var_name):
+        return self._address_space[address_space].get_display_var(block + "/" + var_name)
+
     def get_decoded_display_var(self, address_space, block, var_name):
         return self._address_space[address_space].get_decoded_display_var(block + "/" + var_name)
 
