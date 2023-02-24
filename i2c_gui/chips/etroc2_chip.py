@@ -1091,17 +1091,17 @@ class ETROC2_Chip(Base_Chip):
             }
         )
         self.register_tab(
-            "Pixel Registers",
-            {
-                "canvas": True,
-                "builder": self.pixel_register_builder,
-            }
-        )
-        self.register_tab(
             "Peripheral Decoded",
             {
                 "canvas": True,
                 "builder": self.peripheral_decoded_builder,
+            }
+        )
+        self.register_tab(
+            "Pixel Registers",
+            {
+                "canvas": True,
+                "builder": self.pixel_register_builder,
             }
         )
         self.register_tab(
