@@ -104,11 +104,22 @@ class Register_Block_Array_Interface(Base_Interface):
             self._register_handle[register] = handle
             index += 1
 
+        self.update_array_display_vars()
+
         if first_register is not None:
             self._frame.update_idletasks()
             self._register_orig_size = self._register_handle[first_register].get_size()
             self._current_displayed_columns = register_columns
             element.bind("<Configure>", self._check_for_resize, add='+')
+
+    def update_array_display_vars(self):
+        registers = list(self._register_model.keys())
+
+        for register in registers:
+            handle = self._register_handle[register]
+            internal_var: tk.StringVar = self._parent.get_internal_var(self._address_space, self._block_name, register)
+
+            handle.shadow_var = internal_var
 
     def _check_for_resize(self, event):
         from math import floor
