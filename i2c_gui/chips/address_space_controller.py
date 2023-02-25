@@ -154,7 +154,7 @@ class Address_Space_Controller(GUI_Helper):
         return False
 
     def _update_register(self, block, value, bits, position):
-        if hasattr(self, "_updating_from_register"):
+        if hasattr(self, "_updating_from_register"):  # Avoid an infinite loop where the two variables trigger each other
             return
 
         self._updating_from_decoded_value = True
@@ -176,7 +176,7 @@ class Address_Space_Controller(GUI_Helper):
         del self._updating_from_decoded_value
 
     def _update_decoded_value(self, block, value, bits, position):
-        if hasattr(self, "_updating_from_decoded_value"):
+        if hasattr(self, "_updating_from_decoded_value"):  # Avoid an infinite loop where the two variables trigger each other
             return
 
         self._updating_from_register = True
