@@ -29,7 +29,7 @@ class Register_Display(GUI_Helper):
         if val is None or isinstance(val, tk.Variable):
             # Remove previous shadow var, if any
             if self._shadow_var is not None:
-                self._shadow_var.trace_remove('write', self._shadow_callback)
+                self._shadow_var.trace_remove('write', self._callback_update_display_var)
                 self._shadow_var = None
 
             # Update displayed value
@@ -39,9 +39,9 @@ class Register_Display(GUI_Helper):
             # Set new shadow var
             self._shadow_var = val
             if self._shadow_var is not None:
-                self._shadow_callback = self._shadow_var.trace_add('write', self._update_display_var)
+                self._callback_update_display_var = self._shadow_var.trace_add('write', self._update_display_var)
             else:
-                del self._shadow_callback
+                del self._callback_update_display_var
         else:
             raise RuntimeError("Wrong type for shadow variable: '{}'".format(type(val)))
 
@@ -73,6 +73,7 @@ class Register_Display(GUI_Helper):
         return (self._frame.winfo_width(), self._frame.winfo_height())
 
     def prepare_display(self, element: tk.Tk, col: int, row: int, read_function=None, write_function=None):
+        # TODO: Add a check in case this function is called a second time? Also to protect all the callbacks and other stuff?
         self._frame = ttk.LabelFrame(element, text=self._name)
         self.set_position(col, row)
 
@@ -135,8 +136,8 @@ class Register_Display(GUI_Helper):
         self._value_binary_bit2.bind("<Button-1>", lambda e:self._toggle_bit(2))
         self._value_binary_bit1.bind("<Button-1>", lambda e:self._toggle_bit(1))
         self._value_binary_bit0.bind("<Button-1>", lambda e:self._toggle_bit(0))
-        self._display_var.trace_add('write', self._update_binary_repr)
-        self._display_var.trace_add('write', self._update_shadow_var)
+        self._callback_update_binary_repr = self._display_var.trace_add('write', self._update_binary_repr)
+        self._callback_update_shadow_var  = self._display_var.trace_add('write', self._update_shadow_var)
 
 
         if read_function is not None:
