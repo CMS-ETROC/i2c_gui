@@ -9,6 +9,9 @@ import logging
 
 class Register_Display(GUI_Helper):
     _parent: GUI_Helper
+    _display_var: tk.StringVar
+    _shadow_var: tk.Variable
+
     def __init__(self, parent: GUI_Helper, register_name: str, display_var: tk.StringVar):
         super().__init__(parent, None, parent._logger)
 
@@ -22,9 +25,23 @@ class Register_Display(GUI_Helper):
         return self._shadow_var
 
     @shadow_var.setter
-    def shadow_var(self, val):
+    def shadow_var(self, val: tk.Variable):
         if val is None or isinstance(val, tk.Variable):
+            # Remove previous shadow var, if any
+            if self._shadow_var is not None:
+                self._shadow_var.trace_remove('write', self._shadow_callback)
+                self._shadow_var = None
+
+            # Update displayed value
+            if val is not None:
+                self._display_var.set(val.get())
+
+            # Set new shadow var
             self._shadow_var = val
+            if self._shadow_var is not None:
+                self._shadow_callback = self._shadow_var.trace_add('write', self._update_display_var)
+            else:
+                del self._shadow_callback
         else:
             raise RuntimeError("Wrong type for shadow variable: '{}'".format(type(val)))
 
@@ -118,7 +135,8 @@ class Register_Display(GUI_Helper):
         self._value_binary_bit2.bind("<Button-1>", lambda e:self._toggle_bit(2))
         self._value_binary_bit1.bind("<Button-1>", lambda e:self._toggle_bit(1))
         self._value_binary_bit0.bind("<Button-1>", lambda e:self._toggle_bit(0))
-        self._display_var.trace('w', self._update_binary_repr)
+        self._display_var.trace_add('write', self._update_binary_repr)
+        self._display_var.trace_add('write', self._update_shadow_var)
 
 
         if read_function is not None:
@@ -146,6 +164,32 @@ class Register_Display(GUI_Helper):
         if self._enabled:
             value = int(self._display_var.get(), 0)
             self._display_var.set(hex_0fill(value ^ (1 << bit_idx), 8))
+
+    def _update_display_var(self, var=None, index=None, mode=None):
+        self._logger.debug("Attempting to update display var from shadow var for {}".format(self._name))
+        if hasattr(self, "_updating_from_display_var"):  # Avoid an infinite loop where the two variables trigger each other
+            return
+        self._logger.debug("Updating display var from shadow var for {}".format(self._name))
+
+        if self._shadow_var is not None:
+            self._updating_from_shadow_var = True
+
+            self._display_var.set(self._shadow_var.get())
+
+            del self._updating_from_shadow_var
+
+    def _update_shadow_var(self, var=None, index=None, mode=None):
+        self._logger.debug("Attempting to update shadow var from display var for {}".format(self._name))
+        if hasattr(self, "_updating_from_shadow_var"):  # Avoid an infinite loop where the two variables trigger each other
+            return
+        self._logger.debug("Updating shadow var from display var for {}".format(self._name))
+
+        if self._shadow_var is not None:
+            self._updating_from_display_var = True
+
+            self._shadow_var.set(self._display_var.get())
+
+            del self._updating_from_display_var
 
     def _update_binary_repr(self, var=None, index=None, mode=None):
         binary_string = "00000000"
