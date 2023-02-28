@@ -1232,7 +1232,7 @@ class ETROC2_Chip(Base_Chip):
                 full_array=full_array,
             )
 
-    #  We need to overload the write block method so that we intercept the call for the broadcast feature
+    #  We need to overload the write register method so that we intercept the call for the broadcast feature
     def write_register(self, address_space_name: str, block_name: str, register: str):
         broadcast = self._indexer_vars['broadcast']['variable'].get()
         if address_space_name == "ETROC2" and "Indexer" in self._register_model[address_space_name]["Register Blocks"][block_name] and broadcast == "1":
