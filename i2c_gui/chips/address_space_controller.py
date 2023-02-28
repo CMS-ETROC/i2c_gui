@@ -82,8 +82,9 @@ class Address_Space_Controller(GUI_Helper):
 
                         register_var = self._display_vars[self._register_map[block + "/" + register]]
                         self._update_decoded_value(block, value, bits, regInfo)
-                        register_var.trace('w', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_decoded_value(block, value, bits, position))
-                        self._decoded_display_vars[block + "/" + value].trace('w', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_register(block, value, bits, position))
+                        # Note: Save these callbacks in case they need to be handled later
+                        register_var.trace_add('write', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_decoded_value(block, value, bits, position))
+                        self._decoded_display_vars[block + "/" + value].trace_add('write', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_register(block, value, bits, position))
 
     def _get_indexed_block_address_range(self, block_name, indexer_info, register_map):
         indexer_function = indexer_info['function']
