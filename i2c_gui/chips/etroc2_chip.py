@@ -1194,27 +1194,6 @@ class ETROC2_Chip(Base_Chip):
         else:
             super().write_all_address_space(address_space_name)
 
-    def _validate_indexers(self):
-        column = self._indexer_vars['column']['variable'].get()
-        row = self._indexer_vars['row']['variable'].get()
-
-        init_col = column
-        init_row = row
-
-        if column == "":
-            column = "0"
-        else:
-            column = str(int(column))
-
-        if row == "":
-            row = "0"
-        else:
-            row = str(int(row))
-
-        if column != init_col:
-            self._indexer_vars['column']['variable'].set(column)
-        if row != init_row:
-            self._indexer_vars['row']['variable'].set(row)
 
     def config_i2c_address(self, address):
         self._i2c_address = address

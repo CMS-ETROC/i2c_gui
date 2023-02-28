@@ -115,6 +115,19 @@ class Base_Chip(GUI_Helper):
             }
             self._indexer_vars[variable]["variable"].set(value)
 
+    def _validate_indexers(self):
+        for indexer in self._indexer_vars:
+            init_val = self._indexer_vars[indexer]['variable'].get()
+            val = init_val
+
+            if val == "":
+                val = "0"
+            else:
+                val = str(int(val))
+
+            if val != init_val:
+                self._indexer_vars[indexer]['variable'].set(val)
+
     def save_config(self, config_file: str):
         pass
 
