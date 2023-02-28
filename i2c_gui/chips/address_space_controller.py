@@ -27,43 +27,43 @@ class Address_Space_Controller(GUI_Helper):
         self._display_vars = [tk.StringVar(value = "0") for val in range(self._memory_size)]
 
         self._register_map = {}
-        for block in register_map:
-            if "Base Address" in register_map[block]:
-                base_address = register_map[block]["Base Address"]
-                self._blocks[block] = {
+        for block_name in register_map:
+            if "Base Address" in register_map[block_name]:
+                base_address = register_map[block_name]["Base Address"]
+                self._blocks[block_name] = {
                     "Base Address": base_address,
-                    "Length": len(register_map[block]["Registers"])  # Note: Assuming that all the listed registers in a block are contiguous in the memory space
+                    "Length": len(register_map[block_name]["Registers"])  # Note: Assuming that all the listed registers in a block are contiguous in the memory space
                 }
 
-                for register in register_map[block]["Registers"]:
-                    offset = register_map[block]["Registers"][register]["offset"]
+                for register in register_map[block_name]["Registers"]:
+                    offset = register_map[block_name]["Registers"][register]["offset"]
                     full_address = base_address + offset
-                    self._register_map[block + "/" + register] = full_address
-                    self._display_vars[full_address].set(hex_0fill(register_map[block]["Registers"][register]['default'], 8))
-            elif "Indexer" in register_map[block]:
-                indexer_info = register_map[block]['Indexer']
-                min_address, max_address, base_addresses = self._get_indexed_block_address_range(block, indexer_info, register_map[block]['Registers'])
+                    self._register_map[block_name + "/" + register] = full_address
+                    self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], 8))
+            elif "Indexer" in register_map[block_name]:
+                indexer_info = register_map[block_name]['Indexer']
+                min_address, max_address, base_addresses = self._get_indexed_block_address_range(block_name, indexer_info, register_map[block_name]['Registers'])
 
                 if max_address >= min_address:  # Note: even though not frequently used, a block covering the whole array is needed for bulk read/write operations
-                    self._blocks[block] = {
+                    self._blocks[block_name] = {
                         "Base Address": min_address,
                         "Length": max_address - min_address + 1
                     }
 
-                for block_name in base_addresses:
-                    self._blocks[block_name] = {
-                        "Base Address": base_addresses[block_name]['base_address'],
-                        "Length": len(register_map[block]["Registers"])  # Note: Assuming that all the listed registers in a block are contiguous in the memory space
+                for block_ref in base_addresses:  # Note: it is a block ref and not a block name because this is a block array
+                    self._blocks[block_ref] = {
+                        "Base Address": base_addresses[block_ref]['base_address'],
+                        "Length": len(register_map[block_name]["Registers"])  # Note: Assuming that all the listed registers in a block are contiguous in the memory space
                     }
 
-                for register in register_map[block]["Registers"]:
-                    offset = register_map[block]["Registers"][register]["offset"]
+                for register in register_map[block_name]["Registers"]:
+                    offset = register_map[block_name]["Registers"][register]["offset"]
                     for base_name in base_addresses:
                         base_address = base_addresses[base_name]['base_address']
                         full_address = base_address + offset
                         full_register_name = base_name + "/" + register
                         self._register_map[full_register_name] = full_address
-                        self._display_vars[full_address].set(hex_0fill(register_map[block]["Registers"][register]['default'], 8))
+                        self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], 8))
             else:
                 self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address or does not have an indexer")
 
