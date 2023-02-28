@@ -110,7 +110,8 @@ class Address_Space_Controller(GUI_Helper):
                         registers[old + ":" + param]['params'] = old_registers[old]['params']
                         registers[old + ":" + param]['params']['block'] = str(param)
             else:
-                for i in range(max - min):
+                for val_idx in range(max - min):
+                    i = min + val_idx
                     if len(old_registers) == 0:
                         registers[i] = {
                             'params': {var: i},
