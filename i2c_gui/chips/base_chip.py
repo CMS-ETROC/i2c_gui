@@ -96,11 +96,11 @@ class Base_Chip(GUI_Helper):
 
         for idx in range(len(indexer_variables)):
             variable = indexer_variables[idx]
-            if variable == "block":
-                continue
-
             minimum = variables_min[idx]
             maximum = variables_max[idx]
+
+            if variable == "block" and minimum is None and maximum is None:
+                continue
 
             if minimum is None and maximum is None:
                 continue
