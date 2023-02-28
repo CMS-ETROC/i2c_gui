@@ -1146,7 +1146,7 @@ class ETROC2_Chip(Base_Chip):
 
         self._parent._local_status_update(final_state)
 
-    def get_internal_var(self, address_space, block, var_name):
+    def get_indexed_var(self, address_space, block, var_name):
         if address_space in self._register_model and block in self._register_model[address_space]['Register Blocks'] and 'Indexer' in self._register_model[address_space]['Register Blocks'][block]:
             # This is an array block, so for accessing the individual vars we need to modify the block name with the indexing data
             block_name = block + ":{}:{}".format(self._indexer_vars['column']['variable'].get(), self._indexer_vars['row']['variable'].get())

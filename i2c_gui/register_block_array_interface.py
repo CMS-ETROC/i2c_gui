@@ -117,7 +117,7 @@ class Register_Block_Array_Interface(Base_Interface):
 
         for register in registers:
             handle = self._register_handle[register]
-            internal_var: tk.StringVar = self._parent.get_internal_var(self._address_space, self._block_name, register)
+            internal_var: tk.StringVar = self._parent.get_indexed_var(self._address_space, self._block_name, register)
 
             handle.shadow_var = internal_var
 
