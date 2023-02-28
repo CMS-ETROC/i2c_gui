@@ -222,7 +222,7 @@ class Base_Chip(GUI_Helper):
         address_space.write_all()
 
     def read_all_block(self, address_space_name: str, block_name: str, full_array: bool = False):
-        block_ref, = self._gen_block_ref_from_indexers(
+        block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
             block_name=block_name,
             full_array=full_array,
@@ -233,7 +233,7 @@ class Base_Chip(GUI_Helper):
         address_space.read_block(block_ref)
 
     def write_all_block(self, address_space_name: str, block_name: str, full_array: bool = False):
-        block_ref, = self._gen_block_ref_from_indexers(
+        block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
             block_name=block_name,
             full_array=full_array,
