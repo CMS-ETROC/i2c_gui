@@ -1112,6 +1112,24 @@ class ETROC2_Chip(Base_Chip):
             }
         )
 
+        # Set indexer vars callback, so we can update the displayed block array
+        self._callback_indexer_var = {}
+        for var in self._indexer_vars:
+            indexer_var = self._indexer_vars[var]['variable']
+            self._callback_indexer_var[var] = indexer_var.trace_add('write', self._update_indexed_vars)
+
+    def _update_indexed_vars(self, var=None, index=None, mode=None):
+        #if self._indexer_vars['column']['variable'].get() == "" or self._indexer_vars['row']['variable'].get() == "":
+        #    return
+        if hasattr(self, "_ETROC2_pixel_config_frame"):
+            self._ETROC2_pixel_config_frame.update_array_display_vars()
+        if hasattr(self, "_ETROC2_pixel_status_frame"):
+            self._ETROC2_pixel_status_frame.update_array_display_vars()
+        if hasattr(self, "_ETROC2_pixel_decoded_config_frame"):
+            self._ETROC2_pixel_decoded_config_frame.update_array_display_vars()
+        if hasattr(self, "_ETROC2_pixel_decoded_status_frame"):
+            self._ETROC2_pixel_decoded_status_frame.update_array_display_vars()
+
     def update_whether_modified(self):
         if self._i2c_address is not None:
             state = self._address_space["ETROC2"].is_modified
