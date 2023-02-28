@@ -1194,6 +1194,43 @@ class ETROC2_Chip(Base_Chip):
         else:
             super().write_all_address_space(address_space_name)
 
+    #  We need to overload the write block method so that we intercept the call for the broadcast feature
+    def write_all_block(self, address_space_name: str, block_name: str, full_array: bool = False):
+        broadcast = self._indexer_vars['broadcast']['variable'].get()
+        if address_space_name == "ETROC2" and "Indexer" in self._register_model[address_space_name]["Register Blocks"][block_name] and broadcast == "1":
+            block_ref, params = self._gen_block_ref_from_indexers(
+                address_space_name=address_space_name,
+                block_name=block_name,
+                full_array=False,  # Always specifically set to false since we always want to address a single "element" of the array due to the broadcast feature
+            )
+            params['broadcast'] = True
+
+            self.send_message("Broadcast writing block {} from address space {} of chip {}".format(block_ref, address_space_name, self._chip_name))
+
+            # Fetch the base address for the broadcast block array
+            broadcast_base_address = etroc2_column_row_to_base_address(**params)
+
+            address_space: Address_Space_Controller = self._address_space[address_space_name]
+            displayed_block_info = address_space._blocks[block_ref]
+            block_length = displayed_block_info["Length"]
+
+            # Copy values from displayed variables into the broadcast address space for writing out
+            for offset in range(block_length):
+                displayed_address = displayed_block_info["Base Address"] + offset
+                broadcast_address = broadcast_base_address + offset
+                address_space._display_vars[broadcast_address].set(
+                    address_space._display_vars[displayed_address].get()
+                )
+
+            address_space.write_memory_block(broadcast_base_address, block_length)
+
+            # TODO: Validate broadcast write
+        else:
+            super().write_all_block(
+                address_space_name=address_space_name,
+                block_name=block_name,
+                full_array=full_array,
+            )
 
     def config_i2c_address(self, address):
         self._i2c_address = address
