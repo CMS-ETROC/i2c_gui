@@ -98,8 +98,8 @@ class Register_Block_Array_Interface(Base_Interface):
                 self._register_frame,
                 tk_column,
                 tk_row,
-                read_function=lambda: self.send_message("Read Button pressed"),
-                write_function=lambda: self.send_message("Write Button pressed"),
+                read_function=lambda register=register: self.read_register(register),
+                write_function=lambda register=register: self.write_register(register),
             )
             self._register_handle[register] = handle
             index += 1
