@@ -65,7 +65,7 @@ class Address_Space_Controller(GUI_Helper):
                         self._register_map[full_register_name] = full_address
                         self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], 8))
             else:
-                self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address or does not have an indexer")
+                self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address and does not have an indexer")
 
         self._decoded_display_vars = {}
         self._decoded_bit_size = {}
