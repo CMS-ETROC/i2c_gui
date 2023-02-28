@@ -275,14 +275,26 @@ class Base_Chip(GUI_Helper):
         return block_ref, params
 
     def read_register(self, address_space_name: str, block_name: str, register: str):
-        self.send_message("Reading register {} from block {} of address space {} of chip {}".format(register, block_name, address_space_name, self._chip_name))
+        block_ref, _ = self._gen_block_ref_from_indexers(
+            address_space_name=address_space_name,
+            block_name=block_name,
+            full_array=False,
+        )
+
+        self.send_message("Reading register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
-        address_space.read_register(block_name, register)
+        address_space.read_register(block_ref, register)
 
     def write_register(self, address_space_name: str, block_name: str, register: str):
-        self.send_message("Writing register {} from block {} of address space {} of chip {}".format(register, block_name, address_space_name, self._chip_name))
+        block_ref, _ = self._gen_block_ref_from_indexers(
+            address_space_name=address_space_name,
+            block_name=block_name,
+            full_array=False,
+        )
+
+        self.send_message("Writing register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
-        address_space.write_register(block_name, register)
+        address_space.write_register(block_ref, register)
 
     def tab_needs_canvas(self, tab: str):
         return self._tabs[tab]["canvas"]
