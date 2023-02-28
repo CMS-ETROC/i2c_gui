@@ -70,21 +70,45 @@ class Address_Space_Controller(GUI_Helper):
         self._decoded_display_vars = {}
         self._decoded_bit_size = {}
         if decoded_registers is not None:
-            for block in decoded_registers:
-                for value in decoded_registers[block]:
-                    decoding_info = decoded_registers[block][value]
-                    bits = decoding_info['bits']
-                    self._decoded_display_vars[block + "/" + value] = tk.StringVar()
-                    self._decoded_bit_size[block + "/" + value] = bits
+            for block_name in decoded_registers:
+                if block_name not in register_map:
+                    self._logger.error("Skipping unknown block in register decoding map: {}".format(block_name))
+                    continue
+                for value in decoded_registers[block_name]:
+                    decoding_info = decoded_registers[block_name][value]
+                    value_bits = decoding_info['bits']
 
-                    for regInfo in decoding_info['position']:
-                        register = regInfo[0]
+                    if "Base Address" in register_map[block_name]:
+                        self._build_decoded_value(
+                            value=value,
+                            block_ref=block_name,
+                            value_bits=value_bits,
+                            decoding_position_info=decoding_info['position'],
+                        )
+                    elif "Indexer" in register_map[block_name]:
+                        _, _, base_addresses = self._get_indexed_block_address_range(block_name, indexer_info, register_map[block_name]['Registers'])
+                        for block_ref in base_addresses:  # Note: it is a block ref and not a block name because this is a block array
+                            self._build_decoded_value(
+                                value=value,
+                                block_ref=block_ref,
+                                value_bits=value_bits,
+                                decoding_position_info=decoding_info['position'],
+                            )
+                    else:
+                        self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address and does not have an indexer")
 
-                        register_var = self._display_vars[self._register_map[block + "/" + register]]
-                        self._update_decoded_value(block, value, bits, regInfo)
-                        # Note: Save these callbacks in case they need to be handled later
-                        register_var.trace_add('write', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_decoded_value(block, value, bits, position))
-                        self._decoded_display_vars[block + "/" + value].trace_add('write', lambda var, index, mode, block=block, value=value, bits=bits, position=regInfo:self._update_register(block, value, bits, position))
+    def _build_decoded_value(self, value: str, block_ref: str, value_bits: int, decoding_position_info: list[tuple]):
+        self._decoded_display_vars[block_ref + "/" + value] = tk.StringVar()
+        self._decoded_bit_size[block_ref + "/" + value] = value_bits
+
+        for regInfo in decoding_position_info:
+            register = regInfo[0]
+
+            register_var = self._display_vars[self._register_map[block_ref + "/" + register]]
+            self._update_decoded_value(block_ref, value, value_bits, regInfo)
+            # Note: Save ? these callbacks in case they need to be handled later
+            register_var.trace_add('write', lambda var, index, mode, block_ref=block_ref, value=value, value_bits=value_bits, position=regInfo:self._update_decoded_value(block_ref, value, value_bits, position))
+            self._decoded_display_vars[block_ref + "/" + value].trace_add('write', lambda var, index, mode, block_ref=block_ref, value=value, value_bits=value_bits, position=regInfo:self._update_register(block_ref, value, value_bits, position))
 
     def _get_indexed_block_address_range(self, block_name, indexer_info, register_map):
         indexer_function = indexer_info['function']
