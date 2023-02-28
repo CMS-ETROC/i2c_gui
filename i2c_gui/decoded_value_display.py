@@ -19,6 +19,7 @@ class Decoded_Value_Display(GUI_Helper):
         self._enabled = False
         self._display_var = display_var
         self._tooltip_width = tooltip_width
+        self._shadow_var = None
 
         show_binary = metadata["show_binary"]
         if show_binary == "Inline" or show_binary == True:
@@ -30,6 +31,31 @@ class Decoded_Value_Display(GUI_Helper):
         else:
             self._inline = True
             self._show_binary = False
+
+    @property
+    def shadow_var(self):
+        return self._shadow_var
+
+    @shadow_var.setter
+    def shadow_var(self, val: tk.Variable):
+        if val is None or isinstance(val, tk.Variable):
+            # Remove previous shadow var, if any
+            if self._shadow_var is not None:
+                self._shadow_var.trace_remove('write', self._callback_update_display_var)
+                self._shadow_var = None
+
+            # Update displayed value
+            if val is not None:
+                self._display_var.set(val.get())
+
+            # Set new shadow var
+            self._shadow_var = val
+            if self._shadow_var is not None:
+                self._callback_update_display_var = self._shadow_var.trace_add('write', self._update_display_var)
+            else:
+                del self._callback_update_display_var
+        else:
+            raise RuntimeError("Wrong type for shadow variable: '{}'".format(type(val)))
 
     def enable(self):
         self._enabled = True
@@ -51,6 +77,7 @@ class Decoded_Value_Display(GUI_Helper):
         return (self._frame.winfo_width(), self._frame.winfo_height())
 
     def prepare_display(self, element: tk.Tk, col: int, row: int):
+        # TODO: Add a check in case this function is called a second time? Also to protect all the callbacks and other stuff?
         self._frame = ttk.LabelFrame(element, text=self._name)
         self.set_position(col, row)
 
@@ -103,8 +130,10 @@ class Decoded_Value_Display(GUI_Helper):
                     bit_label.bind("<Button-1>", lambda e, bit=bit:self._toggle_bit(bit))
                     self.__setattr__("_value_binary_bit{}".format(bit), bit_label)
 
-                self._display_var.trace('w', self._update_binary_repr)
+                self._callback_update_binary_repr = self._display_var.trace_add('write', self._update_binary_repr)
                 self._update_binary_repr()
+
+        self._callback_update_shadow_var  = self._display_var.trace_add('write', self._update_shadow_var)
 
         if self._info != "":
             self._info_button = ttk.Label(self._frame, text="ⓘ", borderwidth=1, relief="solid", padding=2)
@@ -160,6 +189,32 @@ class Decoded_Value_Display(GUI_Helper):
         if self._enabled:
             value = int(self._display_var.get(), 0)
             self._display_var.set(hex_0fill(value ^ (1 << bit_idx), self._bits))
+
+    def _update_display_var(self, var=None, index=None, mode=None):
+        self._logger.debug("Attempting to update display var from shadow var for {}".format(self._name))
+        if hasattr(self, "_updating_from_display_var"):  # Avoid an infinite loop where the two variables trigger each other
+            return
+        self._logger.debug("Updating display var from shadow var for {}".format(self._name))
+
+        if self._shadow_var is not None:
+            self._updating_from_shadow_var = True
+
+            self._display_var.set(self._shadow_var.get())
+
+            del self._updating_from_shadow_var
+
+    def _update_shadow_var(self, var=None, index=None, mode=None):
+        self._logger.debug("Attempting to update shadow var from display var for {}".format(self._name))
+        if hasattr(self, "_updating_from_shadow_var"):  # Avoid an infinite loop where the two variables trigger each other
+            return
+        self._logger.debug("Updating shadow var from display var for {}".format(self._name))
+
+        if self._shadow_var is not None:
+            self._updating_from_display_var = True
+
+            self._shadow_var.set(self._display_var.get())
+
+            del self._updating_from_display_var
 
     def _update_binary_repr(self, var=None, index=None, mode=None):
         binary_string = ''.join(["0" for i in range(self._bits)])
