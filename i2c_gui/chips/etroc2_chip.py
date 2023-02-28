@@ -1190,7 +1190,7 @@ class ETROC2_Chip(Base_Chip):
         if address_space_name == "ETROC2":
             self._logger.info("Writing full address space: {}".format(address_space_name))
             for block in self._register_model[address_space_name]["Register Blocks"]:
-                super().write_all_block(address_space_name, block)
+                super().write_all_block(address_space_name, block, full_array=True)
         else:
             super().write_all_address_space(address_space_name)
 
