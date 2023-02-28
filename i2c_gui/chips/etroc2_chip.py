@@ -1149,7 +1149,19 @@ class ETROC2_Chip(Base_Chip):
     def get_indexed_var(self, address_space, block, var_name):
         if address_space in self._register_model and block in self._register_model[address_space]['Register Blocks'] and 'Indexer' in self._register_model[address_space]['Register Blocks'][block]:
             # This is an array block, so for accessing the individual vars we need to modify the block name with the indexing data
-            block_name = block + ":{}:{}".format(self._indexer_vars['column']['variable'].get(), self._indexer_vars['row']['variable'].get())
+            column = self._indexer_vars['column']['variable'].get()
+            row = self._indexer_vars['row']['variable'].get()
+
+            if column == "":
+                column = "0"
+            else:
+                column = str(int(column))
+            if row == "":
+                row = "0"
+            else:
+                row = str(int(row))
+
+            block_name = block + ":{}:{}".format(column, row)
             return self._address_space[address_space].get_display_var(block_name + "/" + var_name)
         return self._address_space[address_space].get_display_var(block + "/" + var_name)
 
