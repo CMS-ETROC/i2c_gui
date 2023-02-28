@@ -1232,6 +1232,43 @@ class ETROC2_Chip(Base_Chip):
                 full_array=full_array,
             )
 
+    #  We need to overload the write block method so that we intercept the call for the broadcast feature
+    def write_register(self, address_space_name: str, block_name: str, register: str):
+        broadcast = self._indexer_vars['broadcast']['variable'].get()
+        if address_space_name == "ETROC2" and "Indexer" in self._register_model[address_space_name]["Register Blocks"][block_name] and broadcast == "1":
+            block_ref, params = self._gen_block_ref_from_indexers(
+                address_space_name=address_space_name,
+                block_name=block_name,
+                full_array=False,
+            )
+            params['broadcast'] = True
+
+            self.send_message("Broadcast writing register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
+
+            # Fetch the base address for the broadcast block array
+            broadcast_base_address = etroc2_column_row_to_base_address(**params)
+            offset = self._register_model[address_space_name]["Register Blocks"][block_name]['Registers'][register]['offset']
+            broadcast_address = broadcast_base_address + offset
+
+            address_space: Address_Space_Controller = self._address_space[address_space_name]
+            displayed_block_info = address_space._blocks[block_ref]
+            displayed_address = displayed_block_info["Base Address"] + offset
+
+            # Copy values from displayed variable into the broadcast address for writing out
+            address_space._display_vars[broadcast_address].set(
+                address_space._display_vars[displayed_address].get()
+            )
+
+            address_space.write_memory_register(broadcast_address)
+
+            # TODO: Validate broadcast write
+        else:
+            super().write_register(
+                address_space_name=address_space_name,
+                block_name=block_name,
+                register=register,
+            )
+
     def config_i2c_address(self, address):
         self._i2c_address = address
 
