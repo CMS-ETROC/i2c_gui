@@ -1271,6 +1271,60 @@ register_decoding = {
                 },
             },
             "Pixel Status": {  # Register Block
+                "ACC": {
+                    "bits": 16,
+                    "position": [("PixSta5", "7-0", "7-0"), ("PixSta6", "7-0", "15-8")],
+                    "info": "Accumulator of the threshold calibration",
+                    "show_binary": True
+                },
+                "ScanDone": {
+                    "bits": 1,
+                    "position": [("PixSta1", "0", "0")],
+                    "info": "Scan done signal of the threshold calibration",
+                    "show_binary": False
+                },
+                "BL": {
+                    "bits": 10,
+                    "position": [("PixSta2", "7-0", "7-0"), ("PixSta3", "1-0", "9-8")],
+                    "info": "Baseline obtained from threshold calibration",
+                    "show_binary": False
+                },
+                "NW": {
+                    "bits": 4,
+                    "position": [("PixSta1", "4-1", "3-0")],
+                    "info": "Noise width from threshold calibration (expected less than 10)",
+                    "show_binary": False
+                },
+                "TH": {
+                    "bits": 10,
+                    "position": [("PixSta3", "7-6", "1-0"), ("PixSta4", "7-0", "9-2")],
+                    "info": "10-bit threshold applied to the DAC input",
+                    "show_binary": False
+                },
+                "THState": {
+                    "bits": 3,
+                    "position": [("PixSta1", "7-5", "2-0")],
+                    "info": "Threshold calibration state machine output",
+                    "show_binary": False
+                },
+                "PixelID": {
+                    "bits": 8,
+                    "position": [("PixSta0", "7-0", "7-0")],
+                    "info": "Col[3:0],Row[3:0]",
+                    "show_binary": True
+                },
+                "PixelID-Col": {
+                    "bits": 4,
+                    "position": [("PixSta0", "7-4", "3-0")],
+                    "info": "Col",
+                    "show_binary": False
+                },
+                "PixelID-Row": {
+                    "bits": 4,
+                    "position": [("PixSta0", "3-0", "3-0")],
+                    "info": "Row",
+                    "show_binary": False
+                },
             },
         }
     }
