@@ -324,7 +324,7 @@ class Base_Chip(GUI_Helper):
         return self._address_space[address_space].get_display_var(block_ref + "/" + var_name)
 
     def get_decoded_display_var(self, address_space, block_name, var_name):
-        if address_space in self._block_array_display_vars and block_name in self._block_array_display_vars[address_space] and var_name in self._block_array_display_vars[address_space][block_name]:
+        if address_space in self._block_array_decoded_display_vars and block_name in self._block_array_decoded_display_vars[address_space] and var_name in self._block_array_decoded_display_vars[address_space][block_name]:
             return self._block_array_decoded_display_vars[address_space][block_name][var_name]
         return self._address_space[address_space].get_decoded_display_var(block_name + "/" + var_name)
 
