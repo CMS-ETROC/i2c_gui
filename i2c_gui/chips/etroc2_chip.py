@@ -1047,6 +1047,228 @@ register_decoding = {
                 },
             },
             "Pixel Config": {  # Register Block
+                "CLSel": {
+                    "bits": 2,
+                    "position": [("PixCfg0", "1-0", "1-0")],
+                    "info": "{0} selects the load capacitance of the preamp first stage. Debugging use only.\n - 0b00: 0 fC\n - 0b01: 80 fC\n - 0b10: 80 fC\n - 0b11: 160 fC",
+                    "show_binary": True
+                },
+                "IBSel": {
+                    "bits": 3,
+                    "position": [("PixCfg0", "4-2", "2-0")],
+                    "info": "{0} sets the bias current of the input transistor in the preamp.\n - 0b000: I1\n - 0b001, 0b010, 0b100: I2\n - 0b011, 0b110, 0b101: I3\n - 0b111: I4\nI1 > I2 > I3 > I4",
+                    "show_binary": True
+                },
+                "RFSel": {
+                    "bits": 2,
+                    "position": [("PixCfg0", "6-5", "1-0")],
+                    "info": "{0} sets the feedback resistance.\n - 0b00: 20 kOHm\n - 0b01: 10 kOHm\n - 0b10: 5.7 kOHm\n - 0b11: 4.4 kOHm",
+                    "show_binary": True
+                },
+                "HysSel": {
+                    "bits": 4,
+                    "position": [("PixCfg2", "3-0", "3-0")],
+                    "info": "{0} sets the hysteresis voltage.\n - 0b0000: Vhys1\n - 0b0001: Vhys2\n - 0b0011: Vhys3\n - 0b0111: Vhys4\n - 0b1111: Vhys5\nVhys1 > Vhys2 > Vhys3 > Vhys4 = Vhys5 = 0",
+                    "show_binary": True
+                },
+                "PD_DACDiscri": {
+                    "bits": 1,
+                    "position": [("PixCfg2", "4", "0")],
+                    "info": "{0} powers down the DAC and the discriminator in pixels.\nWhen {0} is High, the DAC and the discriminator are powered down.",
+                    "show_binary": False
+                },
+                "QSel": {
+                    "bits": 5,
+                    "position": [("PixCfg1", "4-0", "4-0")],
+                    "info": "{0} selects the injected charge. From 1 fC(0b00000) to 32 fC(0b11111).",
+                    "show_binary": False
+                },
+                "QInjEn": {
+                    "bits": 1,
+                    "position": [("PixCfg1", "5", "0")],
+                    "info": "{0} enables the charge injection of the respective pixel.\nWhen {0} is High, the charge injection is active.",
+                    "show_binary": False
+                },
+                "autoReset_TDC": {
+                    "bits": 1,
+                    "position": [("PixCfg6", "5", "0")],
+                    "info": "{0} defines if the TDC automatically resets the controller for every clock period.",
+                    "show_binary": False
+                },
+                "enable_TDC": {
+                    "bits": 1,
+                    "position": [("PixCfg6", "7", "0")],
+                    "info": "{0} enables the TDC.\n - 0b1: enable TDC conversion\n - 0b0: disable TDC conversion",
+                    "show_binary": False
+                },
+                "level_TDC": {
+                    "bits": 3,
+                    "position": [("PixCfg6", "3-1", "2-0")],
+                    "info": "{0} sets the bit width of bubble tolerant in TDC encode (?). It is up to 0b011",
+                    "show_binary": False
+                },
+                "resetn_TDC": {
+                    "bits": 1,
+                    "position": [("PixCfg6", "6", "0")],
+                    "info": "{0} resets the TDC encoder, active low.",
+                    "show_binary": False
+                },
+                "testMode_TDC": {
+                    "bits": 1,
+                    "position": [("PixCfg6", "4", "0")],
+                    "info": "{0} enables test mode of TDC, active high.\nIn test mode, the TDC generates a fixed test pulse as input signal for test for every 25 ns.",
+                    "show_binary": False
+                },
+                "Bypass_THCal": {
+                    "bits": 1,
+                    "position": [("PixCfg3", "2", "0")],
+                    "info": "{0} bypasses control of the in-pixel threshold calibration block.\n - 1: bypass the in-pixel threshold calibration block. DAC is applied to TH. Users can control the threshold voltage through DAC.\n - 0: calibrated threshold is applied to TH. TH = BL + TH_offset",
+                    "show_binary": False
+                },
+                "DAC": {
+                    "bits": 10,
+                    "position": [("PixCfg4", "7-0", "7-0"), ("PixCfg5", "9-8", "1-0")],
+                    "info": "{0} sets the threshold when Bypass_THCal is High: TH = DAC",
+                    "show_binary": False
+                },
+                "TH_offset": {
+                    "bits": 6,
+                    "position": [("PixCfg5", "7-2", "5-0")],
+                    "info": "{0} sets the threshold offset for the calibrated baseline when Bypass_THCal is Low: TH = BL + TH_offset",
+                    "show_binary": False
+                },
+                "RSTn_THCal": {
+                    "bits": 1,
+                    "position": [("PixCfg3", "0", "0")],
+                    "info": "Reset of threshold calibration block, active low.",
+                    "show_binary": False
+                },
+                "ScanStart_THCal": {
+                    "bits": 1,
+                    "position": [("PixCfg3", "4", "0")],
+                    "info": "A rising edge of {0} initializes the threshold calibration",
+                    "show_binary": False
+                },
+                "BufEn_THCal": {
+                    "bits": 1,
+                    "position": [("PixCfg3", "1", "0")],
+                    "info": "{0} enables the threshold clalibration buffer.\n - 0b1: enable the buffer between discriminator output and the TH_Ctrl\n - 0b0: disable the buffer between discriminator output and the TH_Ctrl",
+                    "show_binary": False
+                },
+                "CLKEn_THCal": {
+                    "bits": 1,
+                    "position": [("PixCfg3", "3", "0")],
+                    "info": "{} enables the clock for threshold calibration. It is only used when the threshold calibration block is bypassed.\n - 0b1: enable the clock for measuring average discriminator output\n - 0b0: disable the clock. Measurement of the average discriminator output is not available.",
+                    "show_binary": False
+                },
+                "workMode": {
+                    "bits": 2,
+                    "position": [("PixCfg7", "4-3", "1-0")],
+                    "info": "{0} selects the readout work mode.\n - 0b00: normal\n - 0b01: self test, periodic trigger fixed TDC data\n - 0b10: self test, random TDC data\n - 11: reserved",
+                    "show_binary": True
+                },
+                "L1Adelay": {
+                    "bits": 9,
+                    "position": [("PixCfg8", "7", "0"), ("PixCfg9", "7-0", "8-1")],
+                    "info": "{0} sets the L1A latency",
+                    "show_binary": False
+                },
+                "disDataReadout": {
+                    "bits": 1,
+                    "position": [("PixCfg7", "1", "0")],
+                    "info": "{0} disables the signal of the TDC data readout.\n - 0b1: disable the TDC data readout of the current pixel\n - 0b0: enable the TDC data readout of the current pixel",
+                    "show_binary": False
+                },
+                "disTrigPath": {
+                    "bits": 1,
+                    "position": [("PixCfg1", "4-0", "0")],
+                    "info": "{0} disables the signal of the trigger readout.\n - 0b1: disable the trigger readout of the current pixel\n - 0b0: enable the trigger readout of the current pixel",
+                    "show_binary": False
+                },
+                "upperTOATrig": {
+                    "bits": 10,
+                    "position": [("PixCfg21", "7-0", "7-0"), ("PixCfg22", "1-0", "9-8")],
+                    "info": "TOA upper threshold for the trigger readout",
+                    "show_binary": False
+                },
+                "lowerTOATrig": {
+                    "bits": 10,
+                    "position": [("PixCfg19", "7-6", "1-0"), ("PixCfg20", "7-0", "9-2")],
+                    "info": "TOA lower threshold for the trigger readout",
+                    "show_binary": False
+                },
+                "upperTOTTrig": {
+                    "bits": 9,
+                    "position": [("PixCfg23", "7-3", "4-0"), ("PixCfg24", "3-0", "8-5")],
+                    "info": "TOT upper threshold for the trigger readout",
+                    "show_binary": False
+                },
+                "lowerTOTTrig": {
+                    "bits": 9,
+                    "position": [("PixCfg22", "7-2", "5-0"), ("PixCfg23", "2-0", "8-6")],
+                    "info": "TOT lower threshold for the trigger readout",
+                    "show_binary": False
+                },
+                "upperCalTrig": {
+                    "bits": 10,
+                    "position": [("PixCfg18", "7-4", "3-0"), ("PixCfg19", "5-0", "9-4")],
+                    "info": "Cal upper threshold for the trigger readout",
+                    "show_binary": False
+                },
+                "lowerCalTrig": {
+                    "bits": 10,
+                    "position": [("PixCfg17", "7-2", "5-0"), ("PixCfg18", "3-0", "9-6")],
+                    "info": "Cal lower threshold for the trigger readout",
+                    "show_binary": False
+                },
+                "upperTOA": {
+                    "bits": 10,
+                    "position": [("PixCfg13", "7-6", "1-0"), ("PixCfg14", "7-0", "9-2")],
+                    "info": "TOA upper threshold for the TDC data readout",
+                    "show_binary": False
+                },
+                "lowerTOA": {
+                    "bits": 10,
+                    "position": [("PixCfg12", "7-4", "3-0"), ("PixCfg13", "5-0", "9-4")],
+                    "info": "TOA lower threshold for the TDC data readout",
+                    "show_binary": False
+                },
+                "upperTOT": {
+                    "bits": 9,
+                    "position": [("PixCfg16", "7-1", "6-0"), ("PixCfg17", "1-0", "8-7")],
+                    "info": "TOT upper threshold for the TDC data readout",
+                    "show_binary": False
+                },
+                "lowerTOT": {
+                    "bits": 9,
+                    "position": [("PixCfg15", "7-0", "7-0"), ("PixCfg16", "0", "8")],
+                    "info": "TOT lower threshold for the TDC data readout",
+                    "show_binary": False
+                },
+                "upperCal": {
+                    "bits": 10,
+                    "position": [("PixCfg11", "7-2", "5-0"), ("PixCfg12", "3-0", "9-6")],
+                    "info": "Cal upper threshold for the TDC data readout",
+                    "show_binary": False
+                },
+                "lowerCal": {
+                    "bits": 10,
+                    "position": [("PixCfg10", "7-0", "7-0"), ("PixCfg11", "1-0", "9-8")],
+                    "info": "Cal lower threshold for the TDC data readout",
+                    "show_binary": False
+                },
+                "addrOffset": {
+                    "bits": 1,
+                    "position": [("PixCfg7", "0", "0")],
+                    "info": "{0} enables the circular buffer (CB) write address offset by the pixel ID, active high.\n - 0b1: enable the CB write address offset\n - 0b0: disable the CB write address offset",
+                    "show_binary": False
+                },
+                "selfTestOccupancy": {
+                    "bits": 7,
+                    "position": [("PixCfg8", "6-0", "6-0")],
+                    "info": "Self-test data occupancy.\n - 1: 1%\n - 2: 2%\n - 5: 5%\n - 10: 10%",
+                    "show_binary": False
+                },
             },
             "Pixel Status": {  # Register Block
             },
