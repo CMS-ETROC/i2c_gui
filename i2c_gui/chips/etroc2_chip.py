@@ -1275,7 +1275,7 @@ register_decoding = {
                     "bits": 16,
                     "position": [("PixSta5", "7-0", "7-0"), ("PixSta6", "7-0", "15-8")],
                     "info": "Accumulator of the threshold calibration",
-                    "show_binary": True
+                    "show_binary": "New Line"
                 },
                 "ScanDone": {
                     "bits": 1,
