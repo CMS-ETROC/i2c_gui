@@ -309,16 +309,33 @@ class Base_Chip(GUI_Helper):
         self._empty_label = ttk.Label(frame, text="This is an empty placeholder tab")
         self._empty_label.grid(column=100, row=100)
 
-    def get_display_var(self, address_space, block, var_name):
-        if address_space in self._block_array_display_vars and block in self._block_array_display_vars[address_space] and var_name in self._block_array_display_vars[address_space][block]:
-            return self._block_array_display_vars[address_space][block][var_name]
-        return self._address_space[address_space].get_display_var(block + "/" + var_name)
+    def get_display_var(self, address_space, block_name, var_name):
+        if address_space in self._block_array_display_vars and block_name in self._block_array_display_vars[address_space] and var_name in self._block_array_display_vars[address_space][block_name]:
+            return self._block_array_display_vars[address_space][block_name][var_name]
+        return self._address_space[address_space].get_display_var(block_name + "/" + var_name)
 
-    def get_indexed_var(self, address_space, block, var_name):
-        return self._address_space[address_space].get_display_var(block + "/" + var_name)
+    def get_indexed_var(self, address_space, block_name, var_name):
+        block_ref, _ = self._gen_block_ref_from_indexers(
+            address_space_name=address_space,
+            block_name=block_name,
+            full_array=False,
+        )
 
-    def get_decoded_display_var(self, address_space, block, var_name):
-        return self._address_space[address_space].get_decoded_display_var(block + "/" + var_name)
+        return self._address_space[address_space].get_display_var(block_ref + "/" + var_name)
+
+    def get_decoded_display_var(self, address_space, block_name, var_name):
+        if address_space in self._block_array_display_vars and block_name in self._block_array_display_vars[address_space] and var_name in self._block_array_display_vars[address_space][block_name]:
+            return self._block_array_decoded_display_vars[address_space][block_name][var_name]
+        return self._address_space[address_space].get_decoded_display_var(block_name + "/" + var_name)
+
+    def get_decoded_indexed_var(self, address_space, block_name, var_name):
+        block_ref, _ = self._gen_block_ref_from_indexers(
+            address_space_name=address_space,
+            block_name=block_name,
+            full_array=False,
+        )
+
+        return self._address_space[address_space].get_decoded_display_var(block_ref + "/" + var_name)
 
     def build_block_interface(self, element: tk.Tk, title: str, internal_title: str, button_title: str, address_space: str, block: str, col: int, row: int, register_columns: int):
         from ..register_block_interface import Register_Block_Interface
