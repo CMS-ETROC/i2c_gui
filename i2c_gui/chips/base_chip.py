@@ -410,3 +410,21 @@ class Base_Chip(GUI_Helper):
         self._displayed_interfaces[internal_title] = retVal
 
         return retVal
+
+    def build_decoded_block_array_interface(self, element: tk.Tk, title: str, internal_title: str, button_title: str, address_space: str, block: str, col: int, row: int, value_columns: int):
+        from ..register_block_array_decoded_interface import Register_Block_Array_Decoded_Interface
+
+        retVal = Register_Block_Array_Decoded_Interface(
+            self,
+            address_space=address_space,
+            block_name=block,
+            block_title=title,
+            button_title=button_title,
+            decoding_info=self._register_decoding[address_space]["Register Blocks"][block]
+        )
+
+        retVal.prepare_display(element, col, row, value_columns=value_columns)
+
+        self._displayed_interfaces[internal_title] = retVal
+
+        return retVal
