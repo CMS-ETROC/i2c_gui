@@ -1390,34 +1390,34 @@ class ETROC2_Chip(Base_Chip):
         columns = 3
 
         self._ETROC2_pixel_decoded_control_frame = self.build_block_array_controls(
-            self._indexer_vars,
-            frame,
-            "Pixel Selection",
-            "Decoded Register Pixel Selection",
-            100,
-            100
+            control_variables=self._indexer_vars,
+            element=frame,
+            title="Pixel Selection",
+            internal_title="Decoded Register Pixel Selection",
+            col=100,
+            row=100
         )
 
-        return
-
-        self._ETROC2_pixel_decoded_config_frame = self.build_decoded_block_interface(
-            frame,
-            "Configuration Values",
-            "Config",
-            "ETROC2",
-            "Peripheral Config",
-            100,
-            200,
-            columns
+        self._ETROC2_pixel_decoded_config_frame = self.build_decoded_block_array_interface(
+            element=frame,
+            title="Configuration Values",
+            internal_title="Pixel Configuration Values",
+            button_title="Config",
+            address_space="ETROC2",
+            block="Pixel Config",
+            col=100,
+            row=200,
+            value_columns=columns
         )
 
-        self._ETROC2_pixel_decoded_status_frame = self.build_decoded_block_interface(
-            frame,
-            "Status Values",
-            "Status",
-            "ETROC2",
-            "Peripheral Status",
-            100,
-            300,
-            columns
+        self._ETROC2_pixel_decoded_status_frame = self.build_decoded_block_array_interface(
+            element=frame,
+            title="Status Values",
+            internal_title="Pixel Status Values",
+            button_title="Status",
+            address_space="ETROC2",
+            block="Pixel Status",
+            col=100,
+            row=300,
+            value_columns=columns
         )
