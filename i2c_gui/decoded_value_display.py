@@ -9,17 +9,20 @@ import logging
 
 class Decoded_Value_Display(GUI_Helper):
     _parent: GUI_Helper
+    _display_var: tk.StringVar
+    _shadow_var: tk.Variable
+
     def __init__(self, parent: GUI_Helper, value_name: str, display_var: tk.StringVar, metadata, tooltip_width=250):
         super().__init__(parent, None, parent._logger)
 
         self._name = value_name
+        self._enabled = False
+        self._display_var = display_var
+        self._shadow_var = None
         #self._metadata = metadata
         self._bits = metadata["bits"]
         self._info = metadata["info"]
-        self._enabled = False
-        self._display_var = display_var
         self._tooltip_width = tooltip_width
-        self._shadow_var = None
 
         show_binary = metadata["show_binary"]
         if show_binary == "Inline" or show_binary == True:
@@ -183,7 +186,7 @@ class Decoded_Value_Display(GUI_Helper):
         if self.validate_register():
             func()
         else:
-            self.send_message("Unable to write register {}, check that the value makes sense: '{}'".format(self._name, self._display_var.get()))
+            self.send_message("Unable to write value {}, check that the value makes sense: '{}'".format(self._name, self._display_var.get()))
 
     def _toggle_bit(self, bit_idx):
         if self._enabled:
@@ -227,8 +230,10 @@ class Decoded_Value_Display(GUI_Helper):
             value = binary_string[self._bits-1-bit]
             getattr(self, "_value_binary_bit{}".format(bit)).config(text=value)
 
+        self._parent.update_whether_modified()
+
     def invalid_register_value(self, string: str):
-        self.send_message("Invalid value trying to be set for register {}: {}".format(self._name, string))
+        self.send_message("Invalid value trying to be set for value {}: {}".format(self._name, string))
 
     def validate_register(self):
         if self._display_var.get() == "" or self._display_var.get() == "0x":

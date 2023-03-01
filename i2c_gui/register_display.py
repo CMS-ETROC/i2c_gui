@@ -160,7 +160,6 @@ class Register_Display(GUI_Helper):
         else:
             self.send_message("Unable to write register {}, check that the value makes sense: '{}'".format(self._name, self._display_var.get()))
 
-
     def _toggle_bit(self, bit_idx):
         if self._enabled:
             value = int(self._display_var.get(), 0)
