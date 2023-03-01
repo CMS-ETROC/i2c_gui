@@ -28,6 +28,7 @@ class Base_Chip(GUI_Helper):
         self._indexer_vars = {}
         self._indexer_array = {}
         self._block_array_display_vars = {}
+        self._block_array_decoded_display_vars = {}
 
         self._i2c_controller.register_connection_callback(self._connection_update)
 
@@ -50,11 +51,15 @@ class Base_Chip(GUI_Helper):
             self._register_address_space(address_space, None, self._register_model[address_space], decoding)
 
             self._block_array_display_vars[address_space] = {}
+            self._block_array_decoded_display_vars[address_space] = {}
             for block in self._register_model[address_space]["Register Blocks"]:
                 if "Indexer" in self._register_model[address_space]["Register Blocks"][block]:
                     self._block_array_display_vars[address_space][block] = {}
+                    self._block_array_decoded_display_vars[address_space][block] = {}
                     for register in self._register_model[address_space]["Register Blocks"][block]["Registers"]:
                         self._block_array_display_vars[address_space][block][register] = tk.StringVar()
+                    for value in self._register_decoding[address_space]["Register Blocks"][block]:
+                        self._block_array_decoded_display_vars[address_space][block][value] = tk.StringVar()
 
     @property
     def tabs(self):
