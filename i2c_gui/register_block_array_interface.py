@@ -64,10 +64,20 @@ class Register_Block_Array_Interface(Base_Interface):
         self._control_frame = ttk.Frame(self._frame)
         self._control_frame.grid(column=100, row=200, sticky=(tk.N, tk.E))
 
-        self._read_button = ttk.Button(self._control_frame, text="Read " + self._button_title, command=lambda address_space=self._address_space, block=self._block_name:self._parent.read_all_block(address_space, block), state=state)
+        self._read_button = ttk.Button(
+            self._control_frame,
+            text="Read " + self._button_title,
+            command=lambda address_space=self._address_space, block=self._block_name:self._parent.read_all_block(address_space, block),
+            state=state
+        )
         self._read_button.grid(column=100, row=100, sticky=(tk.W, tk.E))
 
-        self._write_button = ttk.Button(self._control_frame, text="Write " + self._button_title, command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block), state=state)
+        self._write_button = ttk.Button(
+            self._control_frame,
+            text="Write " + self._button_title,
+            command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block),
+            state=state
+        )
         self._write_button.grid(column=200, row=100, sticky=(tk.W, tk.E))
 
         self._register_frame = ttk.Frame(self._frame)

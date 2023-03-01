@@ -98,10 +98,11 @@ class Register_Block_Interface(Base_Interface):
             row    = int(index / register_columns)
             tk_column = (column + 1) * 100
             tk_row = (row + 1) * 100
+            display_var = self._parent.get_display_var(self._address_space, self._block_name, register)
             handle = Register_Display(
                 self,
                 register_name=register,
-                display_var=self._parent.get_display_var(self._address_space, self._block_name, register)
+                display_var=display_var
             )
             handle.prepare_display(
                 self._register_frame,

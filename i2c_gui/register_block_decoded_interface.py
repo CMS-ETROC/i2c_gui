@@ -23,6 +23,9 @@ class Register_Block_Decoded_Interface(Base_Interface):
         self._button_title = button_title
         self._decoding_info = decoding_info
 
+    def update_whether_modified(self):
+        self._parent.update_whether_modified()
+
     def enable(self):
         super().enable()
         if hasattr(self, "_read_button"):
@@ -55,10 +58,20 @@ class Register_Block_Decoded_Interface(Base_Interface):
         self._control_frame = ttk.Frame(self._frame)
         self._control_frame.grid(column=100, row=200, sticky=(tk.N, tk.E))
 
-        self._read_button = ttk.Button(self._control_frame, text="Read " + self._button_title, command=lambda address_space=self._address_space, block=self._block_name:self._parent.read_all_block(address_space, block), state=state)
+        self._read_button = ttk.Button(
+            self._control_frame,
+            text="Read " + self._button_title,
+            command=lambda address_space=self._address_space, block=self._block_name:self._parent.read_all_block(address_space, block),
+            state=state
+        )
         self._read_button.grid(column=100, row=100, sticky=(tk.W, tk.E))
 
-        self._write_button = ttk.Button(self._control_frame, text="Write " + self._button_title, command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block), state=state)
+        self._write_button = ttk.Button(
+            self._control_frame,
+            text="Write " + self._button_title,
+            command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block),
+            state=state
+        )
         self._write_button.grid(column=200, row=100, sticky=(tk.W, tk.E))
 
         self._value_frame = ttk.Frame(self._frame)
@@ -79,10 +92,11 @@ class Register_Block_Decoded_Interface(Base_Interface):
             row    = int(index / value_columns)
             tk_column = (column + 1) * 100
             tk_row = (row + 1) * 100
+            display_var = self._parent.get_decoded_display_var(self._address_space, self._block_name, value)
             handle = Decoded_Value_Display(
                 self,
                 value_name=value,
-                display_var=self._parent.get_decoded_display_var(self._address_space, self._block_name, value),
+                display_var=display_var,
                 metadata=self._decoding_info[value]
             )
             handle.prepare_display(
