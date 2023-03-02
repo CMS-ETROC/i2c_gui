@@ -13,7 +13,7 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 
 class Base_Chip(GUI_Helper):
-    def __init__(self, parent: GUI_Helper, chip_name: str, i2c_controller: Connection_Controller, register_model = None, register_decoding = None, indexer_info = None):
+    def __init__(self, parent: GUI_Helper, chip_name: str, version: str, i2c_controller: Connection_Controller, register_model = None, register_decoding = None, indexer_info = None):
         super().__init__(parent, None, parent._logger)
 
         self._i2c_controller = i2c_controller
@@ -21,6 +21,7 @@ class Base_Chip(GUI_Helper):
         self._register_model = register_model
         self._register_decoding = register_decoding
         self._chip_name = chip_name
+        self._version = version
 
         self._enabled = False
         self._toggle_elements = {}

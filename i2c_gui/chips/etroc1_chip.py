@@ -49,7 +49,14 @@ register_decoding = {
 
 class ETROC1_Chip(Base_Chip):
     def __init__(self, parent: GUI_Helper, i2c_controller: Connection_Controller):
-        super().__init__(parent=parent, chip_name="ETROC1", i2c_controller=i2c_controller, register_model=register_model, register_decoding=register_decoding)
+        super().__init__(
+            parent=parent,
+            chip_name="ETROC1",
+            version="0.0.1",
+            i2c_controller=i2c_controller,
+            register_model=register_model,
+            register_decoding=register_decoding
+        )
 
         self.clear_tab("Empty")
         self.register_tab(
