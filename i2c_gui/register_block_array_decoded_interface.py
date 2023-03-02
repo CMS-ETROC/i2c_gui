@@ -117,13 +117,11 @@ class Register_Block_Array_Decoded_Interface(Base_Interface):
             #element.bind("<Configure>", self._check_for_resize, add='+')
 
     def update_array_display_vars(self):
-        # TODO: fix this
-        return
-        registers = list(self._register_model.keys())
+        values = list(self._decoding_info.keys())
 
-        for register in registers:
-            handle = self._register_handle[register]
-            internal_var: tk.StringVar = self._parent.get_indexed_var(self._address_space, self._block_name, register)
+        for value in values:
+            handle = self._value_handle[value]
+            internal_var: tk.StringVar = self._parent.get_decoded_indexed_var(self._address_space, self._block_name, value)
 
             handle.shadow_var = internal_var
 
