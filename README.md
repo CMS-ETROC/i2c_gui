@@ -51,6 +51,12 @@ python -m pip install usb-iss
 python -m pip install pillow
 ```
 
+
+It may be desirable to install the dependencies and run the GUI inside a `venv` to isolate it from the python packages locally installed on the system and thus avoid library conflicts. You must do this before installing the dependencies above. To get a venv, simply run the command `python -m venv venv` (this will create a venv named venv, the name is the last parameter). Then, to activate the venv before running the GUI, use the following command:
+* Windows:
+* Linux/macOS: `source venv/ben/activate`
+On windows you may also need to run the following command first: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`. See the official venv documentation for any questions: [link](https://docs.python.org/3/library/venv.html)
+
 ### After installation
 
 You can now run the GUI tool. There are a couple different versions to choose from, at the moment the etroc2_gui.py and the etroc1_gui.py (placeholder). From the command line simply run `python [gui script you want to run]` in order to run the GUI. On some operating systems it is also possible to double click on the python file from the file explorer instead.
