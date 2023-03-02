@@ -54,11 +54,12 @@ python -m pip install pillow
 
 It may be desirable to install the dependencies and run the GUI inside a `venv` to isolate it from the python packages locally installed on the system and thus avoid library conflicts. You must do this before installing the dependencies above. To get a venv, simply run the command `python -m venv venv` (this will create a venv named venv, the name is the last parameter). Then, to activate the venv before running the GUI, use the following command:
 * Windows:
-    * CMD: venv\Scripts\activate.bat
-    * Power Shell: venv\Scripts\Activate.ps1
+    * CMD: `venv\Scripts\activate.bat`
+    * Power Shell: `venv\Scripts\Activate.ps1`
 * Linux/macOS:
     * bash/zsh: `source venv/ben/activate`
-On windows you may also need to run the following command first: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`. See the official venv documentation for any questions: [link](https://docs.python.org/3/library/venv.html)
+
+On windows Power Shell you may also need to run the following command first: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`. See the official venv documentation for any questions: [link](https://docs.python.org/3/library/venv.html)
 
 ### After installation
 
