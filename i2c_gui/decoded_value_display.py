@@ -7,6 +7,11 @@ import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 
+def max_digits(bits):
+    """Return the maximum number of decimal digits needed to represent a certain amount of bits"""
+    maxVal = 2**bits - 1
+    return len(str(maxVal))
+
 class Decoded_Value_Display(GUI_Helper):
     _parent: GUI_Helper
     _display_var: tk.StringVar
@@ -97,8 +102,7 @@ class Decoded_Value_Display(GUI_Helper):
             self._value_label = ttk.Label(self._frame, text="Value:")
             self._value_label.grid(column=100, row=100, sticky=tk.E)
 
-            from math import ceil
-            self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=state, width=max(5, ceil(self._bits/4) + 2))
+            self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=state, width=max(5, max_digits(self._bits) + 2))
             self._value_entry.grid(column=200, row=100, sticky=tk.W)
 
             from .functions import validate_variable_bit_register
