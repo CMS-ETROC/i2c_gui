@@ -228,6 +228,7 @@ class Base_Chip(GUI_Helper):
         address_space.write_all()
 
     def read_all_block(self, address_space_name: str, block_name: str, full_array: bool = False):
+        self._validate_indexers()
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
             block_name=block_name,
@@ -239,6 +240,7 @@ class Base_Chip(GUI_Helper):
         address_space.read_block(block_ref)
 
     def write_all_block(self, address_space_name: str, block_name: str, full_array: bool = False):
+        self._validate_indexers()
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
             block_name=block_name,
@@ -254,8 +256,6 @@ class Base_Chip(GUI_Helper):
         params = {'block': block_name}
 
         if "Indexer" in self._register_model[address_space_name]["Register Blocks"][block_name] and not full_array:
-            self._validate_indexers()
-
             indexers = self._register_model[address_space_name]["Register Blocks"][block_name]["Indexer"]["vars"]
             min_vals = self._register_model[address_space_name]["Register Blocks"][block_name]["Indexer"]["min"]
             max_vals = self._register_model[address_space_name]["Register Blocks"][block_name]["Indexer"]["max"]
@@ -275,12 +275,15 @@ class Base_Chip(GUI_Helper):
                     params[indexer] = block_name
                 else:
                     val = self._indexer_vars[indexer]['variable'].get()
+                    if val == "":
+                        val = 0
                     block_ref += "{}".format(val)
                     params[indexer] = int(val)
 
         return block_ref, params
 
     def read_register(self, address_space_name: str, block_name: str, register: str):
+        self._validate_indexers()
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
             block_name=block_name,
@@ -292,6 +295,7 @@ class Base_Chip(GUI_Helper):
         address_space.read_register(block_ref, register)
 
     def write_register(self, address_space_name: str, block_name: str, register: str):
+        self._validate_indexers()
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
             block_name=block_name,
