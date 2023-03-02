@@ -91,7 +91,7 @@ class Decoded_Value_Display(GUI_Helper):
         if self._bits == 1:
             self._value_entry = ttk.Checkbutton(self._frame, variable=self._display_var, state=state, onvalue="1", offvalue="0")
             self._value_entry.grid(column=100, row=100, sticky=tk.W)
-            self._display_var.trace('w', self._update_checkbutton_text)
+            self._callback_update_checkbutton_text = self._display_var.trace_add('write', self._update_checkbutton_text)
             self._update_checkbutton_text()
         else:
             self._value_label = ttk.Label(self._frame, text="Value:")
