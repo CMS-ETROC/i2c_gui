@@ -134,6 +134,7 @@ class Base_GUI(GUI_Helper):
             self._helpmenu = tk.Menu(self._menubar, name='help')
             self._menubar.add_cascade(menu=self._helpmenu, label='Help')
             self._root.createcommand('tk::mac::ShowHelp', self._about_helper.display_about)  # For now, we will use the about menu for help since the program is simple
+            self._root.createcommand('tk::mac::Quit', self._close_window)  # Handle closing from menu correctly
         elif __platform__ == "win32":
             self._sysmenu = tk.Menu(self._menubar, name='system')
             self._menubar.add_cascade(menu=self._sysmenu)
