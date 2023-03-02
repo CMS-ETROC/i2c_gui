@@ -107,7 +107,7 @@ class Decoded_Value_Display(GUI_Helper):
 
             from .functions import validate_variable_bit_register
             self._register_validate_cmd = (self._frame.register(lambda string, bits=self._bits: validate_variable_bit_register(string, bits)), '%P')
-            self._register_invalid_cmd  = (self._frame.register(self.invalid_register_value), '%P')
+            self._register_invalid_cmd  = (self._frame.register(self.invalid_value_value), '%P')
             self._value_entry.config(validate='key', validatecommand=self._register_validate_cmd, invalidcommand=self._register_invalid_cmd)
 
             if self._show_binary:
@@ -236,7 +236,7 @@ class Decoded_Value_Display(GUI_Helper):
 
         self._parent.update_whether_modified()
 
-    def invalid_register_value(self, string: str):
+    def invalid_value_value(self, string: str):
         self.send_message("Invalid value trying to be set for value {}: {}".format(self._name, string))
 
     def validate_register(self):
