@@ -1181,7 +1181,7 @@ register_decoding = {
                 },
                 "disTrigPath": {
                     "bits": 1,
-                    "position": [("PixCfg1", "4-0", "0")],
+                    "position": [("PixCfg7", "2", "0")],
                     "info": "{0} disables the signal of the trigger readout.\n - 0b1: disable the trigger readout of the current pixel\n - 0b0: enable the trigger readout of the current pixel",
                     "show_binary": False
                 },
