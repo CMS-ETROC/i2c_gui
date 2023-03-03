@@ -24,7 +24,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._memory = [None for val in range(self._memory_size)]
 
-        self._display_vars = [tk.StringVar(value = "0", name="{}_{}_Reg{}".format(self._parent._unique_name, name, val)) for val in range(self._memory_size)]
+        self._display_vars = [tk.StringVar(value = "0", name="{}_{}_Reg{}".format(self._parent._unique_name, self._name, val)) for val in range(self._memory_size)]
 
         self._register_map = {}
         for block_name in register_map:
@@ -98,7 +98,7 @@ class Address_Space_Controller(GUI_Helper):
                         self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address and does not have an indexer")
 
     def _build_decoded_value(self, value: str, block_ref: str, value_bits: int, decoding_position_info: list[tuple]):
-        self._decoded_display_vars[block_ref + "/" + value] = tk.StringVar()
+        self._decoded_display_vars[block_ref + "/" + value] = tk.StringVar(name="{}_{}_{}_{}".format(self._parent._unique_name, self._name, block_ref, value))
         self._decoded_bit_size[block_ref + "/" + value] = value_bits
 
         for regInfo in decoding_position_info:
