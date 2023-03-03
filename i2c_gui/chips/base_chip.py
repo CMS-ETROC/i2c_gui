@@ -149,6 +149,9 @@ class Base_Chip(GUI_Helper):
     def load_config(self, config_file: str):
         pass
 
+    def reset_config(self):
+        pass
+
     def get_indexer_array(self, indexer_info):
         indexer_variables = indexer_info["vars"]
         variables_min = indexer_info["min"]
