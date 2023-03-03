@@ -11,10 +11,14 @@ if TYPE_CHECKING:
 import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
+import itertools
 
 class Base_Chip(GUI_Helper):
+    newid = itertools.count().next
     def __init__(self, parent: GUI_Helper, chip_name: str, version: str, i2c_controller: Connection_Controller, register_model = None, register_decoding = None, indexer_info = None):
         super().__init__(parent, None, parent._logger)
+
+        self._id = Base_Chip.newid()
 
         self._i2c_controller = i2c_controller
         self._address_space = {}
@@ -65,6 +69,10 @@ class Base_Chip(GUI_Helper):
     @property
     def tabs(self):
         return list(self._tabs.keys())
+
+    @property
+    def id(self):
+        return self._id
 
     def _connection_update(self, value):
         for element_name in self._toggle_elements:
