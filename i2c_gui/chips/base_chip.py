@@ -63,9 +63,9 @@ class Base_Chip(GUI_Helper):
                     self._block_array_display_vars[address_space][block] = {}
                     self._block_array_decoded_display_vars[address_space][block] = {}
                     for register in self._register_model[address_space]["Register Blocks"][block]["Registers"]:
-                        self._block_array_display_vars[address_space][block][register] = tk.StringVar()
+                        self._block_array_display_vars[address_space][block][register] = tk.StringVar(name="{}_Display_{}_{}_{}".format(self._unique_name, address_space, block, register))
                     for value in self._register_decoding[address_space]["Register Blocks"][block]:
-                        self._block_array_decoded_display_vars[address_space][block][value] = tk.StringVar()
+                        self._block_array_decoded_display_vars[address_space][block][value] = tk.StringVar(name="{}_DecodedDisplay_{}_{}_{}".format(self._unique_name, address_space, block, value))
 
     @property
     def tabs(self):
@@ -124,7 +124,7 @@ class Base_Chip(GUI_Helper):
                 value=maximum
 
             self._indexer_vars[variable] = {
-                "variable": tk.StringVar(),
+                "variable": tk.StringVar(name="{}_Indexer_{}".format(self._unique_name, variable)),
                 "min": minimum,
                 "max": maximum
             }
