@@ -135,17 +135,19 @@ class Base_GUI(GUI_Helper):
             self._menubar.add_cascade(menu=self._helpmenu, label='Help')
             self._root.createcommand('tk::mac::ShowHelp', self._about_helper.display_about)  # For now, we will use the about menu for help since the program is simple
             self._root.createcommand('tk::mac::Quit', self._close_window)  # Handle closing from menu correctly
-        elif __platform__ == "win32":
-            self._sysmenu = tk.Menu(self._menubar, name='system')
-            self._menubar.add_cascade(menu=self._sysmenu)
-            # TODO: Do we need to add any options here or will it be auto-populated?
-            # https://tkdocs.com/tutorial/menus.html
 
         # elif __platform__ == "x11":  # Linux will handle the help menu specially and place it at the end
         if __platform__ != "aqua":
             self._helpmenu = tk.Menu(self._menubar, name='help')
             self._menubar.add_cascade(menu=self._helpmenu, label='Help')
             self._helpmenu.add_command(label='About ETROC I2C GUI', command=self._about_helper.display_about)
+
+        # Create system menu for windows
+        if __platform__ == "win32":
+            self._sysmenu = tk.Menu(self._menubar, name='system')
+            self._menubar.add_cascade(menu=self._sysmenu)
+            # Note: This will be auto-populated, but this handle allows to add more entries to the end
+            # https://tkdocs.com/tutorial/menus.html
 
         self._root.config(menu=self._menubar)
 
