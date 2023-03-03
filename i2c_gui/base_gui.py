@@ -118,29 +118,40 @@ class Base_GUI(GUI_Helper):
         self._menubar = tk.Menu(self._root)
 
         from . import __platform__
+
+        # Create apple menu for macOS
         if __platform__ == "aqua":
             # MacOS Guidelines: https://developer.apple.com/design/human-interface-guidelines/platforms/designing-for-macos/#//apple_ref/doc/uid/20000957-CH23-SW1
             # https://developer.apple.com/design/human-interface-guidelines/components/system-experiences/the-menu-bar
             self._apple_menu = tk.Menu(self._menubar, name='apple')
-            self._menubar.add_cascade(menu=self._apple_menu)
             self._apple_menu.add_command(label='About ' + self._title, command=self._about_helper.display_about)
             self._apple_menu.add_separator()
+            self._menubar.add_cascade(menu=self._apple_menu)
+
             # If a preferences window exists:
             # self._root.createcommand('tk::mac::ShowPreferences', showMyPreferencesDialog)
+            self._root.createcommand('tk::mac::Quit', self._close_window)  # Handle closing from menu correctly
 
+        # Create File menu
+        self._filemenu = tk.Menu(self._menubar, name='file')
+        self._menubar.add_cascade(menu=self._filemenu, label='File')
+
+        # Create window menu for macOS
+        if __platform__ == "aqua":
             self._windowmenu = tk.Menu(self._menubar, name='window')
             self._menubar.add_cascade(menu=self._windowmenu, label='Window')
 
+        # Create help menu
+        if __platform__ == "aqua":
             self._helpmenu = tk.Menu(self._menubar, name='help')
             self._menubar.add_cascade(menu=self._helpmenu, label='Help')
             self._root.createcommand('tk::mac::ShowHelp', self._about_helper.display_about)  # For now, we will use the about menu for help since the program is simple
-            self._root.createcommand('tk::mac::Quit', self._close_window)  # Handle closing from menu correctly
 
         # elif __platform__ == "x11":  # Linux will handle the help menu specially and place it at the end
-        if __platform__ != "aqua":
+        elif __platform__ != "aqua":
             self._helpmenu = tk.Menu(self._menubar, name='help')
-            self._menubar.add_cascade(menu=self._helpmenu, label='Help')
             self._helpmenu.add_command(label='About ETROC I2C GUI', command=self._about_helper.display_about)
+            self._menubar.add_cascade(menu=self._helpmenu, label='Help')
 
         # Create system menu for windows
         if __platform__ == "win32":
