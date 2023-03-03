@@ -14,17 +14,18 @@ import logging
 import itertools
 
 class Base_Chip(GUI_Helper):
-    newid = itertools.count().next
+    newid = itertools.count()
     def __init__(self, parent: GUI_Helper, chip_name: str, version: str, i2c_controller: Connection_Controller, register_model = None, register_decoding = None, indexer_info = None):
         super().__init__(parent, None, parent._logger)
 
-        self._id = Base_Chip.newid()
+        self._id = next(Base_Chip.newid)
 
         self._i2c_controller = i2c_controller
         self._address_space = {}
         self._register_model = register_model
         self._register_decoding = register_decoding
         self._chip_name = chip_name
+        self._unique_name = chip_name + "_{}".format(self._id)
         self._version = version
 
         self._enabled = False
