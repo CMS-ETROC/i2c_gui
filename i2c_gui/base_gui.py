@@ -10,6 +10,9 @@ import logging
 import importlib.resources
 from PIL import ImageTk, Image
 
+from tkinter import filedialog as tkfd
+from tkinter.messagebox import showinfo
+
 class Base_GUI(GUI_Helper):
     def __init__(self, title, root: tk.Tk, logger: logging.Logger, do_status: bool = True, do_global_controls: bool = True):
         super().__init__(None, ttk.Frame(root, padding="5 5 5 5"), logger)
@@ -133,8 +136,8 @@ class Base_GUI(GUI_Helper):
             self._root.createcommand('tk::mac::Quit', self._close_window)  # Handle closing from menu correctly
 
         # Create File menu
-        self._filemenu = tk.Menu(self._menubar, name='file')
-        self._menubar.add_cascade(menu=self._filemenu, label='File')
+        if hasattr(self, "_file_menu"):
+            self._file_menu(self._menubar)
 
         # Create window menu for macOS
         if __platform__ == "aqua":
@@ -146,7 +149,6 @@ class Base_GUI(GUI_Helper):
             self._helpmenu = tk.Menu(self._menubar, name='help')
             self._menubar.add_cascade(menu=self._helpmenu, label='Help')
             self._root.createcommand('tk::mac::ShowHelp', self._about_helper.display_about)  # For now, we will use the about menu for help since the program is simple
-
         # elif __platform__ == "x11":  # Linux will handle the help menu specially and place it at the end
         elif __platform__ != "aqua":
             self._helpmenu = tk.Menu(self._menubar, name='help')
