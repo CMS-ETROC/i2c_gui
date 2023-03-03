@@ -24,7 +24,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._memory = [None for val in range(self._memory_size)]
 
-        self._display_vars = [tk.StringVar(value = "0") for val in range(self._memory_size)]
+        self._display_vars = [tk.StringVar(value = "0", name="{}_Reg{}".format(self._parent._unique_name, val)) for val in range(self._memory_size)]
 
         self._register_map = {}
         for block_name in register_map:
