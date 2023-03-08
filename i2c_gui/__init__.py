@@ -5,10 +5,10 @@ __platform__ = None  # For storing the result of automativ platform detection
 __swap_endian__ = True  # Whether to swap register address bytes to correct for mixed up endianness
 __no_connect__ = False  # Set to true if the connection to I2C is to be emulated
 
-from .gui_helper import GUI_Helper
 from .etroc1_gui import ETROC1_GUI
 from .etroc2_gui import ETROC2_GUI
 from .multi_gui import Multi_GUI
+from .script_helper import ScriptHelper
 from .connection_controller import Connection_Controller
 
 from .functions import validate_8bit_register
@@ -37,10 +37,10 @@ def unset_swap_endian():
     __swap_endian__ = False
 
 __all__ = [
-    "GUI_Helper",
     "ETROC1_GUI",
     "ETROC2_GUI",
     "Multi_GUI",
+    "ScriptHelper",
     "Connection_Controller",
     "validate_8bit_register",
     "validate_variable_bit_register",
