@@ -11,8 +11,11 @@ from usb_iss import UsbIss
 
 class Connection_Controller(GUI_Helper):
     _parent: Base_GUI
-    def __init__(self, parent: Base_GUI, max_seq_byte = 8):
-        super().__init__(parent, None, parent._logger)
+    def __init__(self, parent: Base_GUI, max_seq_byte = 8, override_logger = None):
+        if override_logger is None:
+            super().__init__(parent, None, parent._logger)
+        else:
+            super().__init__(parent, None, override_logger)
         self._is_connected = False
         self._max_seq_byte = max_seq_byte
 
