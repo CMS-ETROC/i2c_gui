@@ -8,6 +8,7 @@ __no_connect__ = False  # Set to true if the connection to I2C is to be emulated
 from .etroc1_gui import ETROC1_GUI
 from .etroc2_gui import ETROC2_GUI
 from .multi_gui import Multi_GUI
+from .connection_controller import Connection_Controller
 
 from .functions import validate_8bit_register
 from .functions import validate_variable_bit_register
@@ -38,6 +39,7 @@ __all__ = [
     "ETROC1_GUI",
     "ETROC2_GUI",
     "Multi_GUI",
+    "Connection_Controller",
     "validate_8bit_register",
     "validate_variable_bit_register",
     "validate_i2c_address",
