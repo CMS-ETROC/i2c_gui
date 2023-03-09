@@ -348,7 +348,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._parent.update_whether_modified()
 
-    def write_memory_block(self, address, data_size):
+    def write_memory_block(self, address, data_size, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
             return
@@ -358,6 +358,18 @@ class Address_Space_Controller(GUI_Helper):
         for i in range(data_size):
             self._memory[address+i] = int(self._display_vars[address+i].get(), 0)
         self._i2c_controller.write_device_memory(self._i2c_address, address, self._memory[address:address+data_size])
+
+        if write_check:
+            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size)
+            failed = []
+            for i in range(data_size):
+                if self._memory[address+i] != tmp[i]:
+                    failed += [address+i]
+                    self._memory[address+i] = tmp[i]
+                    self._display_vars[address+i].set(hex_0fill(tmp[i], 8))
+            if len(failed) != 0:
+                failed = ["0x{:0x}".format(i) for i in failed]
+                self.send_message("Failure to write memory block at address 0x{:0x} with length {} in the {} address space (I2C address 0x{:0x}). The following register addresses failed to write: {}".format(address, data_size, self._name, self._i2c_address, ', '.join(failed)))
 
         self._parent.update_whether_modified()
 
