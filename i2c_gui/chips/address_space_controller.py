@@ -383,7 +383,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self.read_memory_block(block["Base Address"], block["Length"])
 
-    def write_block(self, block_name):
+    def write_block(self, block_name, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
             return
@@ -391,7 +391,7 @@ class Address_Space_Controller(GUI_Helper):
         block = self._blocks[block_name]
         self._logger.info("Attempting to write block {}".format(block_name))
 
-        self.write_memory_block(block["Base Address"], block["Length"])
+        self.write_memory_block(block["Base Address"], block["Length"], write_check)
 
     def read_register(self, block_name, register_name):
         if self._i2c_address is None:
@@ -402,13 +402,13 @@ class Address_Space_Controller(GUI_Helper):
 
         self.read_memory_register(self._register_map[block_name + "/" + register_name])
 
-    def write_register(self, block_name, register_name):
+    def write_register(self, block_name, register_name, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
             return
 
         self._logger.info("Attempting to write register {} in block {}".format(register_name, block_name))
 
-        self.write_memory_register(self._register_map[block_name + "/" + register_name])
+        self.write_memory_register(self._register_map[block_name + "/" + register_name], write_check)
 
 # TODO: Add a check after writing where the values are read and compared
