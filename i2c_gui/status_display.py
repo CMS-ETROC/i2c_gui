@@ -8,6 +8,13 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 
 class Status_Display(GUI_Helper):
+    _red_col = '#ff0000'
+    _orange_col = '#f0c010'
+    _yellow_col = '#f0e000'
+    _green_col = '#00ff00'
+    _black_col = '#000000'
+    _white_col = '#ffffff'
+
     def __init__(self, parent: Base_GUI, max_len: int = 100):
         super().__init__(parent, None, parent._logger)
 
@@ -29,6 +36,24 @@ class Status_Display(GUI_Helper):
     def connection_status(self, value):
         if value not in ["Not Connected", "Connected", "Error"]:
             raise ValueError("Invalid connection status was attempted to be set: \"{}\"".format(value))
+
+        if hasattr(self, "_connection_status_label"):
+            if value == "Connected":
+                self._connection_status_label.config(background = self._green_col, foreground = self._black_col)
+                #if self._connection_status_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._connection_status_label.config(foreground = self._green_col)
+            elif value == "Error":
+                self._connection_status_label.config(background = self._red_col, foreground = self._black_col)
+                #if self._connection_status_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._connection_status_label.config(foreground = self._red_col)
+            else:
+                self._connection_status_label.config(background = self._yellow_col, foreground = self._black_col)
+                #if self._connection_status_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._connection_status_label.config(foreground = self._yellow_col)
+
         self._connection_status_var.set(value)
 
     @property
@@ -39,6 +64,30 @@ class Status_Display(GUI_Helper):
     def local_status(self, value):
         if value not in ["Unknown", "Modified", "Unmodified", "Error"]:
             raise ValueError("Invalid local status was attempted to be set: \"{}\"".format(value))
+
+        if hasattr(self, "_local_status_label"):
+            if value == "Unmodified":
+                self._local_status_label.config(background = self._green_col, foreground = self._black_col)
+                #if self._local_status_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._local_status_label.config(background = '', foreground = self._green_col)
+            elif value == "Error":
+                self._local_status_label.config(background = self._red_col, foreground = self._black_col)
+                #if self._local_status_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._local_status_label.config(background = '', foreground = self._red_col)
+            elif value == "Unknown":
+                self._local_status_label.config(background = self._orange_col, foreground = self._black_col)
+                #if self._local_status_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._local_status_label.config(background = '', foreground = self._orange_col)
+            else:  # Modified
+                self._local_status_label.config(background = self._red_col, foreground = self._black_col)
+                #if self._local_status_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._local_status_label.config(background = '', foreground = self._red_col)
+
+
         self._local_status_var.set(value)
 
     @property
@@ -47,6 +96,7 @@ class Status_Display(GUI_Helper):
 
     def prepare_display(self, element: tk.Tk, col, row):
         self._frame = ttk.Frame(element)
+        self._style = ttk.Style(self._frame)
         self._frame.grid(column=col, row=row, sticky=(tk.N, tk.W, tk.E, tk.S))
 
         self._connection_status_title = ttk.Label(self._frame, text="I2C Bus:")
@@ -63,11 +113,23 @@ class Status_Display(GUI_Helper):
         self._message_label.grid(column=300, row=100, sticky=tk.E)
         self._frame.columnconfigure(300, weight=1)
 
+        self.connection_status = self.connection_status
+        self.local_status = self.local_status
+
     def send_message(self, message: str, status:str = "Message"):
         if status == "Error":
             self._logger.warn("Error Message: {}".format(message))
         else:
             self._logger.info("Message: {}".format(message))
+
+        if hasattr(self, "_message_label"):
+            if status == "Error":
+                self._message_label.config(background = self._red_col, foreground = self._black_col)
+                #if self._message_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._message_label.config(foreground = self._red_col)
+            else:
+                self._message_label.config(background = '', foreground = '')
 
         if len(message) > self._max_len:
             message = message[:self._max_len - 3] + " ⋯"  # "…"
