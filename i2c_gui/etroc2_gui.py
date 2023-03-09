@@ -10,6 +10,9 @@ import importlib.resources
 from PIL import ImageTk, Image
 
 class ETROC2_GUI(Base_GUI):
+    _red_col = '#c00000'
+    _green_col = '#00c000'
+
     def __init__(self, root: tk.Tk, logger: logging.Logger):
         super().__init__("ETROC2 I2C GUI", root, logger)
 
@@ -94,10 +97,12 @@ class ETROC2_GUI(Base_GUI):
             address = hex(int(address, 0))
 
         if self._i2c_controller.check_i2c_device(address):
+            self._ws_i2c_status_label.config(foreground=self._green_col)
             self._chip_ws_i2c_status_var.set("(Available)")
             self._chip.config_waveform_sampler_i2c_address(int(address, 16))
             self._valid_ws_i2c_address = True
         else:
+            self._ws_i2c_status_label.config(foreground=self._red_col)
             self._chip_ws_i2c_status_var.set("(Not available)")
             self._chip.config_waveform_sampler_i2c_address(None)
             self._valid_ws_i2c_address = False
@@ -110,10 +115,12 @@ class ETROC2_GUI(Base_GUI):
             address = hex(int(address, 0))
 
         if self._i2c_controller.check_i2c_device(address):
+            self._i2c_status_label.config(foreground=self._green_col)
             self._chip_i2c_status_var.set("(Available)")
             self._chip.config_i2c_address(int(address, 16))
             self._valid_i2c_address = True
         else:
+            self._i2c_status_label.config(foreground=self._red_col)
             self._chip_i2c_status_var.set("(Not available)")
             self._chip.config_i2c_address(None)
             self._valid_i2c_address = False
