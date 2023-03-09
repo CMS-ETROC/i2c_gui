@@ -30,23 +30,23 @@ class ScriptHelper(GUI_Helper):
                 param = block_name
                 if len(old_indexed_blocks) == 0:
                     indexed_blocks[param] = {
-                        'params': {'block': param},
+                        'indexers': {'block': param},
                     }
                 else:
                     for old in old_indexed_blocks:
                         indexed_blocks[old + ":" + param] = {}
-                        indexed_blocks[old + ":" + param]['params'] = old_indexed_blocks[old]['params']
-                        indexed_blocks[old + ":" + param]['params']['block'] = str(param)
+                        indexed_blocks[old + ":" + param]['indexers'] = old_indexed_blocks[old]['indexers']
+                        indexed_blocks[old + ":" + param]['indexers']['block'] = str(param)
             else:
                 for val_idx in range(max - min):
                     i = min + val_idx
                     if len(old_indexed_blocks) == 0:
                         indexed_blocks[i] = {
-                            'params': {var: i},
+                            'indexers': {var: i},
                         }
                     else:
                         for old in old_indexed_blocks:
                             indexed_blocks[old + ":" + str(i)] = {}
-                            indexed_blocks[old + ":" + str(i)]['params'] = (old_indexed_blocks[old]['params']).copy()
-                            indexed_blocks[old + ":" + str(i)]['params'][var] = i
+                            indexed_blocks[old + ":" + str(i)]['indexers'] = (old_indexed_blocks[old]['indexers']).copy()
+                            indexed_blocks[old + ":" + str(i)]['indexers'][var] = i
         return indexed_blocks
