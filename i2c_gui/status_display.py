@@ -61,6 +61,6 @@ class Status_Display(GUI_Helper):
         self._message_label.grid(column=300, row=100, sticky=tk.E)
         self._frame.columnconfigure(300, weight=1)
 
-    def send_message(self, message: str):
+    def send_message(self, message: str, status:str = "Message"):
         self._logger.info("Message: {}".format(message))
         self._message_var.set(message)

@@ -164,8 +164,8 @@ class Base_GUI(GUI_Helper):
 
         self._root.config(menu=self._menubar)
 
-    def send_message(self, message: str):
-        self._status_display.send_message(message=message)
+    def send_message(self, message: str, status:str = "Message"):
+        self._status_display.send_message(message=message, status=status)
 
     def _about_contents(self, element: tk.Tk, column: int, row: int):
         self._about_img = ImageTk.PhotoImage(Image.open(importlib.resources.open_binary("i2c_gui.static", "ETROC1.png")))

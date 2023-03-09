@@ -15,7 +15,7 @@ class GUI_Helper:
             raise RuntimeError("You can only find if the app is connected from a stack of classes which handle the connection correctly")
         return self._parent.is_connected
 
-    def send_message(self, message:str):
+    def send_message(self, message:str, status:str = "Message"):
         if self._parent is None:
             raise RuntimeError("You can only call send_message from a stack of classes which route the message correctly")
-        self._parent.send_message(message=message)
+        self._parent.send_message(message=message, status=status)
