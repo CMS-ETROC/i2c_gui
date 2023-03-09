@@ -330,7 +330,7 @@ class Address_Space_Controller(GUI_Helper):
             if self._memory[address] != tmp[0]:
                 self.send_message("Failure to write register at address 0x{:0x} in the {} address space (I2C address 0x{:0x})".format(address, self._name, self._i2c_address))
                 self._memory[address] = tmp[0]
-                self._display_vars[address].set(hex_0fill(tmp[0], 8))
+                # self._display_vars[address].set(hex_0fill(tmp[0], 8))
 
         self._parent.update_whether_modified()
 
@@ -366,7 +366,7 @@ class Address_Space_Controller(GUI_Helper):
                 if self._memory[address+i] != tmp[i]:
                     failed += [address+i]
                     self._memory[address+i] = tmp[i]
-                    self._display_vars[address+i].set(hex_0fill(tmp[i], 8))
+                    # self._display_vars[address+i].set(hex_0fill(tmp[i], 8))
             if len(failed) != 0:
                 failed = ["0x{:0x}".format(i) for i in failed]
                 self.send_message("Failure to write memory block at address 0x{:0x} with length {} in the {} address space (I2C address 0x{:0x}). The following register addresses failed to write: {}".format(address, data_size, self._name, self._i2c_address, ', '.join(failed)))
