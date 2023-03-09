@@ -106,6 +106,8 @@ class Logging_Helper(GUI_Helper):
             self._logger.info("Logging window does not exist")
             return
 
+        self.is_logging = False
+
         self._logging_window.destroy()
         del self._logging_window
 
