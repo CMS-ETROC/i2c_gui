@@ -8,7 +8,7 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 
 class Status_Display(GUI_Helper):
-    def __init__(self, parent: Base_GUI):
+    def __init__(self, parent: Base_GUI, max_len: int = 100):
         super().__init__(parent, None, parent._logger)
 
         self._connection_status_var = tk.StringVar()
@@ -18,6 +18,8 @@ class Status_Display(GUI_Helper):
         self._local_status_var.set("Unknown")
 
         self._message_var = tk.StringVar()
+
+        self._max_len = max_len
 
     @property
     def connection_status(self):
@@ -62,5 +64,11 @@ class Status_Display(GUI_Helper):
         self._frame.columnconfigure(300, weight=1)
 
     def send_message(self, message: str, status:str = "Message"):
-        self._logger.info("Message: {}".format(message))
+        if status == "Error":
+            self._logger.warn("Error Message: {}".format(message))
+        else:
+            self._logger.info("Message: {}".format(message))
+
+        if len(message) > self._max_len:
+            message = message[:self._max_len - 3] + " ⋯"  # "…"
         self._message_var.set(message)
