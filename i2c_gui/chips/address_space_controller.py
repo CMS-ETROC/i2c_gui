@@ -315,7 +315,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._parent.update_whether_modified()
 
-    def write_memory_register(self, address):
+    def write_memory_register(self, address, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
             return
@@ -324,6 +324,12 @@ class Address_Space_Controller(GUI_Helper):
 
         self._memory[address] = int(self._display_vars[address].get(), 0)
         self._i2c_controller.write_device_memory(self._i2c_address, address, [self._memory[address]])
+
+        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1)
+        if write_check and self._memory[address] != tmp[0]:
+            self.send_message("Failure to write")
+            self._memory[address] = tmp[0]
+            self._display_vars[address].set(hex_0fill(tmp[0], 8))
 
         self._parent.update_whether_modified()
 
