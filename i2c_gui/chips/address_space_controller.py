@@ -327,7 +327,7 @@ class Address_Space_Controller(GUI_Helper):
 
         tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1)
         if write_check and self._memory[address] != tmp[0]:
-            self.send_message("Failure to write")
+            self.send_message("Failure to write register at address 0x{:0x} in the {} address space (I2C address 0x{:0x})".format(address, self._name, self._i2c_address))
             self._memory[address] = tmp[0]
             self._display_vars[address].set(hex_0fill(tmp[0], 8))
 
