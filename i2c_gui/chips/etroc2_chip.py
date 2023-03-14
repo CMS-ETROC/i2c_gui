@@ -424,8 +424,50 @@ register_model = {
         }
     },
     "Waveform Sampler": {  # Address Space
-        "Memory Size": 10,
+        "Memory Size": 48,
         "Register Blocks": {
+            "Config": {
+                "Base Address": 0x0000,
+                "Registers": {
+                    "regOut0D": {
+                        "offset": 0x000D,
+                        "default": 0x18,
+                    },
+                    "regOut0E": {
+                        "offset": 0x000E,
+                        "default": 0x00,
+                    },
+                    "regOut0F": {
+                        "offset": 0x000F,
+                        "default": 0x00,
+                    },
+                    "regOut1C": {
+                        "offset": 0x001C,
+                        "default": 0x00,
+                    },
+                    "regOut1D": {
+                        "offset": 0x001D,
+                        "default": 0x00,
+                    },
+                    "regOut1F": {
+                        "offset": 0x001F,
+                        "default": 0xCF,
+                    },
+                }
+            },
+            "Status": {
+                "Base Address": 0x0020,
+                "Registers": {
+                    "regIn20": {
+                        "offset": 0x0000,
+                        "default": 0x00,
+                    },
+                    "regIn21": {
+                        "offset": 0x0001,
+                        "default": 0x00,
+                    },
+                }
+            },
         }
     }
 }
