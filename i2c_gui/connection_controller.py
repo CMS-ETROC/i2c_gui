@@ -29,6 +29,10 @@ class Connection_Controller(GUI_Helper):
 
         self._registered_connection_callbacks = []
 
+        from . import __no_connect__
+        if __no_connect__:
+            self._previous_write_value = None
+
     @property
     def is_connected(self):
         return self._is_connected
@@ -174,12 +178,21 @@ class Connection_Controller(GUI_Helper):
             memory_address = self.swap_endian_16bit(memory_address)
 
         from . import __no_connect__
+        from . import __no_connect_type__
         if __no_connect__:
             retVal = []
-            for i in range(byte_count):
-                retVal += [i]
-            if byte_count == 1:
-                retVal[0] = 0x42
+            if __no_connect_type__ == "check" or self._previous_write_value is None:
+                for i in range(byte_count):
+                    retVal += [i]
+                if byte_count == 1:
+                    retVal[0] = 0x42
+            elif __no_connect_type__ == "echo":
+                for i in range(byte_count):
+                    retVal += [self._previous_write_value]
+                if byte_count == 1:
+                    retVal[0] = self._previous_write_value
+            else:
+                self._logger.error("Massive error, no connect was set, but an incorrect no connect type was chosen, so the I2C emulation behaviour is unknown")
             return retVal
 
         from . import __swap_endian__
@@ -210,7 +223,10 @@ class Connection_Controller(GUI_Helper):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
         from . import __no_connect__
+        from . import __no_connect_type__
         if __no_connect__:
+            if __no_connect_type__ == "echo":
+                self._previous_write_value = data[len(data)-1]
             return
 
         from . import __swap_endian__
