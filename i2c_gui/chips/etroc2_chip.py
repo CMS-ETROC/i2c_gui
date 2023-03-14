@@ -1369,6 +1369,77 @@ register_decoding = {
                 },
             },
         }
+    },
+    "Waveform Sampler": {  # Address Space
+        "Register Blocks": {
+            "Config": {
+                "CTRL": {
+                    "bits": 2,
+                    "position": [("regOut0D", "4-3", "1-0")],
+                    "info": "Sampling MEM Effect Reduction",
+                    "show_binary": "New Line"
+                },
+                "comp_cali": {
+                    "bits": 3,
+                    "position": [("regOut0D", "7-5", "2-0")],
+                    "info": "Comparator calibration",
+                    "show_binary": "New Line"
+                },
+                "DDT": {
+                    "bits": 16,
+                    "position": [("regOut0E", "7-0", "7-0"), ("regOut0F", "7-0", "15-8")],
+                    "info": "Time skew calibration"
+                },
+                "rd_addr": {
+                    "bits": 10,
+                    "position": [("regOut1C", "7-6", "1-0"), ("regOut1D", "7-0", "9-2")],
+                    "info": "Memory read address"
+                },
+                "mem_rstn": {
+                    "bits": 1,
+                    "position": [("regOut1F", "0", "0")],
+                    "info": "Memory reset"
+                },
+                "en_clk": {
+                    "bits": 1,
+                    "position": [("regOut1F", "1", "0")],
+                    "info": "Enable signal for lock delivery from PLL"
+                },
+                "rd_en_I2C": {
+                    "bits": 1,
+                    "position": [("regOut1F", "2", "0")],
+                    "info": "read enable"
+                },
+                "clk_gen_rstn": {
+                    "bits": 1,
+                    "position": [("regOut1F", "3", "0")],
+                    "info": "ADC clock generation reset"
+                },
+                "sel3": {
+                    "bits": 1,
+                    "position": [("regOut1F", "5", "0")],
+                    "info": "on-chip/off-chip write enable selection"
+                },
+                "sel2": {
+                    "bits": 1,
+                    "position": [("regOut1F", "6", "0")],
+                    "info": "WS power-on/power-down mode selction"
+                },
+                "sel1": {
+                    "bits": 1,
+                    "position": [("regOut1F", "7", "0")],
+                    "info": "VGA/Bypass mode selction"
+                },
+            },
+            "Status": {
+                "dout": {
+                    "bits": 14,
+                    "position": [("regIn20", "7-2", "5-0"), ("regIn21", "7-0", "13-6")],
+                    "info": "WS digital output. Data from the waveform sampler internal memory being pointed to by rd_addr",
+                    "show_binary": "New Line"
+                },
+            },
+        }
     }
 }
 
