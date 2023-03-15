@@ -90,6 +90,8 @@ class Register_Block_Decoded_Interface(Base_Interface):
             self._value_frame.columnconfigure((col + 1)*100, weight=1)
 
         for value in values:
+            if 'display' in self._decoding_info[value] and not self._decoding_info[value]['display']:
+                continue
             if index == 0:
                 first_value = value
             column = int(index % value_columns)

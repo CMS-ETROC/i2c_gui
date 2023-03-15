@@ -98,6 +98,8 @@ class Register_Block_Array_Interface(Base_Interface):
             self._register_frame.columnconfigure((col + 1)*100, weight=1)
 
         for register in registers:
+            if 'display' in self._register_model[register] and not self._register_model[register]['display']:
+                continue
             if index == 0:
                 first_register = register
             column = int(index % register_columns)
