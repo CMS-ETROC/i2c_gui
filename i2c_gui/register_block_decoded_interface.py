@@ -31,6 +31,7 @@ class Register_Block_Decoded_Interface(Base_Interface):
         super().enable()
         if hasattr(self, "_read_button"):
             self._read_button.config(state="normal")
+        if hasattr(self, "_write_button"):
             self._write_button.config(state="normal")
         if hasattr(self, "_value_handle"):
             for value in self._value_handle:
@@ -40,6 +41,7 @@ class Register_Block_Decoded_Interface(Base_Interface):
         super().disable()
         if hasattr(self, "_read_button"):
             self._read_button.config(state="disabled")
+        if hasattr(self, "_write_button"):
             self._write_button.config(state="disabled")
         if hasattr(self, "_value_handle"):
             for value in self._value_handle:
