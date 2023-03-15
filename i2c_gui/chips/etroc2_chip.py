@@ -1052,55 +1052,64 @@ register_decoding = {
                     "bits": 1,
                     "position": [("PeriSta0", "7", "0")],
                     "info": "Phase Shifter late",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "AFCcalCap": {
                     "bits": 6,
                     "position": [("PeriSta0", "6-1", "5-0")],
                     "info": "AFC capacitance",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "AFCBusy": {
                     "bits": 1,
                     "position": [("PeriSta0", "0", "0")],
                     "info": "AFC busy",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "fcAlignFinalState": {
                     "bits": 4,
                     "position": [("PeriSta1", "7-4", "3-0")],
                     "info": "fast command alignment FSM state",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "controllerState": {
                     "bits": 4,
                     "position": [("PeriSta1", "3-0", "3-0")],
                     "info": "global control FSM",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "fcAlignStatus": {
                     "bits": 4,
                     "position": [("PeriSta2", "7-4", "3-0")],
                     "info": "fast command alignment status",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "fcBitAlignError": {
                     "bits": 1,
                     "position": [("PeriSta2", "0", "0")],
                     "info": "fast command bit alignment error",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "invalidFCCount": {
                     "bits": 12,
                     "position": [("PeriSta4", "3-0", "11-8"), ("PeriSta3", "7-0", "7-0")],
                     "info": "?",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "pllUnlockCount": {
                     "bits": 12,
                     "position": [("PeriSta5", "7-0", "11-4"), ("PeriSta4", "7-4", "3-0")],
                     "info": "?",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "EFuseQ": {
                     "bits": 32,
@@ -1111,7 +1120,8 @@ register_decoding = {
                         ("PeriSta6", "7-0", "7-0"),
                     ],
                     "info": "32-bit EFuse output",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
             },
             "Pixel Config": {  # Register Block
@@ -1343,55 +1353,64 @@ register_decoding = {
                     "bits": 16,
                     "position": [("PixSta5", "7-0", "7-0"), ("PixSta6", "7-0", "15-8")],
                     "info": "Accumulator of the threshold calibration",
-                    "show_binary": "New Line"
+                    "show_binary": "New Line",
+                    "read_only": True,
                 },
                 "ScanDone": {
                     "bits": 1,
                     "position": [("PixSta1", "0", "0")],
                     "info": "Scan done signal of the threshold calibration",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "BL": {
                     "bits": 10,
                     "position": [("PixSta2", "7-0", "7-0"), ("PixSta3", "1-0", "9-8")],
                     "info": "Baseline obtained from threshold calibration",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "NW": {
                     "bits": 4,
                     "position": [("PixSta1", "4-1", "3-0")],
                     "info": "Noise width from threshold calibration (expected less than 10)",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "TH": {
                     "bits": 10,
                     "position": [("PixSta3", "7-6", "1-0"), ("PixSta4", "7-0", "9-2")],
                     "info": "10-bit threshold applied to the DAC input",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "THState": {
                     "bits": 3,
                     "position": [("PixSta1", "7-5", "2-0")],
                     "info": "Threshold calibration state machine output",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "PixelID": {
                     "bits": 8,
                     "position": [("PixSta0", "7-0", "7-0")],
                     "info": "Col[3:0],Row[3:0]",
-                    "show_binary": True
+                    "show_binary": True,
+                    "read_only": True,
                 },
                 "PixelID-Col": {
                     "bits": 4,
                     "position": [("PixSta0", "7-4", "3-0")],
                     "info": "Col",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
                 "PixelID-Row": {
                     "bits": 4,
                     "position": [("PixSta0", "3-0", "3-0")],
                     "info": "Row",
-                    "show_binary": False
+                    "show_binary": False,
+                    "read_only": True,
                 },
             },
         }
@@ -1462,7 +1481,8 @@ register_decoding = {
                     "bits": 14,
                     "position": [("regIn20", "7-2", "5-0"), ("regIn21", "7-0", "13-6")],
                     "info": "WS digital output. Data from the waveform sampler internal memory being pointed to by rd_addr",
-                    "show_binary": "New Line"
+                    "show_binary": "New Line",
+                    "read_only": True,
                 },
             },
         }
@@ -1714,7 +1734,8 @@ class ETROC2_Chip(Base_Chip):
             block="Peripheral Status",
             col=100,
             row=200,
-            register_columns=columns
+            register_columns=columns,
+            read_only=True,
         )
 
     def peripheral_decoded_builder(self, frame: ttk.Frame):
@@ -1742,7 +1763,8 @@ class ETROC2_Chip(Base_Chip):
             block="Peripheral Status",
             col=100,
             row=200,
-            value_columns=columns
+            value_columns=columns,
+            read_only=True,
         )
 
     def pixel_register_builder(self, frame: ttk.Frame):
@@ -1779,7 +1801,8 @@ class ETROC2_Chip(Base_Chip):
             block="Pixel Status",
             col=100,
             row=300,
-            register_columns=columns
+            register_columns=columns,
+            read_only=True,
         )
 
         return
