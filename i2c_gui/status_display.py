@@ -107,10 +107,11 @@ class Status_Display(GUI_Helper):
         self._progress['value'] = int(percentage)
 
     def clear_progress(self):
-        self._progress.destroy()
-        self._progress_label.destroy()
+        if hasattr(self, "_progress") and self._progress is not None:
+            self._progress.destroy()
+            self._progress_label.destroy()
 
-        self._progress = None
+            self._progress = None
 
     def prepare_display(self, element: tk.Tk, col, row):
         self._frame = ttk.Frame(element)
