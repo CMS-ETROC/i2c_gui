@@ -17,7 +17,7 @@ class Decoded_Value_Display(GUI_Helper):
     _display_var: tk.StringVar
     _shadow_var: tk.Variable
 
-    def __init__(self, parent: GUI_Helper, value_name: str, display_var: tk.StringVar, metadata, tooltip_width=250, read_only: bool = False):
+    def __init__(self, parent: GUI_Helper, value_name: str, display_var: tk.StringVar, metadata, tooltip_width=250):
         super().__init__(parent, None, parent._logger)
 
         self._name = value_name
@@ -28,7 +28,9 @@ class Decoded_Value_Display(GUI_Helper):
         self._bits = metadata["bits"]
         self._info = metadata["info"]
         self._tooltip_width = tooltip_width
-        self._read_only = read_only
+        self._read_only = False
+        if 'read_only' in metadata:
+            self._read_only = metadata['read_only']
 
         show_binary = metadata["show_binary"]
         if show_binary == "Inline" or show_binary == True:
