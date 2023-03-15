@@ -206,12 +206,14 @@ class Connection_Controller(GUI_Helper):
             tmp = []
             seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
             for i in range(seq_calls):
+                self.display_progress("Reading:", float(i)/seq_calls)
                 this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
                 bytes_to_read = min(self._usb_iss_max_seq_byte, byte_count - i*self._usb_iss_max_seq_byte)
                 tmp += self._iss.i2c.read_ad2(device_address, this_block_address, bytes_to_read)
                 sleep(0.00001)
+            self.clear_progress()
             return tmp
 
     def write_device_memory(self, device_address: int, memory_address: int, data: list[int]):
@@ -241,9 +243,11 @@ class Connection_Controller(GUI_Helper):
 
             seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
             for i in range(seq_calls):
+                self.display_progress("Writing:", float(i)/seq_calls)
                 this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
                 bytes_to_write = min(self._usb_iss_max_seq_byte, byte_count - i*self._usb_iss_max_seq_byte)
                 self._iss.i2c.write_ad2(device_address, this_block_address, data[i*self._usb_iss_max_seq_byte:i*self._usb_iss_max_seq_byte+bytes_to_write])
                 sleep(0.00001)
+            self.clear_progress()
