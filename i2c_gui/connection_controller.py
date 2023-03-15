@@ -206,7 +206,7 @@ class Connection_Controller(GUI_Helper):
             tmp = []
             seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
             for i in range(seq_calls):
-                self.display_progress("Reading:", float(i)/seq_calls)
+                self.display_progress("Reading:", i*100./seq_calls)
                 this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
@@ -243,7 +243,7 @@ class Connection_Controller(GUI_Helper):
 
             seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
             for i in range(seq_calls):
-                self.display_progress("Writing:", float(i)/seq_calls)
+                self.display_progress("Writing:", i*100./seq_calls)
                 this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
