@@ -16,6 +16,12 @@ class ScriptHelper(GUI_Helper):
     def send_message(self, message:str, status:str = "Message"):
         self._logger.info("GUI Message of type {}: {}".format(status, message))
 
+    def display_progress(self, message, percentage):
+        self._logger.info("{}: Progress {}/100".format(message, int(percentage)))
+
+    def clear_progress(self):
+        self._logger.info("Finished progress")
+
     def get_all_indexed_blocks(self, indexer_info, block_name):
         indexed_blocks = {}
         for idx in range(len(indexer_info['vars'])):
