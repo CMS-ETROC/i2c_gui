@@ -23,6 +23,7 @@ class Address_Space_Controller(GUI_Helper):
         self._not_read = True
 
         self._memory = [None for val in range(self._memory_size)]
+        self._read_only_map = [True for val in range(self._memory_size)]
 
         self._display_vars = [tk.StringVar(value = "0", name="{}_{}_Reg{}".format(self._parent._unique_name, self._name, val)) for val in range(self._memory_size)]
 
@@ -37,9 +38,13 @@ class Address_Space_Controller(GUI_Helper):
 
                 for register in register_map[block_name]["Registers"]:
                     offset = register_map[block_name]["Registers"][register]["offset"]
+                    read_only = False
+                    if 'read_only' in register_map[block_name]["Registers"][register]:
+                        read_only = register_map[block_name]["Registers"][register]['read_only']
                     full_address = base_address + offset
                     self._register_map[block_name + "/" + register] = full_address
                     self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], 8))
+                    self._read_only_map[full_address] = read_only
             elif "Indexer" in register_map[block_name]:
                 indexer_info = register_map[block_name]['Indexer']
                 min_address, max_address, base_addresses = self._get_indexed_block_address_range(block_name, indexer_info, register_map[block_name]['Registers'])
@@ -61,9 +66,13 @@ class Address_Space_Controller(GUI_Helper):
                     for base_name in base_addresses:
                         base_address = base_addresses[base_name]['base_address']
                         full_address = base_address + offset
+                        read_only = False
+                        if 'read_only' in register_map[block_name]["Registers"][register]:
+                            read_only = register_map[block_name]["Registers"][register]['read_only']
                         full_register_name = base_name + "/" + register
                         self._register_map[full_register_name] = full_address
                         self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], 8))
+                        self._read_only_map[full_address] = read_only
             else:
                 self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address and does not have an indexer")
 
