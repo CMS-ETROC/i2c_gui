@@ -255,7 +255,8 @@ register_model = {
                         "default": 0x00,
                         "read_only": True,
                     },
-                }
+                },
+                "read_only": True,
             },
             "Pixel Config": {  # Register Block
                 "Indexer":{
@@ -443,7 +444,8 @@ register_model = {
                         "default": 0x00,
                         "read_only": True,
                     },
-                }
+                },
+                "read_only": True,
             },
         }
     },
@@ -492,7 +494,8 @@ register_model = {
                         "default": 0x00,
                         "read_only": True,
                     },
-                }
+                },
+                "read_only": True,
             },
         }
     }
