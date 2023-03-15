@@ -455,6 +455,71 @@ register_model = {
             "Config": {
                 "Base Address": 0x0000,
                 "Registers": {
+                    "regOut00": {
+                        "offset": 0x0000,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut01": {
+                        "offset": 0x0001,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut02": {
+                        "offset": 0x0002,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut03": {
+                        "offset": 0x0003,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut04": {
+                        "offset": 0x0004,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut05": {
+                        "offset": 0x0005,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut06": {
+                        "offset": 0x0006,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut07": {
+                        "offset": 0x0007,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut08": {
+                        "offset": 0x0008,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut09": {
+                        "offset": 0x0009,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut0A": {
+                        "offset": 0x000A,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut0B": {
+                        "offset": 0x000B,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut0C": {
+                        "offset": 0x000C,
+                        "default": 0x00,
+                        "display": False,
+                    },
                     "regOut0D": {
                         "offset": 0x000D,
                         "default": 0x18,
@@ -467,6 +532,66 @@ register_model = {
                         "offset": 0x000F,
                         "default": 0x00,
                     },
+                    "regOut10": {
+                        "offset": 0x0010,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut11": {
+                        "offset": 0x0011,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut12": {
+                        "offset": 0x0012,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut13": {
+                        "offset": 0x0013,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut14": {
+                        "offset": 0x0014,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut15": {
+                        "offset": 0x0015,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut16": {
+                        "offset": 0x0016,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut17": {
+                        "offset": 0x0017,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut18": {
+                        "offset": 0x0018,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut19": {
+                        "offset": 0x0019,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut1A": {
+                        "offset": 0x001A,
+                        "default": 0x00,
+                        "display": False,
+                    },
+                    "regOut1B": {
+                        "offset": 0x001B,
+                        "default": 0x00,
+                        "display": False,
+                    },
                     "regOut1C": {
                         "offset": 0x001C,
                         "default": 0x00,
@@ -474,6 +599,11 @@ register_model = {
                     "regOut1D": {
                         "offset": 0x001D,
                         "default": 0x00,
+                    },
+                    "regOut1E": {
+                        "offset": 0x001E,
+                        "default": 0x00,
+                        "display": False,
                     },
                     "regOut1F": {
                         "offset": 0x001F,
