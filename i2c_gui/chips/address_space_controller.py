@@ -342,6 +342,10 @@ class Address_Space_Controller(GUI_Helper):
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
             return
 
+        if self._read_only_map[address]:
+            self._logger.info("Unable to write to the register at address {} in the address space '{}' because it is read only".format(address, self._name))
+            return
+
         self._logger.info("Writing register at address {} in the address space '{}'".format(address, self._name))
 
         self._memory[address] = int(self._display_vars[address].get(), 0)
