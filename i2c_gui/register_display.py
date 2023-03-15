@@ -12,13 +12,14 @@ class Register_Display(GUI_Helper):
     _display_var: tk.StringVar
     _shadow_var: tk.Variable
 
-    def __init__(self, parent: GUI_Helper, register_name: str, display_var: tk.StringVar):
+    def __init__(self, parent: GUI_Helper, register_name: str, display_var: tk.StringVar, read_only: bool = False):
         super().__init__(parent, None, parent._logger)
 
         self._name = register_name
         self._enabled = False
         self._display_var = display_var
         self._shadow_var = None
+        self._read_only = read_only
 
     @property
     def shadow_var(self):
@@ -47,7 +48,7 @@ class Register_Display(GUI_Helper):
 
     def enable(self):
         self._enabled = True
-        if hasattr(self, "_value_entry"):
+        if hasattr(self, "_value_entry") and not self._read_only:
             self._value_entry.config(state="normal")
         if hasattr(self, "_read_button"):
             self._read_button.config(state="normal")
@@ -84,7 +85,10 @@ class Register_Display(GUI_Helper):
         self._value_label = ttk.Label(self._frame, text="Value:")
         self._value_label.grid(column=100, row=100, sticky=tk.E)
 
-        self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=state, width=5)
+        value_state = state
+        if not self._read_only:
+            value_state = 'disabled'
+        self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=value_state, width=5)
         self._value_entry.grid(column=200, row=100, sticky=tk.W)
 
         from .functions import validate_8bit_register
@@ -128,14 +132,15 @@ class Register_Display(GUI_Helper):
         self._value_binary_bit0 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
         self._value_binary_bit0.grid(column=900, row=100)
 
-        self._value_binary_bit7.bind("<Button-1>", lambda e:self._toggle_bit(7))
-        self._value_binary_bit6.bind("<Button-1>", lambda e:self._toggle_bit(6))
-        self._value_binary_bit5.bind("<Button-1>", lambda e:self._toggle_bit(5))
-        self._value_binary_bit4.bind("<Button-1>", lambda e:self._toggle_bit(4))
-        self._value_binary_bit3.bind("<Button-1>", lambda e:self._toggle_bit(3))
-        self._value_binary_bit2.bind("<Button-1>", lambda e:self._toggle_bit(2))
-        self._value_binary_bit1.bind("<Button-1>", lambda e:self._toggle_bit(1))
-        self._value_binary_bit0.bind("<Button-1>", lambda e:self._toggle_bit(0))
+        if not self._read_only:
+            self._value_binary_bit7.bind("<Button-1>", lambda e:self._toggle_bit(7))
+            self._value_binary_bit6.bind("<Button-1>", lambda e:self._toggle_bit(6))
+            self._value_binary_bit5.bind("<Button-1>", lambda e:self._toggle_bit(5))
+            self._value_binary_bit4.bind("<Button-1>", lambda e:self._toggle_bit(4))
+            self._value_binary_bit3.bind("<Button-1>", lambda e:self._toggle_bit(3))
+            self._value_binary_bit2.bind("<Button-1>", lambda e:self._toggle_bit(2))
+            self._value_binary_bit1.bind("<Button-1>", lambda e:self._toggle_bit(1))
+            self._value_binary_bit0.bind("<Button-1>", lambda e:self._toggle_bit(0))
         self._callback_update_binary_repr = self._display_var.trace_add('write', self._update_binary_repr)
         self._callback_update_shadow_var  = self._display_var.trace_add('write', self._update_shadow_var)
 
@@ -144,7 +149,7 @@ class Register_Display(GUI_Helper):
             self._read_button = ttk.Button(self._frame, text="R", state=state, command=read_function, width=1.5)
             self._read_button.grid(column=400, row=100, sticky=(tk.N, tk.W, tk.E, tk.S), padx=(10,0))
 
-        if write_function is not None:
+        if write_function is not None and not self._read_only:
             self._write_button = ttk.Button(self._frame, text="W", state=state, command=lambda func=write_function: self._write(func), width=1.5)
             self._write_button.grid(column=400, row=200, sticky=(tk.N, tk.W, tk.E, tk.S), padx=(10,0))
 
@@ -155,6 +160,8 @@ class Register_Display(GUI_Helper):
         self._update_binary_repr()
 
     def _write(self, func):
+        if self._read_only:
+            return
         if self.validate_register():
             func()
         else:
