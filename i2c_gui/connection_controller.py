@@ -6,6 +6,7 @@ from .base_gui import Base_GUI
 import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
+import time
 
 from usb_iss import UsbIss
 
@@ -205,8 +206,12 @@ class Connection_Controller(GUI_Helper):
             from time import sleep
             tmp = []
             seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
+            lastUpdateTime = time.time_ns()
             for i in range(seq_calls):
-                self.display_progress("Reading:", i*100./seq_calls)
+                thisTime = time.time_ns()
+                if thisTime - lastUpdateTime > 0.2 * 10**9:
+                    self.display_progress("Reading:", i*100./seq_calls)
+                    self._frame.update_idletasks()
                 this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
@@ -242,8 +247,12 @@ class Connection_Controller(GUI_Helper):
             byte_count = len(data)
 
             seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
+            lastUpdateTime = time.time_ns()
             for i in range(seq_calls):
-                self.display_progress("Writing:", i*100./seq_calls)
+                thisTime = time.time_ns()
+                if thisTime - lastUpdateTime > 0.2 * 10**9:
+                    self.display_progress("Writing:", i*100./seq_calls)
+                    self._frame.update_idletasks()
                 this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
