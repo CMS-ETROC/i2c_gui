@@ -1977,3 +1977,14 @@ class ETROC2_Chip(Base_Chip):
             value_columns=columns,
             read_only=True,
         )
+
+    def reset_config(self):
+        for name in self._address_space:
+            self._address_space[name].reset()
+        self.update_whether_modified()
+
+    def revert_config(self):
+        for name in self._address_space:
+            if self._address_space[name].is_modified:
+                self._address_space[name].revert()
+        self.update_whether_modified()
