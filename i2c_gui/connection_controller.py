@@ -11,13 +11,13 @@ from usb_iss import UsbIss
 
 class Connection_Controller(GUI_Helper):
     _parent: Base_GUI
-    def __init__(self, parent: Base_GUI, max_seq_byte = 8, override_logger = None):
+    def __init__(self, parent: Base_GUI, usb_iss_max_seq_byte = 8, override_logger = None):
         if override_logger is None:
             super().__init__(parent, None, parent._logger)
         else:
             super().__init__(parent, None, override_logger)
         self._is_connected = False
-        self._max_seq_byte = max_seq_byte
+        self._usb_iss_max_seq_byte = usb_iss_max_seq_byte
 
         self._iss = UsbIss()
 
@@ -196,7 +196,7 @@ class Connection_Controller(GUI_Helper):
             return retVal
 
         from . import __swap_endian__
-        if self._max_seq_byte is None:
+        if self._usb_iss_max_seq_byte is None:
             if __swap_endian__:
                 memory_address = self.swap_endian_16bit(memory_address)
             return self._iss.i2c.read_ad2(device_address, memory_address, byte_count)
@@ -204,12 +204,12 @@ class Connection_Controller(GUI_Helper):
             from math import ceil
             from time import sleep
             tmp = []
-            seq_calls = ceil(byte_count/self._max_seq_byte)
+            seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
             for i in range(seq_calls):
-                this_block_address = memory_address + i*self._max_seq_byte
+                this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
-                bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
+                bytes_to_read = min(self._usb_iss_max_seq_byte, byte_count - i*self._usb_iss_max_seq_byte)
                 tmp += self._iss.i2c.read_ad2(device_address, this_block_address, bytes_to_read)
                 sleep(0.00001)
             return tmp
@@ -230,7 +230,7 @@ class Connection_Controller(GUI_Helper):
             return
 
         from . import __swap_endian__
-        if self._max_seq_byte is None:
+        if self._usb_iss_max_seq_byte is None:
             if __swap_endian__:
                 memory_address = self.swap_endian_16bit(memory_address)
             self._iss.i2c.write_ad2(device_address, memory_address, data)
@@ -239,11 +239,11 @@ class Connection_Controller(GUI_Helper):
             from time import sleep
             byte_count = len(data)
 
-            seq_calls = ceil(byte_count/self._max_seq_byte)
+            seq_calls = ceil(byte_count/self._usb_iss_max_seq_byte)
             for i in range(seq_calls):
-                this_block_address = memory_address + i*self._max_seq_byte
+                this_block_address = memory_address + i*self._usb_iss_max_seq_byte
                 if __swap_endian__:
                     this_block_address = self.swap_endian_16bit(this_block_address)
-                bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
-                self._iss.i2c.write_ad2(device_address, this_block_address, data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write])
+                bytes_to_write = min(self._usb_iss_max_seq_byte, byte_count - i*self._usb_iss_max_seq_byte)
+                self._iss.i2c.write_ad2(device_address, this_block_address, data[i*self._usb_iss_max_seq_byte:i*self._usb_iss_max_seq_byte+bytes_to_write])
                 sleep(0.00001)
