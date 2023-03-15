@@ -14,7 +14,7 @@ from .base_interface import Base_Interface
 
 class Register_Block_Interface(Base_Interface):
     _parent: Base_Chip
-    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, register_model):
+    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, register_model, read_only: bool = False):
         super().__init__(parent, False, False)
 
         self._address_space = address_space
@@ -22,6 +22,7 @@ class Register_Block_Interface(Base_Interface):
         self._block_title = block_title
         self._button_title = button_title
         self._register_model = register_model
+        self._read_only = read_only
 
     def update_whether_modified(self):
         self._parent.update_whether_modified()
@@ -48,6 +49,8 @@ class Register_Block_Interface(Base_Interface):
         self._parent.read_register(self._address_space, self._block_name, register_name)
 
     def write_register(self, register_name):
+        if self._read_only:
+            return
         self._parent.write_register(self._address_space, self._block_name, register_name)
 
     def prepare_display(self, element: tk.Tk, col: int, row: int, register_columns: int):
@@ -72,13 +75,14 @@ class Register_Block_Interface(Base_Interface):
         )
         self._read_button.grid(column=100, row=100, sticky=(tk.W, tk.E))
 
-        self._write_button = ttk.Button(
-            self._control_frame,
-            text="Write " + self._button_title,
-            command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block),
-            state=state
-        )
-        self._write_button.grid(column=200, row=100, sticky=(tk.W, tk.E))
+        if not self._read_only:
+            self._write_button = ttk.Button(
+                self._control_frame,
+                text="Write " + self._button_title,
+                command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block),
+                state=state
+            )
+            self._write_button.grid(column=200, row=100, sticky=(tk.W, tk.E))
 
         self._register_frame = ttk.Frame(self._frame)
         self._register_frame.grid(column=100, row=100, sticky=(tk.N, tk.W, tk.E, tk.S))
@@ -99,10 +103,14 @@ class Register_Block_Interface(Base_Interface):
             tk_column = (column + 1) * 100
             tk_row = (row + 1) * 100
             display_var = self._parent.get_display_var(self._address_space, self._block_name, register)
+            read_only = False
+            if 'read_only' in self._register_model[register]:
+                read_only = self._register_model[register]['read_only']
             handle = Register_Display(
                 self,
                 register_name=register,
-                display_var=display_var
+                display_var=display_var,
+                read_only=read_only,
             )
             handle.prepare_display(
                 self._register_frame,

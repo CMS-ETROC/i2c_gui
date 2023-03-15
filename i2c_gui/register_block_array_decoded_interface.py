@@ -14,7 +14,7 @@ from .base_interface import Base_Interface
 
 class Register_Block_Array_Decoded_Interface(Base_Interface):
     _parent: Base_Chip
-    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, decoding_info):
+    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, decoding_info, read_only: bool = False):
         super().__init__(parent, False, False)
 
         self._address_space = address_space
@@ -22,6 +22,7 @@ class Register_Block_Array_Decoded_Interface(Base_Interface):
         self._block_title = block_title
         self._button_title = button_title
         self._decoding_info = decoding_info
+        self._read_only = read_only
 
     def update_whether_modified(self):
         self._parent.update_whether_modified()
@@ -66,13 +67,14 @@ class Register_Block_Array_Decoded_Interface(Base_Interface):
         )
         self._read_button.grid(column=100, row=100, sticky=(tk.W, tk.E))
 
-        self._write_button = ttk.Button(
-            self._control_frame,
-            text="Write " + self._button_title,
-            command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block),
-            state=state
-        )
-        self._write_button.grid(column=200, row=100, sticky=(tk.W, tk.E))
+        if not self._read_only:
+            self._write_button = ttk.Button(
+                self._control_frame,
+                text="Write " + self._button_title,
+                command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block),
+                state=state
+            )
+            self._write_button.grid(column=200, row=100, sticky=(tk.W, tk.E))
 
         self._value_frame = ttk.Frame(self._frame)
         self._value_frame.grid(column=100, row=100, sticky=(tk.N, tk.W, tk.E, tk.S))
