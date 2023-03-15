@@ -303,6 +303,12 @@ class Address_Space_Controller(GUI_Helper):
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
             return
 
+        for val in self._read_only_map:
+            if val:
+                self._logger.info("Unable to write the full '{}' address space because the are some read only registers, breaking it into smaller blocks".format(self._name))
+                self.write_memory_block_with_split_for_read_only(0, self._memory_size, write_check)
+                return
+
         self._logger.info("Writing the full '{}' address space".format(self._name))
 
         for idx in range(self._memory_size):
