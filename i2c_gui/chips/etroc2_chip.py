@@ -177,67 +177,83 @@ register_model = {
                 "Registers": {
                     "PeriSta0": {
                         "offset": 0x0000,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta1": {
                         "offset": 0x0001,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta2": {
                         "offset": 0x0002,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta3": {
                         "offset": 0x0003,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta4": {
                         "offset": 0x0004,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta5": {
                         "offset": 0x0005,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta6": {
                         "offset": 0x0006,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta7": {
                         "offset": 0x0007,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta8": {
                         "offset": 0x0008,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta9": {
                         "offset": 0x0009,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta10": {
                         "offset": 0x000A,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta11": {
                         "offset": 0x000B,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta12": {
                         "offset": 0x000C,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta13": {
                         "offset": 0x000D,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta14": {
                         "offset": 0x000E,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PeriSta15": {
                         "offset": 0x000F,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                 }
             },
@@ -389,35 +405,43 @@ register_model = {
                 "Registers": {
                     "PixSta0": {
                         "offset": 0x0000,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PixSta1": {
                         "offset": 0x0001,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PixSta2": {
                         "offset": 0x0002,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PixSta3": {
                         "offset": 0x0003,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PixSta4": {
                         "offset": 0x0004,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PixSta5": {
                         "offset": 0x0005,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PixSta6": {
                         "offset": 0x0006,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                     "PixSta7": {
                         "offset": 0x0007,
-                        "default": 0x00
+                        "default": 0x00,
+                        "read_only": True,
                     },
                 }
             },
@@ -461,10 +485,12 @@ register_model = {
                     "regIn20": {
                         "offset": 0x0000,
                         "default": 0x00,
+                        "read_only": True,
                     },
                     "regIn21": {
                         "offset": 0x0001,
                         "default": 0x00,
+                        "read_only": True,
                     },
                 }
             },
