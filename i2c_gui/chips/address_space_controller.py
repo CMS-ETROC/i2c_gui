@@ -9,6 +9,7 @@ from ..functions import hex_0fill
 
 import tkinter as tk
 import logging
+import time
 
 class Address_Space_Controller(GUI_Helper):
     def __init__(self, parent: GUI_Helper, name, i2c_address, memory_size, i2c_controller: Connection_Controller, register_map, decoded_registers):
@@ -19,6 +20,7 @@ class Address_Space_Controller(GUI_Helper):
         self._i2c_controller = i2c_controller
         self._memory_size = memory_size
         self._blocks = {}
+        self._register_map_metadata = register_map
 
         self._not_read = True
 
@@ -477,4 +479,39 @@ class Address_Space_Controller(GUI_Helper):
 
         self.write_memory_register(self._register_map[block_name + "/" + register_name], write_check)
 
-# TODO: Add a check after writing where the values are read and compared
+    def reset(self):
+        register_count = len(self._register_map)
+        count = 0
+        lastUpdateTime = time.time_ns()
+        for register_ref in self._register_map:
+            thisTime = time.time_ns()
+            if thisTime - lastUpdateTime > 0.3 * 10**9:
+                lastUpdateTime = thisTime
+                self.display_progress("Resetting:", count*100./register_count)
+                self._parent._parent._frame.update_idletasks()
+
+            full_address = self._register_map[register_ref]
+
+            register_info = register_ref.split("/")
+            block_ref = register_info[0]
+            register_name = register_info[1]
+            block_info = block_ref.split(":")
+            block_name = block_info[0]
+
+            default_value = self._register_map_metadata[block_name]["Registers"][register_name]['default']
+            self._display_vars[full_address].set(hex_0fill(default_value, 8))
+            count += 1
+        self.clear_progress()
+
+    def revert(self):
+        lastUpdateTime = time.time_ns()
+        for idx in range(self._memory_size):
+            thisTime = time.time_ns()
+            if thisTime - lastUpdateTime > 0.3 * 10**9:
+                lastUpdateTime = thisTime
+                self.display_progress("Reverting:", idx*100./self._memory_size)
+                self._parent._parent._frame.update_idletasks()
+
+            if self._memory[idx] is not None:
+                self._display_vars[idx].set(hex_0fill(self._memory[idx], 8))
+        self.clear_progress()
