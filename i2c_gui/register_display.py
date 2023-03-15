@@ -91,10 +91,11 @@ class Register_Display(GUI_Helper):
         self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=value_state, width=5)
         self._value_entry.grid(column=200, row=100, sticky=tk.W)
 
-        from .functions import validate_8bit_register
-        self._register_validate_cmd = (self._frame.register(validate_8bit_register), '%P')
-        self._register_invalid_cmd  = (self._frame.register(self.invalid_register_value), '%P')
-        self._value_entry.config(validate='key', validatecommand=self._register_validate_cmd, invalidcommand=self._register_invalid_cmd)
+        if not self._read_only:
+            from .functions import validate_8bit_register
+            self._register_validate_cmd = (self._frame.register(validate_8bit_register), '%P')
+            self._register_invalid_cmd  = (self._frame.register(self.invalid_register_value), '%P')
+            self._value_entry.config(validate='key', validatecommand=self._register_validate_cmd, invalidcommand=self._register_invalid_cmd)
 
 
         self._value_binary_label = ttk.Label(self._frame, text="Binary:")

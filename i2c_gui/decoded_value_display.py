@@ -17,7 +17,7 @@ class Decoded_Value_Display(GUI_Helper):
     _display_var: tk.StringVar
     _shadow_var: tk.Variable
 
-    def __init__(self, parent: GUI_Helper, value_name: str, display_var: tk.StringVar, metadata, tooltip_width=250):
+    def __init__(self, parent: GUI_Helper, value_name: str, display_var: tk.StringVar, metadata, tooltip_width=250, read_only: bool = False):
         super().__init__(parent, None, parent._logger)
 
         self._name = value_name
@@ -28,6 +28,7 @@ class Decoded_Value_Display(GUI_Helper):
         self._bits = metadata["bits"]
         self._info = metadata["info"]
         self._tooltip_width = tooltip_width
+        self._read_only = read_only
 
         show_binary = metadata["show_binary"]
         if show_binary == "Inline" or show_binary == True:
@@ -67,7 +68,7 @@ class Decoded_Value_Display(GUI_Helper):
 
     def enable(self):
         self._enabled = True
-        if hasattr(self, "_value_entry"):
+        if hasattr(self, "_value_entry") and not self._read_only:
             self._value_entry.config(state="normal")
 
     def disable(self):
@@ -93,8 +94,12 @@ class Decoded_Value_Display(GUI_Helper):
         if self._enabled:
             state = 'normal'
 
+        value_state = state
+        if self._read_only:
+            value_state = 'disabled'
+
         if self._bits == 1:
-            self._value_entry = ttk.Checkbutton(self._frame, variable=self._display_var, state=state, onvalue="1", offvalue="0")
+            self._value_entry = ttk.Checkbutton(self._frame, variable=self._display_var, state=value_state, onvalue="1", offvalue="0")
             self._value_entry.grid(column=100, row=100, sticky=tk.W)
             self._callback_update_checkbutton_text = self._display_var.trace_add('write', self._update_checkbutton_text)
             self._update_checkbutton_text()
@@ -102,13 +107,14 @@ class Decoded_Value_Display(GUI_Helper):
             self._value_label = ttk.Label(self._frame, text="Value:")
             self._value_label.grid(column=100, row=100, sticky=tk.E)
 
-            self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=state, width=max(5, max_digits(self._bits) + 2))
+            self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=value_state, width=max(5, max_digits(self._bits) + 2))
             self._value_entry.grid(column=200, row=100, sticky=tk.W)
 
-            from .functions import validate_variable_bit_register
-            self._register_validate_cmd = (self._frame.register(lambda string, bits=self._bits: validate_variable_bit_register(string, bits)), '%P')
-            self._register_invalid_cmd  = (self._frame.register(self.invalid_value_value), '%P')
-            self._value_entry.config(validate='key', validatecommand=self._register_validate_cmd, invalidcommand=self._register_invalid_cmd)
+            if not self._read_only:
+                from .functions import validate_variable_bit_register
+                self._register_validate_cmd = (self._frame.register(lambda string, bits=self._bits: validate_variable_bit_register(string, bits)), '%P')
+                self._register_invalid_cmd  = (self._frame.register(self.invalid_value_value), '%P')
+                self._value_entry.config(validate='key', validatecommand=self._register_validate_cmd, invalidcommand=self._register_invalid_cmd)
 
             if self._show_binary:
                 binary_row = 200
@@ -134,7 +140,8 @@ class Decoded_Value_Display(GUI_Helper):
                     bit = self._bits - 1 - idx
                     bit_label = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
                     bit_label.grid(column = 200 + 100*idx, row = 100)
-                    bit_label.bind("<Button-1>", lambda e, bit=bit:self._toggle_bit(bit))
+                    if not self._read_only:
+                        bit_label.bind("<Button-1>", lambda e, bit=bit:self._toggle_bit(bit))
                     self.__setattr__("_value_binary_bit{}".format(bit), bit_label)
 
                 self._callback_update_binary_repr = self._display_var.trace_add('write', self._update_binary_repr)
