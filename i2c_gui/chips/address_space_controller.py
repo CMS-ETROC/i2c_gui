@@ -376,9 +376,39 @@ class Address_Space_Controller(GUI_Helper):
 
         self._parent.update_whether_modified()
 
+    def write_memory_block_with_split_for_read_only(self, address, data_size, write_check: bool = True):
+        start_address = None
+        ranges = []
+
+        for idx in range(data_size):
+            if not self._read_only_map[address + idx] and start_address is None:
+                start_address = address + idx
+            if self._read_only_map[address + idx] and start_address is not None:
+                ranges += [(start_address, address + idx - start_address)]
+                start_address = None
+        if start_address is not None:
+            ranges += [(start_address, address + idx - start_address + 1)]
+
+        self._logger.info("Found {} ranges without read only registers".format(len(ranges)))
+        for range_param in ranges:
+            if range_param[1] == 1:
+                self.write_memory_register(range_param[0], write_check)
+            else:
+                self.write_memory_block(range_param[0], range_param[1], write_check)
+
     def write_memory_block(self, address, data_size, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
+            return
+
+        has_read_only = False
+        for idx in range(data_size):
+            if self._read_only_map[address + idx]:
+                has_read_only = True
+                break
+        if has_read_only:
+            self._logger.info("The block of {} bytes starting at address {} in the address space '{}' covers one or more registers which are read only, it will be broken down into smaller blocks which do not cover the read only registers".format(data_size, address, self._name))
+            self.write_memory_block_with_split_for_read_only(address, data_size, write_check)
             return
 
         self._logger.info("Writing a block of {} bytes starting at address {} in the address space '{}'".format(data_size, address, self._name))
