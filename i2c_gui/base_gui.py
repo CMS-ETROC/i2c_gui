@@ -164,6 +164,16 @@ class Base_GUI(GUI_Helper):
 
         self._root.config(menu=self._menubar)
 
+    def display_progress(self, message, percentage):
+        if hasattr(self, '_status_display'):
+            self._status_display.display_progress(message, percentage)
+        else:
+            self._logger.debug("{}: Progress {}/100".format(message, int(percentage)))
+
+    def clear_progress(self):
+        if hasattr(self, '_status_display'):
+            self._status_display.clear_progress()
+
     def send_message(self, message: str, status:str = "Message"):
         self._status_display.send_message(message=message, status=status)
 
