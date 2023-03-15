@@ -1974,5 +1974,6 @@ class ETROC2_Chip(Base_Chip):
             block="Pixel Status",
             col=100,
             row=300,
-            value_columns=columns
+            value_columns=columns,
+            read_only=True,
         )
