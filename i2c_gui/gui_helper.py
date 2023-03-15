@@ -19,3 +19,13 @@ class GUI_Helper:
         if self._parent is None:
             raise RuntimeError("You can only call send_message from a stack of classes which route the message correctly")
         self._parent.send_message(message=message, status=status)
+
+    def display_progress(self, message, percentage):
+        if self._parent is None:
+            raise RuntimeError("You can only call display_progress from a stack of classes which route the progress correctly")
+        self._parent.display_progress(message=message, percentage=percentage)
+
+    def clear_progress(self):
+        if self._parent is None:
+            raise RuntimeError("You can only call clear_progress from a stack of classes which route the progress correctly")
+        self._parent.clear_progress()
