@@ -94,6 +94,24 @@ class Status_Display(GUI_Helper):
     def last_message(self):
         return self._message_var.get()
 
+    def display_progress(self, message, percentage):
+        self.send_message("")  # Clear the bar so we have space
+
+        if not hasattr(self, "_progress") or self._progress is None:
+            self._progress_label = ttk.Label(self._frame, text=message)
+            self._progress_label.grid(column=249, row=100, sticky=(tk.W, tk.E))
+            self._progress = ttk.Progressbar(self._frame, mode='determinate', length='300')
+            self._progress.grid(column=250, row=100, sticky=(tk.W, tk.E), padx=(0,15))
+
+        self._progress_label.config(text=message)
+        self._progress['value'] = int(percentage)
+
+    def clear_progress(self):
+        self._progress.destroy()
+        self._progress_label.destroy()
+
+        self._progress = None
+
     def prepare_display(self, element: tk.Tk, col, row):
         self._frame = ttk.Frame(element)
         self._style = ttk.Style(self._frame)
