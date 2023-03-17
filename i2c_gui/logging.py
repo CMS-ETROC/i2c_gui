@@ -54,6 +54,7 @@ class Logging_Helper(GUI_Helper):
     def display_logging(self):
         if hasattr(self, "_logging_window"):
             self._logger.info("Logging window already open")
+            self._logging_window.focus()
             return
 
         self._logging_window = tk.Toplevel(self._parent._root)
