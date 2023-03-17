@@ -226,8 +226,12 @@ class Base_Chip(GUI_Helper):
             self.read_all_address_space(address_space)
 
     def write_all(self, write_check: bool = True):
+        success = True
         for address_space in self._address_space:
-            self.write_all_address_space(address_space, write_check=write_check)
+            if not self.write_all_address_space(address_space, write_check=write_check):
+                success = False
+
+        return success
 
     def update_whether_modified(self):
         pass
@@ -240,7 +244,7 @@ class Base_Chip(GUI_Helper):
     def write_all_address_space(self, address_space_name: str, write_check: bool = True):
         self._logger.info("Writing full address space: {}".format(address_space_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
-        address_space.write_all(write_check=write_check)
+        return address_space.write_all(write_check=write_check)
 
     def read_all_block(self, address_space_name: str, block_name: str, full_array: bool = False):
         self._validate_indexers()
@@ -264,7 +268,7 @@ class Base_Chip(GUI_Helper):
 
         self.send_message("Writing block {} from address space {} of chip {}".format(block_ref, address_space_name, self._chip_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
-        address_space.write_block(block_ref, write_check=write_check)
+        return address_space.write_block(block_ref, write_check=write_check)
 
     def _gen_block_ref_from_indexers(self, address_space_name: str, block_name: str, full_array: bool):
         block_ref = block_name
@@ -319,7 +323,7 @@ class Base_Chip(GUI_Helper):
 
         self.send_message("Writing register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
-        address_space.write_register(block_ref, register, write_check=write_check)
+        return address_space.write_register(block_ref, register, write_check=write_check)
 
     def tab_needs_canvas(self, tab: str):
         return self._tabs[tab]["canvas"]
