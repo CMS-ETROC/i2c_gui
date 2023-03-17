@@ -53,7 +53,8 @@ class Register_Block_Interface(Base_Interface):
     def write_register(self, register_name):
         if self._read_only:
             return
-        self._parent.write_register(self._address_space, self._block_name, register_name)
+        if not self._parent.write_register(self._address_space, self._block_name, register_name):
+            self.send_message("Failed writing the register {} in block {} of address space {}.".format(register_name, self._block_name, self._address_space), "Error")
 
     def prepare_display(self, element: tk.Tk, col: int, row: int, register_columns: int):
         registers = list(self._register_model.keys())
