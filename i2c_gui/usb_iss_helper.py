@@ -135,9 +135,6 @@ class USB_ISS_Helper(GUI_Helper):
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
-        #if self._swap_endian:
-        #    memory_address = self.swap_endian_16bit(memory_address)
-
         if self._max_seq_byte is None:
             if self._swap_endian:
                 memory_address = self.swap_endian_16bit(memory_address)
