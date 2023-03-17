@@ -303,13 +303,13 @@ class Address_Space_Controller(GUI_Helper):
     def write_all(self, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
-            return
+            return False
 
         for val in self._read_only_map:
             if val:
                 self._logger.info("Unable to write the full '{}' address space because the are some read only registers, breaking it into smaller blocks".format(self._name))
-                self.write_memory_block_with_split_for_read_only(0, self._memory_size, write_check)
-                return
+                return self.write_memory_block_with_split_for_read_only(0, self._memory_size, write_check)
+
 
         self._logger.info("Writing the full '{}' address space".format(self._name))
 
@@ -329,8 +329,13 @@ class Address_Space_Controller(GUI_Helper):
                 self.send_message("Failure to write the full {} address space (I2C address 0x{:0x}). The following register addresses failed to write: {}".format(self._name, self._i2c_address, ', '.join(failed)),
                                   status="Error"
                 )
+                self._parent.update_whether_modified()
+
+                return False
 
         self._parent.update_whether_modified()
+
+        return True
 
     def read_memory_register(self, address):
         if self._i2c_address is None:
@@ -348,11 +353,11 @@ class Address_Space_Controller(GUI_Helper):
     def write_memory_register(self, address, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
-            return
+            return False
 
         if self._read_only_map[address]:
             self._logger.info("Unable to write to the register at address {} in the address space '{}' because it is read only".format(address, self._name))
-            return
+            return False
 
         self._logger.info("Writing register at address {} in the address space '{}'".format(address, self._name))
 
@@ -368,7 +373,13 @@ class Address_Space_Controller(GUI_Helper):
                 self._memory[address] = tmp[0]
                 # self._display_vars[address].set(hex_0fill(tmp[0], 8))
 
+                self._parent.update_whether_modified()
+
+                return False
+
         self._parent.update_whether_modified()
+
+        return True
 
     def read_memory_block(self, address, data_size):
         if self._i2c_address is None:
@@ -397,17 +408,22 @@ class Address_Space_Controller(GUI_Helper):
         if start_address is not None:
             ranges += [(start_address, address + idx - start_address + 1)]
 
+        success = True
         self._logger.info("Found {} ranges without read only registers".format(len(ranges)))
         for range_param in ranges:
             if range_param[1] == 1:
-                self.write_memory_register(range_param[0], write_check)
+                if not self.write_memory_register(range_param[0], write_check):
+                    success = False
             else:
-                self.write_memory_block(range_param[0], range_param[1], write_check)
+                if not self.write_memory_block(range_param[0], range_param[1], write_check):
+                    success = False
+
+        return success
 
     def write_memory_block(self, address, data_size, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
-            return
+            return False
 
         has_read_only = False
         for idx in range(data_size):
@@ -417,7 +433,7 @@ class Address_Space_Controller(GUI_Helper):
         if has_read_only:
             self._logger.info("The block of {} bytes starting at address {} in the address space '{}' covers one or more registers which are read only, it will be broken down into smaller blocks which do not cover the read only registers".format(data_size, address, self._name))
             self.write_memory_block_with_split_for_read_only(address, data_size, write_check)
-            return
+            return False
 
         self._logger.info("Writing a block of {} bytes starting at address {} in the address space '{}'".format(data_size, address, self._name))
 
@@ -439,7 +455,13 @@ class Address_Space_Controller(GUI_Helper):
                                   status="Error"
                 )
 
+                self._parent.update_whether_modified()
+
+                return False
+
         self._parent.update_whether_modified()
+
+        return True
 
     def read_block(self, block_name):
         if self._i2c_address is None:
@@ -454,12 +476,12 @@ class Address_Space_Controller(GUI_Helper):
     def write_block(self, block_name, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
-            return
+            return False
 
         block = self._blocks[block_name]
         self._logger.info("Attempting to write block {}".format(block_name))
 
-        self.write_memory_block(block["Base Address"], block["Length"], write_check)
+        return self.write_memory_block(block["Base Address"], block["Length"], write_check)
 
     def read_register(self, block_name, register_name):
         if self._i2c_address is None:
@@ -473,11 +495,11 @@ class Address_Space_Controller(GUI_Helper):
     def write_register(self, block_name, register_name, write_check: bool = True):
         if self._i2c_address is None:
             self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
-            return
+            return False
 
         self._logger.info("Attempting to write register {} in block {}".format(register_name, block_name))
 
-        self.write_memory_register(self._register_map[block_name + "/" + register_name], write_check)
+        return self.write_memory_register(self._register_map[block_name + "/" + register_name], write_check)
 
     def reset(self):
         register_count = len(self._register_map)
