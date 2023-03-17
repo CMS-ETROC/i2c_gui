@@ -107,15 +107,11 @@ class Connection_Controller(GUI_Helper):
         if __no_connect__:
             retVal = []
             if __no_connect_type__ == "check" or self._previous_write_value is None:
-                for i in range(byte_count):
-                    retVal += [i]
+                retVal = [i for i in range(byte_count)]
                 if byte_count == 1:
                     retVal[0] = 0x42
             elif __no_connect_type__ == "echo":
-                for i in range(byte_count):
-                    retVal += [self._previous_write_value]
-                if byte_count == 1:
-                    retVal[0] = self._previous_write_value
+                retVal = [self._previous_write_value for i in range(byte_count)]
             else:
                 self._logger.error("Massive error, no connect was set, but an incorrect no connect type was chosen, so the I2C emulation behaviour is unknown")
             return retVal
