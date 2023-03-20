@@ -12,6 +12,7 @@ import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 import itertools
+import pickle
 
 class Base_Chip(GUI_Helper):
     newid = itertools.count()
@@ -154,6 +155,16 @@ class Base_Chip(GUI_Helper):
 
     def revert_config(self):
         pass
+
+    def save_pickle_file(self, config_file: str, object):
+        with open(config_file, 'wb') as f:
+            pickle.dump(object, f)
+
+    def load_pickle_file(self, config_file: str):
+        loaded_obj = None
+        with open(config_file, 'rb') as f:
+            loaded_obj = pickle.load(f)
+        return loaded_obj
 
     def get_indexer_array(self, indexer_info):
         indexer_variables = indexer_info["vars"]
