@@ -148,7 +148,12 @@ class Register_Block_Array_Interface(Base_Interface):
         from math import floor
         size_in_registers = self._register_frame.winfo_width()/(self._register_orig_size[0]+10)  # Add 10 because that is the total padding that the register adds, 5 to each side
         if floor(size_in_registers) != self._current_displayed_columns:
-            registers = list(self._register_model.keys())
+            orig_registers = list(self._register_model.keys())
+
+            registers = []
+            for register in orig_registers:
+                if 'display' not in self._register_model[register] or self._register_model[register]['display']:
+                    registers += [register]
 
             for col in range(max(self._current_displayed_columns, floor(size_in_registers))):
                 if col < floor(size_in_registers):
