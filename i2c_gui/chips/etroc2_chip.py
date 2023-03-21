@@ -8,8 +8,6 @@ from .base_chip import Base_Chip
 from ..gui_helper import GUI_Helper
 from .address_space_controller import Address_Space_Controller
 
-from ..functions import hex_0fill
-
 import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
@@ -1984,41 +1982,3 @@ class ETROC2_Chip(Base_Chip):
             value_columns=columns,
             read_only=True,
         )
-
-    def save_config(self, config_file: str):
-        info = {
-        }
-
-        for address_space_name in self._address_space:
-            address_space: Address_Space_Controller = self._address_space[address_space_name]
-
-            size = address_space._memory_size
-            conf = [None for idx in range(size)]
-
-            for idx in range(size):
-                conf[idx] = int(address_space._display_vars[idx].get(), 0)
-
-            info[address_space_name] = conf
-
-        self.save_pickle_file(config_file, info)
-
-    def load_config(self, config_file: str):
-        info = self.load_pickle_file(config_file)
-
-        for address_space_name in self._address_space:
-            address_space: Address_Space_Controller = self._address_space[address_space_name]
-            size = address_space._memory_size
-
-            for idx in range(size):
-                address_space._display_vars[idx].set(hex_0fill(info[address_space_name][idx], 8))
-
-    def reset_config(self):
-        for name in self._address_space:
-            self._address_space[name].reset()
-        self.update_whether_modified()
-
-    def revert_config(self):
-        for name in self._address_space:
-            if self._address_space[name].is_modified:
-                self._address_space[name].revert()
-        self.update_whether_modified()
