@@ -1983,6 +1983,23 @@ class ETROC2_Chip(Base_Chip):
             read_only=True,
         )
 
+    def save_config(self, config_file: str):
+        info = {
+        }
+
+        for address_space_name in self._address_space:
+            address_space: Address_Space_Controller = self._address_space[address_space_name]
+
+            size = address_space._memory_size
+            conf = [None for idx in range(size)]
+
+            for idx in range(size):
+                conf[idx] = int(address_space._display_vars[idx].get(), 0)
+
+            info[address_space_name] = conf
+
+        self.save_pickle_file(config_file, info)
+
     def reset_config(self):
         for name in self._address_space:
             self._address_space[name].reset()
