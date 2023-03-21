@@ -50,11 +50,11 @@ def validate_i2c_address(string: str):
         return True
 
     if re.fullmatch(digit_regex, string) is not None:
-        if int(string, 10) < 127:
+        if int(string, 10) <= 127:
             return True
 
     if re.fullmatch(hex_regex, string) is not None:
-        if string == "0x" or int(string, 16) < 127:
+        if string == "0x" or int(string, 16) <= 127:
             return True
 
     return False
