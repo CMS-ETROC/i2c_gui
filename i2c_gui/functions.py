@@ -8,6 +8,17 @@ def hex_0fill(val: str, bits: int):
         val = int(val, 0)
     return "{0:#0{1}x}".format(val, ceil(bits/4) + 2)  # We have to add 2 to account for the two characters which make the hex identifier, i.e. '0x'
 
+def validate_num(string: str):
+    digit_regex = r"\d+"
+
+    if string == "":
+        return True
+
+    if re.fullmatch(digit_regex, string) is not None:
+        return True
+
+    return False
+
 def validate_8bit_register(string: str):
     digit_regex = r"\d{0,3}"
     hex_regex   = r"0x[a-fA-F\d]{0,2}"
