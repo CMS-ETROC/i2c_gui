@@ -1682,6 +1682,20 @@ class ETROC2_Chip(Base_Chip):
                 "builder": self.pixel_decoded_builder,
             }
         )
+        self.register_tab(
+            "Waveform Sampler",
+            {
+                "canvas": True,
+                "builder": self.ws_register_builder,
+            }
+        )
+        self.register_tab(
+            "Waveform Sampler Decoded",
+            {
+                "canvas": True,
+                "builder": self.ws_decoded_builder,
+            }
+        )
 
         # Set indexer vars callback, so we can update the displayed block array
         self._callback_indexer_var = {}
@@ -1979,6 +1993,64 @@ class ETROC2_Chip(Base_Chip):
             block="Pixel Status",
             col=100,
             row=300,
+            value_columns=columns,
+            read_only=True,
+        )
+
+    def ws_register_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 4
+
+        self._WS_config_frame = self.build_block_interface(
+            element=frame,
+            title="Config Registers",
+            internal_title="Waveform Sampler Config Registers",
+            button_title="Config",
+            address_space="Waveform Sampler",
+            block="Config",
+            col=100,
+            row=100,
+            register_columns=columns
+        )
+
+        self._WS_status_frame = self.build_block_interface(
+            element=frame,
+            title="Status Registers",
+            internal_title="Waveform Sampler Status Registers",
+            button_title="Status",
+            address_space="Waveform Sampler",
+            block="Status",
+            col=100,
+            row=200,
+            register_columns=columns,
+            read_only=True,
+        )
+
+    def ws_decoded_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 3
+
+        self._WS_decoded_config_frame = self.build_decoded_block_interface(
+            element=frame,
+            title="Configuration Values",
+            internal_title="Waveform Sampler Configuration Values",
+            button_title="Config",
+            address_space="Waveform Sampler",
+            block="Config",
+            col=100,
+            row=100,
+            value_columns=columns
+        )
+
+        self._WS_decoded_status_frame = self.build_decoded_block_interface(
+            element=frame,
+            title="Status Values",
+            internal_title="Waveform Sampler Status Values",
+            button_title="Status",
+            address_space="Waveform Sampler",
+            block="Status",
+            col=100,
+            row=200,
             value_columns=columns,
             read_only=True,
         )
