@@ -147,6 +147,11 @@ class Status_Display(GUI_Helper):
                 #if self._message_label.cget('background') == '':
                 if self._style.theme_use() == 'aqua':
                     self._message_label.config(foreground = self._red_col)
+            elif status == "Warning":
+                self._message_label.config(background = self._orange_col, foreground = self._black_col)
+                #if self._message_label.cget('background') == '':
+                if self._style.theme_use() == 'aqua':
+                    self._message_label.config(foreground = self._orange_col)
             else:
                 self._message_label.config(background = '', foreground = '')
 
