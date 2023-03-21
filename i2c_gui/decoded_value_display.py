@@ -32,7 +32,11 @@ class Decoded_Value_Display(GUI_Helper):
         if 'read_only' in metadata:
             self._read_only = metadata['read_only']
 
-        show_binary = metadata["show_binary"]
+        if 'show_binary' in metadata:
+            show_binary = metadata["show_binary"]
+        else:
+            show_binary = False
+
         if show_binary == "Inline" or show_binary == True:
             self._inline = True
             self._show_binary = True
