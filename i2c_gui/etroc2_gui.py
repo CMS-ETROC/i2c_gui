@@ -9,7 +9,15 @@ import logging
 import importlib.resources
 from PIL import ImageTk, Image
 
+from tkinter import filedialog as tkfd
+
+i2c_conf_extension = "i2c_conf"
+
 class ETROC2_GUI(Base_GUI):
+    _config_filetypes = (
+        ('I2C config files', '*.'+i2c_conf_extension),
+        ('All files', '*.*')
+    )
     _red_col = '#c00000'
     _green_col = '#00c000'
 
@@ -17,6 +25,69 @@ class ETROC2_GUI(Base_GUI):
         super().__init__("ETROC2 I2C GUI", root, logger)
 
         self._valid_i2c_address = False
+
+    def _load_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        filename = tkfd.askopenfilename(
+            parent=self._parent,
+            title='Load I2C Config',
+            initialdir='./',
+            filetypes=self._config_filetypes,
+        )
+
+        if filename is None or filename == "":
+            return
+
+        self._logger.log(5, "Loading file: {}".format(filename))
+
+        self._chip.load_config(filename)
+
+    def _save_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        filename = tkfd.asksaveasfilename(
+            parent=self._parent,
+            title='Save I2C Config',
+            initialdir='./',
+            initialfile='etroc2.'+i2c_conf_extension,
+            defaultextension=i2c_conf_extension,
+            filetypes=[('I2C config files', '*.'+i2c_conf_extension)],  # TODO: Not sure about this parameter...
+        )
+
+        if filename is None or filename == "":
+            return
+
+        self._logger.log(5, "Saving file: {}".format(filename))
+
+        self._chip.save_config(filename)
+
+    def _reset_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        self.send_message("Resetting current chip configuration to default values")
+        self._chip.reset_config()
+
+    def _revert_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        self.send_message("Reverting current chip configuration to last read values")
+        self._chip.revert_config()
+
+    def _file_menu(self, menubar: tk.Menu):
+        self._filemenu = tk.Menu(menubar, name='file')
+
+        self._filemenu.add_command(label='Load Chip Config', command=self._load_config, state='disabled')
+        self._filemenu.add_command(label='Save Chip Config', command=self._save_config, state='disabled')
+        self._filemenu.add_separator()
+        self._filemenu.add_command(label='Reset Chip Config', command=self._reset_config, state='disabled')
+        self._filemenu.add_command(label='Revert Chip Config', command=self._revert_config, state='disabled')
+
+        menubar.add_cascade(menu=self._filemenu, label='File')
 
     def _about_contents(self, element: tk.Tk, column: int, row: int):
         self._about_img = ImageTk.PhotoImage(Image.open(importlib.resources.open_binary("i2c_gui.static", "ETROC2_Emulator.png")))
@@ -41,6 +112,11 @@ class ETROC2_GUI(Base_GUI):
                 self._ws_i2c_address_entry.config(state='normal')
                 self.check_i2c_address()
                 self.check_ws_i2c_address()
+            if hasattr(self, "_filemenu"):
+                self._filemenu.entryconfigure('Load Chip Config', state='normal')
+                self._filemenu.entryconfigure('Save Chip Config', state='normal')
+                self._filemenu.entryconfigure('Reset Chip Config', state='normal')
+                self._filemenu.entryconfigure('Revert Chip Config', state='normal')
         else:
             if hasattr(self, "_i2c_address_entry"):
                 self._i2c_address_entry.config(state='disabled')
@@ -49,6 +125,11 @@ class ETROC2_GUI(Base_GUI):
                 self._valid_i2c_address = False
                 self._chip_ws_i2c_status_var.set("")
                 self._valid_ws_i2c_address = False
+            if hasattr(self, "_filemenu"):
+                self._filemenu.entryconfigure('Load Chip Config', state='disabled')
+                self._filemenu.entryconfigure('Save Chip Config', state='disabled')
+                self._filemenu.entryconfigure('Reset Chip Config', state='disabled')
+                self._filemenu.entryconfigure('Revert Chip Config', state='disabled')
 
     def extra_global_controls(self, element: tk.Tk, column: int, row: int):
         self._frame_extra_global = ttk.Frame(element)
