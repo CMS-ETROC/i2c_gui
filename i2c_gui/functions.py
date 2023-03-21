@@ -4,8 +4,11 @@ import re
 
 def hex_0fill(val: str, bits: int):
     from math import ceil
-    if type(val) == "<class 'str'>":
-        val = int(val, 0)
+    if type(val) == str:
+        if val == '':
+            val = 0
+        else:
+            val = int(val, 0)
     return "{0:#0{1}x}".format(val, ceil(bits/4) + 2)  # We have to add 2 to account for the two characters which make the hex identifier, i.e. '0x'
 
 def validate_num(string: str):
