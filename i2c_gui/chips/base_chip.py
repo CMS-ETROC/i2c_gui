@@ -157,14 +157,30 @@ class Base_Chip(GUI_Helper):
         pass
 
     def save_pickle_file(self, config_file: str, object):
+        save_object = {
+            'object': object,
+            'chip': self._chip_name,
+            'version': self._version,
+        }
+
         with open(config_file, 'wb') as f:
-            pickle.dump(object, f)
+            pickle.dump(save_object, f)
 
     def load_pickle_file(self, config_file: str):
         loaded_obj = None
         with open(config_file, 'rb') as f:
             loaded_obj = pickle.load(f)
-        return loaded_obj
+
+        if loaded_obj['chip'] != self._chip_name:
+            self.send_message("Wrong config file type. It was saved for the chip: {}; expected {}".format(loaded_obj['chip'], self._chip_name), "Error")
+            return
+
+        # TODO: for the version we should probably implement some sort of semantic versioning
+        if loaded_obj['version'] != self._version:
+            self.send_message("Wrong config file type. It was saved for a different version of this chip: {}; expected {}".format(loaded_obj['version'], self._version), "Error")
+            return
+
+        return loaded_obj['object']
 
     def get_indexer_array(self, indexer_info):
         indexer_variables = indexer_info["vars"]
