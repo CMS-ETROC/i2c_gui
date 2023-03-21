@@ -12,6 +12,8 @@ import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 
+etroc2_version = "0.0.1"
+
 def etroc2_column_row_to_base_address(block: str, column: int, row: int, broadcast: bool = False):
     address = 0b1000000000000000
 
@@ -1634,7 +1636,7 @@ class ETROC2_Chip(Base_Chip):
         super().__init__(
             parent=parent,
             chip_name="ETROC2",
-            version="0.0.1",
+            version=etroc2_version,
             i2c_controller=i2c_controller,
             register_model=register_model,
             register_decoding=register_decoding,

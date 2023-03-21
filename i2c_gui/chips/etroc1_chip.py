@@ -11,6 +11,8 @@ import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 
+etroc1_version = "0.0.1"
+
 register_model = {
     "ETROC2": {  # Address Space (i.e. separate I2C memory spaces)
         "Memory Size": 65536,  # 16 bit memory space
@@ -52,7 +54,7 @@ class ETROC1_Chip(Base_Chip):
         super().__init__(
             parent=parent,
             chip_name="ETROC1",
-            version="0.0.1",
+            version=etroc1_version,
             i2c_controller=i2c_controller,
             register_model=register_model,
             register_decoding=register_decoding
