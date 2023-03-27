@@ -35,6 +35,15 @@ class Connection_Controller(GUI_Helper):
         if __no_connect__:
             self._previous_write_value = None
 
+        self._do_logging_i2c = False
+        self._i2c_logging_window_status_var = tk.StringVar()
+        self._i2c_logging_window_status_var.set("Logging Disabled")
+
+        self._i2c_window_address_var = tk.StringVar()
+        self._i2c_window_register_var = tk.StringVar()
+        self._i2c_window_register_value_var = tk.StringVar()
+        self._i2c_window_block_size_var = tk.StringVar()
+
     @property
     def is_connected(self):
         return self._is_connected
