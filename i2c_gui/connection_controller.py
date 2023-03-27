@@ -12,6 +12,10 @@ from usb_iss import UsbIss
 from .usb_iss_helper import USB_ISS_Helper
 
 class Connection_Controller(GUI_Helper):
+    _orange_col = '#f0c010'
+    _green_col = '#08ef10'
+    _black_col = '#000000'
+
     _parent: Base_GUI
     def __init__(self, parent: Base_GUI, usb_iss_max_seq_byte = 8, override_logger = None):
         if override_logger is None:
