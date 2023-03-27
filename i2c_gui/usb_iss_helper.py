@@ -25,6 +25,8 @@ class USB_ISS_Helper(GUI_Helper):
         self._clk_var = tk.IntVar(self._frame)
         self._clk_var.set(100)
 
+        self._is_connected = False
+
     @property
     def port(self):
         return self._port_var.get()
@@ -42,11 +44,16 @@ class USB_ISS_Helper(GUI_Helper):
         self._clk_var.set(value)
 
     def check_i2c_device(self, address: str):
-        if not self.is_connected:
+        self._parent.send_i2c_logging_message("Trying to find the I2C device with address 0x{:02x}".format(int(address, 0)))
+
+        if not self.is_connected or not self._is_connected:
+            self._parent.send_i2c_logging_message("  The USB-ISS module is not connected or you are using emulated mode.")
             return False
 
         if not self._iss.i2c.test(int(address, 16)):
+            self._parent.send_i2c_logging_message("  The I2C device can not be found.")
             return False
+        self._parent.send_i2c_logging_message("  The I2C device was found.")
         return True
 
     def display_in_frame(self, frame: ttk.Frame):
@@ -91,6 +98,9 @@ class USB_ISS_Helper(GUI_Helper):
         return True
 
     def connect(self, no_connect: bool = False):
+        if self._is_connected:
+            self.disconnect()
+
         # Give preference to hardware I2C for clk which support both hardware and bit bashed
         use_hardware = True
         if self._clk_var.get() < 100:
@@ -100,6 +110,7 @@ class USB_ISS_Helper(GUI_Helper):
             try:
                 self._iss.open(self.port)
                 self._iss.setup_i2c(clock_khz=self.clk, use_i2c_hardware=use_hardware)
+                self._is_connected = True
             except:
                 self.send_message("Unable to connect to I2C bus on port {} using I2C at {} kHz".format(self.port, self.clk))
                 return False
@@ -113,6 +124,7 @@ class USB_ISS_Helper(GUI_Helper):
 
     def disconnect(self):
         self._iss.close()
+        self._is_connected = False
 
         if hasattr(self, "_port_entry"):
             self._port_entry.config(state="normal")
