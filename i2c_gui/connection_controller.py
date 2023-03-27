@@ -96,6 +96,12 @@ class Connection_Controller(GUI_Helper):
             if hasattr(self, "_connect_button"):
                 self._connect_button.config(text="Disconnect", command=self.disconnect)
             self._set_connected(True)
+            if hasattr(self, "_i2c_window"):
+                self._test_device_button.config(state='normal')
+                self._read_register_button.config(state='normal')
+                self._write_register_button.config(state='normal')
+                self._read_block_button.config(state='normal')
+                self._write_block_button.config(state='normal')
 
     def disconnect(self):
         if not self.is_connected:
@@ -106,6 +112,12 @@ class Connection_Controller(GUI_Helper):
         if hasattr(self, "_connect_button"):
             self._connect_button.config(text="Connect", command=self.connect)
         self._set_connected(False)
+        if hasattr(self, "_i2c_window"):
+            self._test_device_button.config(state='disabled')
+            self._read_register_button.config(state='disabled')
+            self._write_register_button.config(state='disabled')
+            self._read_block_button.config(state='disabled')
+            self._write_block_button.config(state='disabled')
 
     def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1):
         if not self.is_connected:
