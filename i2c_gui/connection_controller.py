@@ -134,3 +134,5 @@ class Connection_Controller(GUI_Helper):
             return
 
         self._i2c_connection.write_device_memory(device_address, memory_address, data)
+    def send_i2c_logging_message(self, message: str):
+        pass
