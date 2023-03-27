@@ -25,7 +25,7 @@ class USB_ISS_Helper(GUI_Helper):
         self._clk_var = tk.IntVar(self._frame)
         self._clk_var.set(100)
 
-        self._is_connected = False
+        self._no_connect = None
 
     @property
     def port(self):
@@ -46,8 +46,8 @@ class USB_ISS_Helper(GUI_Helper):
     def check_i2c_device(self, address: int):
         self._parent.send_i2c_logging_message("Trying to find the I2C device with address 0x{:02x}".format(address))
 
-        if not self.is_connected or not self._is_connected:
-            self._parent.send_i2c_logging_message("  The USB-ISS module is not connected or you are using emulated mode.")
+        if not self.is_connected or self._no_connect:
+            self._parent.send_i2c_logging_message("  The USB-ISS module is not connected or you are using software emulated mode.")
             return False
 
         if not self._iss.i2c.test(address):
@@ -98,19 +98,16 @@ class USB_ISS_Helper(GUI_Helper):
         return True
 
     def connect(self, no_connect: bool = False):
-        if self._is_connected:
-            self.disconnect()
-
         # Give preference to hardware I2C for clk which support both hardware and bit bashed
         use_hardware = True
         if self._clk_var.get() < 100:
             use_hardware = False
 
+        self._no_connect = no_connect
         if not no_connect:  # For emulated connection
             try:
                 self._iss.open(self.port)
                 self._iss.setup_i2c(clock_khz=self.clk, use_i2c_hardware=use_hardware)
-                self._is_connected = True
             except:
                 self.send_message("Unable to connect to I2C bus on port {} using I2C at {} kHz".format(self.port, self.clk))
                 return False
@@ -124,7 +121,6 @@ class USB_ISS_Helper(GUI_Helper):
 
     def disconnect(self):
         self._iss.close()
-        self._is_connected = False
 
         if hasattr(self, "_port_entry"):
             self._port_entry.config(state="normal")
