@@ -46,7 +46,7 @@ class Connection_Controller(GUI_Helper):
         if __no_connect__:
             return True
 
-        return self._i2c_connection.check_i2c_device(address)
+        return self._i2c_connection.check_i2c_device(int(address, 0))
 
     def register_connection_callback(self, function):
         if function not in self._registered_connection_callbacks:
