@@ -144,9 +144,9 @@ class USB_ISS_Helper(GUI_Helper):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
         if byte_count == 1:
-            self._parent.send_i2c_logging_message("Trying to read the register 0x{:02x} of the I2C device with address 0x{:02x}:".format(memory_address, device_address))
+            self._parent.send_i2c_logging_message("Trying to read the register 0x{:04x} of the I2C device with address 0x{:02x}:".format(memory_address, device_address))
         else:
-            self._parent.send_i2c_logging_message("Trying to read a register block with size {} starting at register 0x{:02x} of the I2C device with address 0x{:02x}:".format(byte_count, memory_address, device_address))
+            self._parent.send_i2c_logging_message("Trying to read a register block with size {} starting at register 0x{:04x} of the I2C device with address 0x{:02x}:".format(byte_count, memory_address, device_address))
 
         data = []
         if self._no_connect:
@@ -177,7 +177,7 @@ class USB_ISS_Helper(GUI_Helper):
 
                 this_block_address = memory_address + i*self._max_seq_byte
                 bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
-                self._parent.send_i2c_logging_message("      Read operation {}: reading {} bytes starting from 0x{:02x}".format(i, bytes_to_read, this_block_address))
+                self._parent.send_i2c_logging_message("      Read operation {}: reading {} bytes starting from 0x{:04x}".format(i, bytes_to_read, this_block_address))
 
                 if self._swap_endian:
                     this_block_address = self.swap_endian_16bit(this_block_address)
