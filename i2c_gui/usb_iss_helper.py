@@ -199,29 +199,46 @@ class USB_ISS_Helper(GUI_Helper):
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
+        byte_count = len(data)
+
+        if byte_count == 1:
+            self._parent.send_i2c_logging_message("Trying to write the value 0x{:02x} to the register 0x{:04x} of the I2C device with address 0x{:02x}:".format(data[0], memory_address, device_address))
+        else:
+            self._parent.send_i2c_logging_message("Trying to write a register block with size {} starting at register 0x{:04x} of the I2C device with address 0x{:02x}:\n   Writing the value array: {}".format(byte_count, memory_address, device_address, repr(data)))
+
         if self._no_connect:
+            self._parent.send_i2c_logging_message("   Software emulation (no connect) is enabled, so no write action is taken.\n")
             return
 
         if self._max_seq_byte is None:
+            self._parent.send_i2c_logging_message("   Writing the full block at once\n")
             if self._swap_endian:
                 memory_address = self.swap_endian_16bit(memory_address)
             self._iss.i2c.write_ad2(device_address, memory_address, data)
         else:
             from math import ceil
             from time import sleep
-            byte_count = len(data)
-
             seq_calls = ceil(byte_count/self._max_seq_byte)
+            self._parent.send_i2c_logging_message("   Breaking the write into {} individual writes of {} bytes:".format(seq_calls, self._max_seq_byte))
+
             lastUpdateTime = time.time_ns()
             for i in range(seq_calls):
                 thisTime = time.time_ns()
                 if thisTime - lastUpdateTime > 0.2 * 10**9:
                     self.display_progress("Writing:", i*100./seq_calls)
                     self._frame.update_idletasks()
+
                 this_block_address = memory_address + i*self._max_seq_byte
+                bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
+                self._parent.send_i2c_logging_message("      Write operation {}: writing {} bytes starting from 0x{:04x}".format(i, bytes_to_write, this_block_address))
+
+                this_data = data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write]
+                self._parent.send_i2c_logging_message("         {}".format(repr(this_data)))
+
                 if self._swap_endian:
                     this_block_address = self.swap_endian_16bit(this_block_address)
-                bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
-                self._iss.i2c.write_ad2(device_address, this_block_address, data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write])
+                self._iss.i2c.write_ad2(device_address, this_block_address, this_data)
+
                 sleep(0.00001)
+            self._parent.send_i2c_logging_message("")
             self.clear_progress()
