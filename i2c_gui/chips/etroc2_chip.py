@@ -1756,8 +1756,10 @@ class ETROC2_Chip(Base_Chip):
         if address_space_name == "ETROC2":
             self._logger.info("Writing full address space: {}".format(address_space_name))
             success = True
+            broadcast_backup = self._indexer_vars['broadcast']['variable'].get()
             for block in self._register_model[address_space_name]["Register Blocks"]:
-                if not super().write_all_block(address_space_name, block, full_array=True, write_check=write_check):
+                self._indexer_vars['broadcast']['variable'].set(broadcast_backup)
+                if not self.write_all_block(address_space_name, block, full_array=True, write_check=write_check):
                     success = False
             return success
         else:
@@ -1791,10 +1793,14 @@ class ETROC2_Chip(Base_Chip):
                     address_space._display_vars[displayed_address].get()
                 )
 
-            return address_space.write_memory_block(broadcast_base_address, block_length, write_check=write_check)
+            return_status = address_space.write_memory_block(broadcast_base_address, block_length, write_check=write_check)
 
             # TODO: Validate broadcast write
+
+            self._indexer_vars['broadcast']['variable'].set("0")
+            return return_status
         else:
+            self._indexer_vars['broadcast']['variable'].set("0")
             return super().write_all_block(
                 address_space_name=address_space_name,
                 block_name=block_name,
@@ -1829,10 +1835,14 @@ class ETROC2_Chip(Base_Chip):
                 address_space._display_vars[displayed_address].get()
             )
 
-            return address_space.write_memory_register(broadcast_address, write_check=write_check)
+            return_status = address_space.write_memory_register(broadcast_address, write_check=write_check)
 
             # TODO: Validate broadcast write
+
+            self._indexer_vars['broadcast']['variable'].set("0")
+            return return_status
         else:
+            self._indexer_vars['broadcast']['variable'].set("0")
             return super().write_register(
                 address_space_name=address_space_name,
                 block_name=block_name,
