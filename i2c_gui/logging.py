@@ -25,6 +25,7 @@ class Logging_Helper(GUI_Helper):
         self._logging_window_status_var.set("Logging Disabled")
 
         self._autorefresh_var = tk.BooleanVar(value=False)
+        self._log_to_terminal_var = tk.BooleanVar(value=self._logger.propagate)
 
     @property
     def is_logging(self):
@@ -93,11 +94,14 @@ class Logging_Helper(GUI_Helper):
         self._logging_status_label.grid(column=200, row=100, sticky=(tk.W, tk.E), padx=(0,30))
         self._control_frame.columnconfigure(200, weight=1)
 
-        self._autorefresh_check = ttk.Checkbutton(self._control_frame, text="Auto-refresh", variable=self._autorefresh_var, command=self.toggle_autorefresh)
+        self._autorefresh_check = ttk.Checkbutton(self._control_frame, text="Log to Terminal", variable=self._log_to_terminal_var, command=self.toggle_log_to_terminal)
         self._autorefresh_check.grid(column=300, row=100, sticky=(tk.W, tk.E), padx=(0,10))
 
+        self._autorefresh_check = ttk.Checkbutton(self._control_frame, text="Auto-refresh", variable=self._autorefresh_var, command=self.toggle_autorefresh)
+        self._autorefresh_check.grid(column=400, row=100, sticky=(tk.W, tk.E), padx=(0,10))
+
         self._refresh_button = ttk.Button(self._control_frame, text="Refresh", command=self.refresh_logging)
-        self._refresh_button.grid(column=400, row=100, sticky=(tk.W, tk.E))
+        self._refresh_button.grid(column=500, row=100, sticky=(tk.W, tk.E))
 
         self._logging_window.update()
         self._logging_window.minsize(self._logging_window.winfo_width(), self._logging_window.winfo_height())
@@ -135,6 +139,15 @@ class Logging_Helper(GUI_Helper):
         else:
             self.send_message("Turn off logging auto-refresh")
             self._refresh_button.configure(state='normal', text="Refresh")
+
+    def toggle_log_to_terminal(self):
+        log_to_terminal = self._log_to_terminal_var.get()
+        if log_to_terminal:  # The order here is important so that the turn-on/off is always logged to the terminal
+            self._logger.propagate = log_to_terminal
+            self.send_message("Turn on logging to terminal")
+        else:
+            self.send_message("Turn off logging to terminal")
+            self._logger.propagate = log_to_terminal
 
     def autorefresh_logging(self):
         self.refresh_logging()
