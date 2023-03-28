@@ -94,8 +94,8 @@ class Logging_Helper(GUI_Helper):
         self._logging_status_label.grid(column=200, row=100, sticky=(tk.W, tk.E), padx=(0,30))
         self._control_frame.columnconfigure(200, weight=1)
 
-        self._autorefresh_check = ttk.Checkbutton(self._control_frame, text="Log to Terminal", variable=self._log_to_terminal_var, command=self.toggle_log_to_terminal)
-        self._autorefresh_check.grid(column=300, row=100, sticky=(tk.W, tk.E), padx=(0,10))
+        self._log_to_terminal_check = ttk.Checkbutton(self._control_frame, text="Log to Terminal", variable=self._log_to_terminal_var, command=self.toggle_log_to_terminal)
+        self._log_to_terminal_check.grid(column=300, row=100, sticky=(tk.W, tk.E), padx=(0,10))
 
         self._autorefresh_check = ttk.Checkbutton(self._control_frame, text="Auto-refresh", variable=self._autorefresh_var, command=self.toggle_autorefresh)
         self._autorefresh_check.grid(column=400, row=100, sticky=(tk.W, tk.E), padx=(0,10))
