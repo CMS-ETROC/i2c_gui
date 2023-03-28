@@ -47,13 +47,13 @@ class USB_ISS_Helper(GUI_Helper):
         self._parent.send_i2c_logging_message("Trying to find the I2C device with address 0x{:02x}".format(address))
 
         if not self.is_connected or self._no_connect:
-            self._parent.send_i2c_logging_message("  The USB-ISS module is not connected or you are using software emulated mode.")
+            self._parent.send_i2c_logging_message("   The USB-ISS module is not connected or you are using software emulated mode.")
             return False
 
         if not self._iss.i2c.test(address):
-            self._parent.send_i2c_logging_message("  The I2C device can not be found.")
+            self._parent.send_i2c_logging_message("   The I2C device can not be found.")
             return False
-        self._parent.send_i2c_logging_message("  The I2C device was found.")
+        self._parent.send_i2c_logging_message("   The I2C device was found.")
         return True
 
     def display_in_frame(self, frame: ttk.Frame):
