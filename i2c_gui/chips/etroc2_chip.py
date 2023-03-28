@@ -1793,7 +1793,15 @@ class ETROC2_Chip(Base_Chip):
                     address_space._display_vars[displayed_address].get()
                 )
 
+                # Temporarily disable the read-only property on the broadcast address
+                address_space._read_only_map[broadcast_address] = False
+
             return_status = address_space.write_memory_block(broadcast_base_address, block_length, write_check=write_check)
+
+            # Re-enable the read-only on the broadcast address
+            for offset in range(block_length):
+                broadcast_address = broadcast_base_address + offset
+                address_space._read_only_map[broadcast_address] = True
 
             # TODO: Validate broadcast write
 
@@ -1835,7 +1843,13 @@ class ETROC2_Chip(Base_Chip):
                 address_space._display_vars[displayed_address].get()
             )
 
+            # Temporarily disable the read-only property on the broadcast address
+            address_space._read_only_map[broadcast_address] = False
+
             return_status = address_space.write_memory_register(broadcast_address, write_check=write_check)
+
+            # Re-enable the read-only on the broadcast address
+            address_space._read_only_map[broadcast_address] = True
 
             # TODO: Validate broadcast write
 
