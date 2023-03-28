@@ -208,7 +208,7 @@ class Connection_Controller(GUI_Helper):
         self._i2c_window_connection_control_frame.grid(column=100, row=300, sticky=(tk.N, tk.W, tk.E, tk.S))
 
         # Place main display text on right side of the top frame
-        self._text_display = tk.Text(self._i2c_window_top_frame, state='disabled', width=80, wrap='none')
+        self._text_display = tk.Text(self._i2c_window_top_frame, state='disabled', width=80, wrap=tk.WORD)#'none')
         self._text_display.grid(column=200, row=100, sticky=(tk.N, tk.W, tk.E, tk.S))
 
         # Place scrollbar against the main display text
