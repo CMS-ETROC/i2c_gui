@@ -143,34 +143,53 @@ class USB_ISS_Helper(GUI_Helper):
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
+        if byte_count == 1:
+            self._parent.send_i2c_logging_message("Trying to read the register 0x{:02x} of the I2C device with address 0x{:02x}:".format(memory_address, device_address))
+        else:
+            self._parent.send_i2c_logging_message("Trying to read a register block with size {} starting at register 0x{:02x} of the I2C device with address 0x{:02x}:".format(byte_count, memory_address, device_address))
+
+        data = []
         if self._no_connect:
             if byte_count == 1:
-                return [42]
-            return [i for i in range(byte_count)]
+                data = [42]
+            else:
+                data = [i for i in range(byte_count)]
+            self._parent.send_i2c_logging_message("   Software emulation (no connect) is enabled, so returning dummy values.\n   {}".format(repr(data)))
 
-        if self._max_seq_byte is None:
+        elif self._max_seq_byte is None:
             if self._swap_endian:
                 memory_address = self.swap_endian_16bit(memory_address)
-            return self._iss.i2c.read_ad2(device_address, memory_address, byte_count)
+            data = self._iss.i2c.read_ad2(device_address, memory_address, byte_count)
+            self._parent.send_i2c_logging_message("   {}".format(repr(data)))
         else:
             from math import ceil
             from time import sleep
-            tmp = []
+            data = []
             seq_calls = ceil(byte_count/self._max_seq_byte)
+            self._parent.send_i2c_logging_message("   Breaking the read into {} individual reads of {} bytes:".format(seq_calls, self._max_seq_byte))
+
             lastUpdateTime = time.time_ns()
             for i in range(seq_calls):
                 thisTime = time.time_ns()
                 if thisTime - lastUpdateTime > 0.2 * 10**9:
                     self.display_progress("Reading:", i*100./seq_calls)
                     self._frame.update_idletasks()
+
                 this_block_address = memory_address + i*self._max_seq_byte
+                bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
+                self._parent.send_i2c_logging_message("      Read operation {}: reading {} bytes starting from 0x{:02x}".format(i, bytes_to_read, this_block_address))
+
                 if self._swap_endian:
                     this_block_address = self.swap_endian_16bit(this_block_address)
-                bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
-                tmp += self._iss.i2c.read_ad2(device_address, this_block_address, bytes_to_read)
+                this_data = self._iss.i2c.read_ad2(device_address, this_block_address, bytes_to_read)
+                self._parent.send_i2c_logging_message("         {}".format(repr(this_data)))
+
+                data += this_data
                 sleep(0.00001)
+
             self.clear_progress()
-            return tmp
+            self._parent.send_i2c_logging_message("   Full data:\n      {}".format(repr(data)))
+        return data
 
     def write_device_memory(self, device_address: int, memory_address: int, data: list[int]):
         if not self.is_connected:
