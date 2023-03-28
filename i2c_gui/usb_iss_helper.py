@@ -154,13 +154,13 @@ class USB_ISS_Helper(GUI_Helper):
                 data = [42]
             else:
                 data = [i for i in range(byte_count)]
-            self._parent.send_i2c_logging_message("   Software emulation (no connect) is enabled, so returning dummy values.\n   {}".format(repr(data)))
+            self._parent.send_i2c_logging_message("   Software emulation (no connect) is enabled, so returning dummy values.\n   {}\n".format(repr(data)))
 
         elif self._max_seq_byte is None:
             if self._swap_endian:
                 memory_address = self.swap_endian_16bit(memory_address)
             data = self._iss.i2c.read_ad2(device_address, memory_address, byte_count)
-            self._parent.send_i2c_logging_message("   {}".format(repr(data)))
+            self._parent.send_i2c_logging_message("   {}\n".format(repr(data)))
         else:
             from math import ceil
             from time import sleep
@@ -188,7 +188,7 @@ class USB_ISS_Helper(GUI_Helper):
                 sleep(0.00001)
 
             self.clear_progress()
-            self._parent.send_i2c_logging_message("   Full data:\n      {}".format(repr(data)))
+            self._parent.send_i2c_logging_message("   Full data:\n      {}\n".format(repr(data)))
         return data
 
     def write_device_memory(self, device_address: int, memory_address: int, data: list[int]):
