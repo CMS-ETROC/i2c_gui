@@ -8,10 +8,27 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 import io
 
+from .functions import addLoggingLevel
+
 class Logging_Helper(GUI_Helper):
     _parent: Base_GUI
+    _log_levels = {
+        "Detailed Trace": 5,  # (Custom)
+        "Trace": 8,  # (Custom)
+        "Debug": 10,
+        "Info": 20,
+        "Warning": 30,
+        "Error": 40,
+        "Critical": 50,
+    }
+    _default_log_level = "Info"
+
     def __init__(self, parent: Base_GUI):
         super().__init__(parent, None, parent._logger)
+
+        # Add custom log levels to logging
+        addLoggingLevel('TRACE', 8)  # Numbers should match the definition above
+        addLoggingLevel('DETAILED_TRACE', 5)
 
         self._do_logging = False
         self._logger.disabled = True
@@ -26,6 +43,31 @@ class Logging_Helper(GUI_Helper):
 
         self._autorefresh_var = tk.BooleanVar(value=False)
         self._log_to_terminal_var = tk.BooleanVar(value=self._logger.propagate)
+        self._log_level_var = tk.StringVar()
+        self._log_level_var.trace_add('write', self._update_log_level)
+        self._log_level_var.set(self._default_log_level)
+
+    def _update_log_level(self, var=None, index=None, mode=None):
+        new_level = self._log_level_var.get()
+        if new_level not in self._log_levels:
+            self._log_level_var.set(self._default_log_level)
+            return
+
+        numeric_level = self._log_levels[new_level]
+
+        self._logger.setLevel(numeric_level)
+
+        #print(self._log_level_var.get())
+        #print(numeric_level)
+
+        # self._logger: logging.Logger
+        #self._logger.detailed_trace(5, "This is a detailed trace log")
+        #self._logger.trace(8, "This is a trace log")
+        #self._logger.debug("This is a debug log")
+        #self._logger.info("This is a info log")
+        #self._logger.warn("This is a warn log")
+        #self._logger.error("This is a error log")
+        #self._logger.critical("This is a critical log")
 
     @property
     def is_logging(self):
@@ -41,11 +83,13 @@ class Logging_Helper(GUI_Helper):
         if self._do_logging:
             if self._stream_handler not in self._logger.handlers:
                 self._logger.addHandler(self._stream_handler)
+            #self._log_level_option.config(state = 'disabled')
             self._logger.disabled = False
             self._logging_window_status_var.set("Logging Enabled")
         else:
             if self._stream_handler in self._logger.handlers:
                 self._logger.removeHandler(self._stream_handler)
+            #self._log_level_option.config(state = 'normal')
             self._logger.disabled = True
             self._logging_window_status_var.set("Logging Disabled")
 
@@ -89,6 +133,9 @@ class Logging_Helper(GUI_Helper):
 
         self._clear_logging_button = ttk.Button(self._control_frame, text="Clear Log", command=self.clear_log)
         self._clear_logging_button.grid(column=110, row=100, sticky=(tk.W, tk.E), padx=(0,5))
+
+        self._log_level_option = ttk.OptionMenu(self._control_frame, self._log_level_var, self._default_log_level, *self._log_levels.keys())
+        self._log_level_option.grid(column=120, row=100, sticky=(tk.W, tk.E), padx=(0,5))
 
         self._logging_status_label = ttk.Label(self._control_frame, textvariable=self._logging_window_status_var)
         self._logging_status_label.grid(column=200, row=100, sticky=(tk.W, tk.E), padx=(0,30))
