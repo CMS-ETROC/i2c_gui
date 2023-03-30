@@ -156,7 +156,7 @@ class Logging_Helper(GUI_Helper):
         self._clear_logging_button = ttk.Button(self._control_frame, text="Clear Log", command=self.clear_log)
         self._clear_logging_button.grid(column=110, row=100, sticky=(tk.W, tk.E), padx=(0,5))
 
-        self._log_level_option = ttk.OptionMenu(self._control_frame, self._log_level_var, self._default_log_level, *self._log_levels.keys())
+        self._log_level_option = ttk.OptionMenu(self._control_frame, self._log_level_var, self._log_level_var.get(), *self._log_levels.keys())
         self._log_level_option.grid(column=120, row=100, sticky=(tk.W, tk.E), padx=(0,5))
 
         self._logging_status_label = ttk.Label(self._control_frame, textvariable=self._logging_window_status_var)
