@@ -148,6 +148,11 @@ class ETROC1_Chip(Base_Chip):
             register_decoding=register_decoding
         )
 
+        self._i2c_address_a = None
+        self._i2c_address_b = None
+        self._i2c_address_full_pixel = None
+        self._i2c_address_tdc_test_block = None
+
         self.clear_tab("Empty")
         self.register_tab(
             "Graphical View",
