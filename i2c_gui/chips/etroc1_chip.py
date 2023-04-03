@@ -759,6 +759,7 @@ class ETROC1_Chip(Base_Chip):
             "Full Pixel Registers",
             {
                 "canvas": True,
+                "builder": self.full_pixel_register_builder
             }
         )
         self.register_tab(
@@ -770,7 +771,8 @@ class ETROC1_Chip(Base_Chip):
         self.register_tab(
             "TDC Test Block Registers",
             {
-                "canvas": False,
+                "canvas": True,
+                "builder": self.tdc_register_builder
             }
         )
         self.register_tab(
@@ -875,7 +877,7 @@ class ETROC1_Chip(Base_Chip):
         frame.columnconfigure(100, weight=1)
         columns = 4
 
-        self._ETROC2_peripheral_config_frame = self.build_block_interface(
+        self._array_register_a_frame = self.build_block_interface(
             element=frame,
             title="Register Block A",
             internal_title="Register Block A",
@@ -887,7 +889,7 @@ class ETROC1_Chip(Base_Chip):
             register_columns=columns
         )
 
-        self._ETROC2_peripheral_config_frame = self.build_block_interface(
+        self._array_register_b_frame = self.build_block_interface(
             element=frame,
             title="Register Block B",
             internal_title="Register Block B",
@@ -896,5 +898,37 @@ class ETROC1_Chip(Base_Chip):
             block="Registers",
             col=100,
             row=200,
+            register_columns=columns
+        )
+
+    def full_pixel_register_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 4
+
+        self._full_pixel_register_frame = self.build_block_interface(
+            element=frame,
+            title="Full Pixel",
+            internal_title="Full Pixel",
+            button_title="Pixel",
+            address_space="Full_Pixel",
+            block="Registers",
+            col=100,
+            row=100,
+            register_columns=columns
+        )
+
+    def tdc_register_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 4
+
+        self._tdc_register_frame = self.build_block_interface(
+            element=frame,
+            title="TDC Test Block",
+            internal_title="TDC Test Block",
+            button_title="TDC",
+            address_space="TDC_Test_Block",
+            block="Registers",
+            col=100,
+            row=100,
             register_columns=columns
         )
