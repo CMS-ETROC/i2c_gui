@@ -319,12 +319,12 @@ class ETROC1_GUI(Base_GUI):
         if self._i2c_controller.check_i2c_device(address):
             self._reg_full_pixel_status_label.config(foreground=self._green_col)
             self._reg_full_pixel_status_var.set("Available")
-            self._chip.config_i2c_address_b(int(address, 0))
+            self._chip.config_i2c_address_full_pixel(int(address, 0))
             self._valid_i2c_address_full_pixel = True
         else:
             self._reg_full_pixel_status_label.config(foreground=self._red_col)
             self._reg_full_pixel_status_var.set("Not available")
-            self._chip.config_i2c_address_b(None)
+            self._chip.config_i2c_address_full_pixel(None)
             self._valid_i2c_address_full_pixel = False
 
     def check_i2c_address_tdc(self, var=None, index=None, mode=None):
@@ -341,12 +341,12 @@ class ETROC1_GUI(Base_GUI):
         if self._i2c_controller.check_i2c_device(address):
             self._reg_tdc_status_label.config(foreground=self._green_col)
             self._reg_tdc_status_var.set("Available")
-            self._chip.config_i2c_address_b(int(address, 16))
+            self._chip.config_i2c_address_tdc(int(address, 16))
             self._valid_i2c_address_tdc_test = True
         else:
             self._reg_tdc_status_label.config(foreground=self._red_col)
             self._reg_tdc_status_var.set("Not available")
-            self._chip.config_i2c_address_b(None)
+            self._chip.config_i2c_address_tdc(None)
             self._valid_i2c_address_tdc_test = False
 
     def read_all(self):
