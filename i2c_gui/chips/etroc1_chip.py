@@ -97,25 +97,25 @@ class ETROC1_Chip(Base_Chip):
             }
         )
         self.register_tab(
-            "Full Pixel Registers",
-            {
-                "canvas": True,
-            }
-        )
-        self.register_tab(
-            "TDC Test Block Registers",
-            {
-                "canvas": False,
-            }
-        )
-        self.register_tab(
             "Array Decoded",
             {
                 "canvas": False,
             }
         )
         self.register_tab(
+            "Full Pixel Registers",
+            {
+                "canvas": True,
+            }
+        )
+        self.register_tab(
             "Full Pixel Decoded",
+            {
+                "canvas": False,
+            }
+        )
+        self.register_tab(
+            "TDC Test Block Registers",
             {
                 "canvas": False,
             }
