@@ -752,7 +752,8 @@ class ETROC1_Chip(Base_Chip):
         self.register_tab(
             "Array Decoded",
             {
-                "canvas": False,
+                "canvas": True,
+                "builder": self.array_register_decoded_builder
             }
         )
         self.register_tab(
@@ -765,7 +766,8 @@ class ETROC1_Chip(Base_Chip):
         self.register_tab(
             "Full Pixel Decoded",
             {
-                "canvas": False,
+                "canvas": True,
+                "builder": self.full_pixel_register_decoded_builder
             }
         )
         self.register_tab(
@@ -778,7 +780,8 @@ class ETROC1_Chip(Base_Chip):
         self.register_tab(
             "TDC Test Block Decoded",
             {
-                "canvas": False,
+                "canvas": True,
+                "builder": self.tdc_register_decoded_builder
             }
         )
 
@@ -901,6 +904,34 @@ class ETROC1_Chip(Base_Chip):
             register_columns=columns
         )
 
+    def array_register_decoded_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 3
+
+        self._array_register_a_decoded_frame = self.build_decoded_block_interface(
+            element=frame,
+            title="Values Block A",
+            internal_title="Values Block A",
+            button_title="REG A",
+            address_space="Array_Reg_A",
+            block="Registers",
+            col=100,
+            row=100,
+            value_columns=columns
+        )
+
+        self._array_register_b_decoded_frame = self.build_decoded_block_interface(
+            element=frame,
+            title="Values Block B",
+            internal_title="Values Block B",
+            button_title="REG B",
+            address_space="Array_Reg_B",
+            block="Registers",
+            col=100,
+            row=200,
+            value_columns=columns,
+        )
+
     def full_pixel_register_builder(self, frame: ttk.Frame):
         frame.columnconfigure(100, weight=1)
         columns = 4
@@ -917,6 +948,22 @@ class ETROC1_Chip(Base_Chip):
             register_columns=columns
         )
 
+    def full_pixel_register_decoded_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 3
+
+        self._full_pixel_decoded_frame = self.build_decoded_block_interface(
+            element=frame,
+            title="Full Pixel",
+            internal_title="Full Pixel Decoded",
+            button_title="Pixel",
+            address_space="Full_Pixel",
+            block="Registers",
+            col=100,
+            row=100,
+            value_columns=columns
+        )
+
     def tdc_register_builder(self, frame: ttk.Frame):
         frame.columnconfigure(100, weight=1)
         columns = 4
@@ -931,4 +978,20 @@ class ETROC1_Chip(Base_Chip):
             col=100,
             row=100,
             register_columns=columns
+        )
+
+    def tdc_register_decoded_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 3
+
+        self._tdc_decoded_frame = self.build_decoded_block_interface(
+            element=frame,
+            title="TDC Test Block",
+            internal_title="TDC Test Block Decoded",
+            button_title="TDC",
+            address_space="TDC_Test_Block",
+            block="Registers",
+            col=100,
+            row=100,
+            value_columns=columns
         )
