@@ -310,7 +310,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def read_all(self):
         if self._i2c_address is None:
-            self._logger.info("Unable to read address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
             return
 
         self._logger.info("Reading the full '{}' address space".format(self._name))
@@ -324,7 +324,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def write_all(self, write_check: bool = True):
         if self._i2c_address is None:
-            self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to write address space '{}' because the i2c address is not set".format(self._name), "Error")
             return False
 
         for val in self._read_only_map:
@@ -361,7 +361,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def read_memory_register(self, address):
         if self._i2c_address is None:
-            self._logger.info("Unable to read address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
             return
 
         self._logger.info("Reading register at address {} in the address space '{}'".format(address, self._name))
@@ -374,7 +374,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def write_memory_register(self, address, write_check: bool = True):
         if self._i2c_address is None:
-            self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to write address space '{}' because the i2c address is not set".format(self._name), "Error")
             return False
 
         if self._read_only_map[address]:
@@ -405,7 +405,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def read_memory_block(self, address, data_size):
         if self._i2c_address is None:
-            self._logger.info("Unable to read address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
             return
 
         self._logger.info("Reading a block of {} bytes starting at address {} in the address space '{}'".format(data_size, address, self._name))
@@ -444,7 +444,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def write_memory_block(self, address, data_size, write_check: bool = True):
         if self._i2c_address is None:
-            self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to write address space '{}' because the i2c address is not set".format(self._name), "Error")
             return False
 
         has_read_only = False
@@ -487,7 +487,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def read_block(self, block_name):
         if self._i2c_address is None:
-            self._logger.info("Unable to read address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
             return
 
         block = self._blocks[block_name]
@@ -497,7 +497,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def write_block(self, block_name, write_check: bool = True):
         if self._i2c_address is None:
-            self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to write address space '{}' because the i2c address is not set".format(self._name), "Error")
             return False
 
         block = self._blocks[block_name]
@@ -507,7 +507,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def read_register(self, block_name, register_name):
         if self._i2c_address is None:
-            self._logger.info("Unable to read address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
             return
 
         self._logger.info("Attempting to read register {} in block {}".format(register_name, block_name))
@@ -516,7 +516,7 @@ class Address_Space_Controller(GUI_Helper):
 
     def write_register(self, block_name, register_name, write_check: bool = True):
         if self._i2c_address is None:
-            self._logger.info("Unable to write address space '{}' because the i2c address is not set".format(self._name))
+            self.send_message("Unable to write address space '{}' because the i2c address is not set".format(self._name), "Error")
             return False
 
         self._logger.info("Attempting to write register {} in block {}".format(register_name, block_name))
