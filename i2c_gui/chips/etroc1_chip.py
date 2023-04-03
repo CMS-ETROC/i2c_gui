@@ -685,7 +685,7 @@ register_decoding = {
                     "info": "Shared by all pixels.\n{0} selects the load capacitance of the preamp first stage:\n - 0b00: 0 fC\n - 0b01: 80 fC\n - 0b10: 80 fC\n - 0b11: 160 fC",
                     "show_binary": False
                 },
-                "DIS_VTHInOut": {  # TODO: Add validation function
+                "DIS_VTHInOut": {
                     "bits": 16,
                     "position": [
                         ("Reg_A_03", "7-0", "15-8"),
@@ -875,7 +875,7 @@ class ETROC1_Chip(Base_Chip):
             address_space.update_i2c_address(address)
         self.update_whether_modified()
 
-    def config_i2c_address_full_pixel(self, address):
+    def config_i2c_address_tdc(self, address):
         self._i2c_address_tdc_test_block = address
 
         from .address_space_controller import Address_Space_Controller
