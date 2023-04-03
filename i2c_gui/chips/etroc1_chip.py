@@ -251,6 +251,42 @@ class ETROC1_Chip(Base_Chip):
 
         self._parent._local_status_update(final_state)
 
+    def config_i2c_address_a(self, address):
+        self._i2c_address_a = address
+
+        from .address_space_controller import Address_Space_Controller
+        if "Array_Reg_A" in self._address_space:
+            address_space: Address_Space_Controller = self._address_space["Array_Reg_A"]
+            address_space.update_i2c_address(address)
+        self.update_whether_modified()
+
+    def config_i2c_address_b(self, address):
+        self._i2c_address_b = address
+
+        from .address_space_controller import Address_Space_Controller
+        if "Array_Reg_B" in self._address_space:
+            address_space: Address_Space_Controller = self._address_space["Array_Reg_B"]
+            address_space.update_i2c_address(address)
+        self.update_whether_modified()
+
+    def config_i2c_address_full_pixel(self, address):
+        self._i2c_address_full_pixel = address
+
+        from .address_space_controller import Address_Space_Controller
+        if "Full_Pixel" in self._address_space:
+            address_space: Address_Space_Controller = self._address_space["Full_Pixel"]
+            address_space.update_i2c_address(address)
+        self.update_whether_modified()
+
+    def config_i2c_address_full_pixel(self, address):
+        self._i2c_address_tdc_test_block = address
+
+        from .address_space_controller import Address_Space_Controller
+        if "TDC_Test_Block" in self._address_space:
+            address_space: Address_Space_Controller = self._address_space["TDC_Test_Block"]
+            address_space.update_i2c_address(address)
+        self.update_whether_modified()
+
     def graphical_interface_builder(self, frame: ttk.Frame):
         pass
 
