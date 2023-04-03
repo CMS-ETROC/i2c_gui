@@ -48,7 +48,7 @@ class ETROC1_GUI(Base_GUI):
 
     def _fill_notebook(self):
         from .chips import ETROC1_Chip
-        self._chip = ETROC1_Chip(self._i2c_controller, i2c_controller=self._i2c_controller)
+        self._chip = ETROC1_Chip(parent=self, i2c_controller=self._i2c_controller)
 
         self._full_chip_display(self._chip)
 
