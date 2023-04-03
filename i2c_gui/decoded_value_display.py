@@ -48,7 +48,8 @@ class Decoded_Value_Display(GUI_Helper):
         self._shadow_var = None
         #self._metadata = metadata
         self._bits = metadata["bits"]
-        self._info = metadata["info"]
+        if "info" in metadata:
+            self._info = metadata["info"]
         self._tooltip_width = tooltip_width
         self._read_only = False
         if 'read_only' in metadata:
@@ -177,7 +178,7 @@ class Decoded_Value_Display(GUI_Helper):
 
         self._callback_update_shadow_var  = self._display_var.trace_add('write', self._update_shadow_var)
 
-        if self._info != "":
+        if hasattr(self, "_info") and self._info != "":
             self._info_button = ttk.Label(self._frame, text="ⓘ", borderwidth=1, relief="solid", padding=2)
             self._frame.columnconfigure(499, weight=1)
             self._info_button.grid(column=500, row=100)
