@@ -103,6 +103,17 @@ class ETROC1_GUI(Base_GUI):
         self.send_message("Reverting current chip configuration to last read values")
         self._chip.revert_config()
 
+    def _file_menu(self, menubar: tk.Menu):
+        self._filemenu = tk.Menu(menubar, name='file')
+
+        self._filemenu.add_command(label='Load Chip Config', command=self._load_config, state='disabled')
+        self._filemenu.add_command(label='Save Chip Config', command=self._save_config, state='disabled')
+        self._filemenu.add_separator()
+        self._filemenu.add_command(label='Reset Chip Config', command=self._reset_config, state='disabled')
+        self._filemenu.add_command(label='Revert Chip Config', command=self._revert_config, state='disabled')
+
+        menubar.add_cascade(menu=self._filemenu, label='File')
+
     def _about_contents(self, element: tk.Tk, column: int, row: int):
         self._about_img = ImageTk.PhotoImage(Image.open(importlib.resources.open_binary("i2c_gui.static", "ETROC1.png")))
         self._about_img_label = tk.Label(element, image = self._about_img)
