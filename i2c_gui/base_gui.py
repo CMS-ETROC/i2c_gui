@@ -36,7 +36,7 @@ from tkinter import filedialog as tkfd
 from tkinter.messagebox import showinfo
 
 class Base_GUI(GUI_Helper):
-    def __init__(self, title, root: tk.Tk, logger: logging.Logger, do_status: bool = True, do_global_controls: bool = True):
+    def __init__(self, title, root: tk.Tk, logger: logging.Logger, do_status: bool = True, do_global_controls: bool = True, stack_global_controls: bool = False):
         super().__init__(None, ttk.Frame(root, padding="5 5 5 5"), logger)
         self._root = root
         self._title = title
@@ -77,7 +77,7 @@ class Base_GUI(GUI_Helper):
 
         if do_global_controls:
             from .global_controls import Global_Controls
-            self._global_controls = Global_Controls(self)
+            self._global_controls = Global_Controls(self, stack_controls=stack_global_controls)
             self._global_controls.prepare_display(self._frame, 100, 900)
 
         if do_status:
