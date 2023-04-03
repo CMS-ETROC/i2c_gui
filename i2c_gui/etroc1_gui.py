@@ -31,7 +31,18 @@ import logging
 import importlib.resources
 from PIL import ImageTk, Image
 
+from tkinter import filedialog as tkfd
+
+i2c_conf_extension = "i2c_conf"
+
 class ETROC1_GUI(Base_GUI):
+    _config_filetypes = (
+        ('I2C config files', '*.'+i2c_conf_extension),
+        ('All files', '*.*')
+    )
+    _red_col = '#c00000'
+    _green_col = '#00c000'
+
     def __init__(self, root: tk.Tk, logger: logging.Logger):
         super().__init__("ETROC1 I2C GUI", root, logger)
 
@@ -39,6 +50,58 @@ class ETROC1_GUI(Base_GUI):
         self._valid_i2c_address_b = False
         self._valid_i2c_address_full_pixel = False
         self._valid_i2c_address_tdc_test = False
+
+    def _load_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        filename = tkfd.askopenfilename(
+            parent=self._parent,
+            title='Load I2C Config',
+            initialdir='./',
+            filetypes=self._config_filetypes,
+        )
+
+        if filename is None or filename == "":
+            return
+
+        self._logger.trace("Loading file: {}".format(filename))
+
+        self._chip.load_config(filename)
+
+    def _save_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        filename = tkfd.asksaveasfilename(
+            parent=self._parent,
+            title='Save I2C Config',
+            initialdir='./',
+            initialfile='etroc1.'+i2c_conf_extension,
+            defaultextension=i2c_conf_extension,
+            filetypes=[('I2C config files', '*.'+i2c_conf_extension)],  # TODO: Not sure about this parameter...
+        )
+
+        if filename is None or filename == "":
+            return
+
+        self._logger.trace("Saving file: {}".format(filename))
+
+        self._chip.save_config(filename)
+
+    def _reset_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        self.send_message("Resetting current chip configuration to default values")
+        self._chip.reset_config()
+
+    def _revert_config(self):
+        if not hasattr(self, "_chip") or self._chip is None:
+            return
+
+        self.send_message("Reverting current chip configuration to last read values")
+        self._chip.revert_config()
 
     def _about_contents(self, element: tk.Tk, column: int, row: int):
         self._about_img = ImageTk.PhotoImage(Image.open(importlib.resources.open_binary("i2c_gui.static", "ETROC1.png")))
