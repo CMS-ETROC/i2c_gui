@@ -213,8 +213,22 @@ class ETROC1_GUI(Base_GUI):
         self._reg_full_pixel_frame.columnconfigure(0, weight=1)
         self._reg_full_pixel_frame.columnconfigure(200, weight=1)
 
-        self._reg_tdc_inner_frame = ttk.Frame(self._reg_full_pixel_frame)
-        self._reg_tdc_inner_frame.grid(column=100, row=100)
+        self._reg_full_pixel_display_var = tk.StringVar(value="0b1001110")
+        self._reg_full_pixel_display_label = ttk.Label(self._reg_full_pixel_frame, textvariable=self._reg_full_pixel_display_var)
+        self._reg_full_pixel_display_label.grid(column=100, row=0)
+
+        self._reg_full_pixel_inner_frame = ttk.Frame(self._reg_full_pixel_frame)
+        self._reg_full_pixel_inner_frame.grid(column=100, row=100)
+
+        self._reg_full_pixel_check_button = ttk.Button(self._reg_full_pixel_inner_frame, text="Check", command=self.check_i2c_address_full_pixel)
+        self._reg_full_pixel_check_button.grid(column=100, row=100)
+
+        self._reg_full_pixel_status_var = tk.StringVar(value="Unknown")
+        self._reg_full_pixel_status_label = ttk.Label(self._reg_full_pixel_frame, textvariable=self._reg_full_pixel_status_var)
+        self._reg_full_pixel_status_label.grid(column=100, row=200)
+        self._reg_full_pixel_status_label.config(foreground=self._orange_col)
+
+        self.check_i2c_address_full_pixel()
 
         ## TDC Frame
         self._reg_tdc_frame = ttk.LabelFrame(self._frame_extra_global, text="TDC Test Block")
@@ -244,7 +258,7 @@ class ETROC1_GUI(Base_GUI):
         if self._i2c_controller.check_i2c_device(address):
             self._reg_a_status_label.config(foreground=self._green_col)
             self._reg_a_status_var.set("Available")
-            self._chip.config_i2c_address_a(int(address, 16))
+            self._chip.config_i2c_address_a(int(address, 0))
             self._valid_i2c_address_a = True
         else:
             self._reg_a_status_label.config(foreground=self._red_col)
@@ -271,13 +285,27 @@ class ETROC1_GUI(Base_GUI):
         if self._i2c_controller.check_i2c_device(address):
             self._reg_b_status_label.config(foreground=self._green_col)
             self._reg_b_status_var.set("Available")
-            self._chip.config_i2c_address_b(int(address, 16))
+            self._chip.config_i2c_address_b(int(address, 0))
             self._valid_i2c_address_b = True
         else:
             self._reg_b_status_label.config(foreground=self._red_col)
             self._reg_b_status_var.set("Not available")
             self._chip.config_i2c_address_b(None)
             self._valid_i2c_address_b = False
+
+    def check_i2c_address_full_pixel(self, var=None, index=None, mode=None):
+        address = self._reg_full_pixel_display_var.get()
+
+        if self._i2c_controller.check_i2c_device(address):
+            self._reg_full_pixel_status_label.config(foreground=self._green_col)
+            self._reg_full_pixel_status_var.set("Available")
+            self._chip.config_i2c_address_b(int(address, 0))
+            self._valid_i2c_address_full_pixel = True
+        else:
+            self._reg_full_pixel_status_label.config(foreground=self._red_col)
+            self._reg_full_pixel_status_var.set("Not available")
+            self._chip.config_i2c_address_b(None)
+            self._valid_i2c_address_full_pixel = False
 
     def read_all(self):
         if self._valid_i2c_address_a and self._valid_i2c_address_b:
