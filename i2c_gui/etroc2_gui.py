@@ -154,9 +154,9 @@ class ETROC2_GUI(Base_GUI):
                 self._filemenu.entryconfigure('Reset Chip Config', state='disabled')
                 self._filemenu.entryconfigure('Revert Chip Config', state='disabled')
 
-    def extra_global_controls(self, element: tk.Tk, column: int, row: int):
+    def extra_global_controls(self, element: tk.Tk, column: int, row: int, extra_pad: tuple[int, int] = (0,0)):
         self._frame_extra_global = ttk.Frame(element)
-        self._frame_extra_global.grid(column=column, row=row, sticky=(tk.W, tk.E))
+        self._frame_extra_global.grid(column=column, row=row, sticky=(tk.W, tk.E), padx=extra_pad)
 
         self._extra_i2c_label = ttk.Label(self._frame_extra_global, text="I2C Address:")
         self._extra_i2c_label.grid(column=100, row=100)

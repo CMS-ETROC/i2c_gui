@@ -295,7 +295,7 @@ class Base_GUI(GUI_Helper):
         else:
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
-    def extra_global_controls(self, element: tk.Tk, column: int, row: int):
+    def extra_global_controls(self, element: tk.Tk, column: int, row: int, extra_pad: tuple[int, int] = (0,0)):
         pass
 
     def read_all(self):
