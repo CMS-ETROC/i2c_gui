@@ -35,7 +35,10 @@ class ETROC1_GUI(Base_GUI):
     def __init__(self, root: tk.Tk, logger: logging.Logger):
         super().__init__("ETROC1 I2C GUI", root, logger)
 
-        self._valid_i2c_address = False
+        self._valid_i2c_address_a = False
+        self._valid_i2c_address_b = False
+        self._valid_i2c_address_full_pixel = False
+        self._valid_i2c_address_tdc_test = False
 
     def _about_contents(self, element: tk.Tk, column: int, row: int):
         self._about_img = ImageTk.PhotoImage(Image.open(importlib.resources.open_binary("i2c_gui.static", "ETROC1.png")))
@@ -63,17 +66,17 @@ class ETROC1_GUI(Base_GUI):
         self._extra_i2c_label.grid(column=100, row=100)
 
     def read_all(self):
-        if self._valid_i2c_address:
+        if self._valid_i2c_address_a and self._valid_i2c_address_b:
             self.send_message("Reading full ETROC1 chip")
             self._chip.read_all()
         else:
-            self.send_message("Unable to read full ETROC1 chip")
+            self.send_message("Unable to read full ETROC1 chip", "Error")
         pass
 
     def write_all(self):
-        if self._valid_i2c_address:
+        if self._valid_i2c_address_a and self._valid_i2c_address_b:
             self.send_message("Writing full ETROC1 chip")
             self._chip.write_all()
         else:
-            self.send_message("Unable to write full ETROC1 chip")
+            self.send_message("Unable to write full ETROC1 chip", "Error")
         pass
