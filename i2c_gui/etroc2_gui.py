@@ -47,6 +47,7 @@ class ETROC2_GUI(Base_GUI):
         super().__init__("ETROC2 I2C GUI", root, logger)
 
         self._valid_i2c_address = False
+        self._valid_ws_i2c_address = False
 
     def _load_config(self):
         if not hasattr(self, "_chip") or self._chip is None:
@@ -233,7 +234,7 @@ class ETROC2_GUI(Base_GUI):
             self.send_message("Reading full ETROC2 chip")
             self._chip.read_all()
         else:
-            self.send_message("Unable to read full ETROC2 chip")
+            self.send_message("Unable to read full ETROC2 chip", "Error")
         pass
 
     def write_all(self):
