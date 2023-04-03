@@ -679,9 +679,20 @@ register_decoding = {
     "Array_Reg_A": {  # Address Space (i.e. separate I2C memory spaces)
         "Register Blocks":{
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
-                "PLL_ClkGen_disCLK": {
-                    "bits": 1,
-                    "position": [("Reg_A_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                "CLSel": {
+                    "bits": 2,
+                    "position": [("Reg_A_00", "1-0", "1-0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "info": "Shared by all pixels.\n{0} selects the load capacitance of the preamp first stage:\n - 0b00: 0 fC\n - 0b01: 80 fC\n - 0b10: 80 fC\n - 0b11: 160 fC",
+                    "show_binary": False
+                },
+                "DIS_VTHInOut": {  # TODO: Add validation function
+                    "bits": 16,
+                    "position": [
+                        ("Reg_A_03", "7-0", "15-8"),
+                        ("Reg_A_02", "7-0", "7-0"),
+                    ],
+                    "info": "{0} disables the threshold voltage input/output of the specified pixel, active high. Each bit controls a pixel according the pixels index map.\nOnly one of thresholds can be enabled at a time.\nFor example: DIS_VTHInOut = 0x4000.",
+                    "show_binary": True
                 },
             },
         }
