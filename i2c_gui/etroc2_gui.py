@@ -63,7 +63,7 @@ class ETROC2_GUI(Base_GUI):
         if filename is None or filename == "":
             return
 
-        self._logger.log(5, "Loading file: {}".format(filename))
+        self._logger.trace("Loading file: {}".format(filename))
 
         self._chip.load_config(filename)
 
@@ -83,7 +83,7 @@ class ETROC2_GUI(Base_GUI):
         if filename is None or filename == "":
             return
 
-        self._logger.log(5, "Saving file: {}".format(filename))
+        self._logger.trace("Saving file: {}".format(filename))
 
         self._chip.save_config(filename)
 
