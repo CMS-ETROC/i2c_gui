@@ -226,7 +226,7 @@ class ETROC1_GUI(Base_GUI):
         else:
             bit_1 = "0"
 
-        address = "0x00000{}{}".format(bit_1, bit_0)
+        address = "0b00000{}{}".format(bit_1, bit_0)
         self._reg_a_display_var.set(address)
 
         if self._i2c_controller.check_i2c_device(address):
@@ -253,7 +253,7 @@ class ETROC1_GUI(Base_GUI):
         else:
             bit_1 = "0"
 
-        address = "0x00000{}{}".format(bit_1, bit_0)
+        address = "0b00000{}{}".format(bit_1, bit_0)
         self._reg_b_display_var.set(address)
 
         if self._i2c_controller.check_i2c_device(address):
