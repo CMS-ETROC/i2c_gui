@@ -160,16 +160,22 @@ class ETROC1_GUI(Base_GUI):
         self._reg_a_inner_frame = ttk.Frame(self._reg_a_frame)
         self._reg_a_inner_frame.grid(column=100, row=100)
 
-        self._reg_a_address_1_label = ttk.Label(self._reg_a_inner_frame, text="A1")
-        self._reg_a_address_1_label.grid(column=100, row=100)
+        self._reg_a_address_1_var = tk.BooleanVar(value="0")
+        self._reg_a_address_1_checkbox = ttk.Checkbutton(self._reg_a_inner_frame, variable=self._reg_a_address_1_var, text="A1")
+        self._reg_a_address_1_checkbox.grid(column=100, row=100, padx=(0, 10))
+        self._reg_a_address_1_var.trace('w', self.check_i2c_address_a)
 
-        self._reg_a_address_0_label = ttk.Label(self._reg_a_inner_frame, text="A0")
-        self._reg_a_address_0_label.grid(column=200, row=100)
+        self._reg_a_address_0_var = tk.BooleanVar(value="0")
+        self._reg_a_address_0_checkbox = ttk.Checkbutton(self._reg_a_inner_frame, variable=self._reg_a_address_0_var, text="A0")
+        self._reg_a_address_0_checkbox.grid(column=200, row=100)
+        self._reg_a_address_0_var.trace('w', self.check_i2c_address_a)
 
         self._reg_a_status_var = tk.StringVar(value="Unknown")
         self._reg_a_status_label = ttk.Label(self._reg_a_frame, textvariable=self._reg_a_status_var)
         self._reg_a_status_label.grid(column=100, row=200)
         self._reg_a_status_label.config(foreground=self._orange_col)
+
+        self.check_i2c_address_a()
 
         ## REG_B Frame
         self._reg_b_frame = ttk.LabelFrame(self._frame_extra_global, text="REG_B")
@@ -184,16 +190,22 @@ class ETROC1_GUI(Base_GUI):
         self._reg_b_inner_frame = ttk.Frame(self._reg_b_frame)
         self._reg_b_inner_frame.grid(column=100, row=100)
 
-        self._reg_b_address_1_label = ttk.Label(self._reg_b_inner_frame, text="B1")
-        self._reg_b_address_1_label.grid(column=100, row=100)
+        self._reg_b_address_1_var = tk.BooleanVar(value="0")
+        self._reg_b_address_1_checkbox = ttk.Checkbutton(self._reg_b_inner_frame, variable=self._reg_b_address_1_var, text="B1")
+        self._reg_b_address_1_checkbox.grid(column=100, row=100, padx=(0, 10))
+        self._reg_b_address_1_var.trace('w', self.check_i2c_address_b)
 
-        self._reg_b_address_0_label = ttk.Label(self._reg_b_inner_frame, text="B0")
-        self._reg_b_address_0_label.grid(column=200, row=100)
+        self._reg_b_address_0_var = tk.BooleanVar(value="0")
+        self._reg_b_address_0_checkbox = ttk.Checkbutton(self._reg_b_inner_frame, variable=self._reg_b_address_0_var, text="B0")
+        self._reg_b_address_0_checkbox.grid(column=200, row=100)
+        self._reg_b_address_0_var.trace('w', self.check_i2c_address_b)
 
         self._reg_b_status_var = tk.StringVar(value="Unknown")
         self._reg_b_status_label = ttk.Label(self._reg_b_frame, textvariable=self._reg_b_status_var)
         self._reg_b_status_label.grid(column=100, row=200)
         self._reg_b_status_label.config(foreground=self._orange_col)
+
+        self.check_i2c_address_b()
 
         ## Full Pixel Frame
         self._reg_full_pixel_frame = ttk.LabelFrame(self._frame_extra_global, text="Full Pixel")
