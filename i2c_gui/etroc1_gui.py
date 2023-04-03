@@ -42,9 +42,10 @@ class ETROC1_GUI(Base_GUI):
     )
     _red_col = '#c00000'
     _green_col = '#00c000'
+    _orange_col = '#f0c010'
 
     def __init__(self, root: tk.Tk, logger: logging.Logger):
-        super().__init__("ETROC1 I2C GUI", root, logger)
+        super().__init__("ETROC1 I2C GUI", root, logger, stack_global_controls=True)
 
         self._valid_i2c_address_a = False
         self._valid_i2c_address_b = False
@@ -132,12 +133,85 @@ class ETROC1_GUI(Base_GUI):
     def _connection_update(self, value):
         super()._connection_update(value)
 
-    def extra_global_controls(self, element: tk.Tk, column: int, row: int):
-        self._frame_extra_global = ttk.Frame(element)
-        self._frame_extra_global.grid(column=column, row=row, sticky=(tk.W, tk.E))
+    def extra_global_controls(self, element: tk.Tk, column: int, row: int, extra_pad: tuple[int, int] = (0,0)):
+        self._frame_extra_global = ttk.LabelFrame(element, text="I2C Addresses")
+        self._frame_extra_global.grid(column=column, row=row, sticky=(tk.W, tk.E), padx=extra_pad)
 
-        self._extra_i2c_label = ttk.Label(self._frame_extra_global, text="I2C Address:")
-        self._extra_i2c_label.grid(column=100, row=100)
+        reg_a_col = 100
+        reg_b_col = 200
+        reg_pix_col = 300
+        reg_tdc_col = 400
+        # Set up main columns to have specific widths
+        self._frame_extra_global.columnconfigure(reg_a_col, weight=1)
+        self._frame_extra_global.columnconfigure(reg_b_col, weight=1)
+        self._frame_extra_global.columnconfigure(reg_pix_col, weight=1)
+        self._frame_extra_global.columnconfigure(reg_tdc_col, weight=1)
+
+        ## REG_A Frame
+        self._reg_a_frame = ttk.LabelFrame(self._frame_extra_global, text="REG_A")
+        self._reg_a_frame.grid(column=reg_a_col, row=100, sticky=(tk.W, tk.E, tk.S, tk.N), padx=2)
+        self._reg_a_frame.columnconfigure(0, weight=1)
+        self._reg_a_frame.columnconfigure(200, weight=1)
+
+        self._reg_a_display_var = tk.StringVar(value="0b00000xx")
+        self._reg_a_display_label = ttk.Label(self._reg_a_frame, textvariable=self._reg_a_display_var)
+        self._reg_a_display_label.grid(column=100, row=0)
+
+        self._reg_a_inner_frame = ttk.Frame(self._reg_a_frame)
+        self._reg_a_inner_frame.grid(column=100, row=100)
+
+        self._reg_a_address_1_label = ttk.Label(self._reg_a_inner_frame, text="A1")
+        self._reg_a_address_1_label.grid(column=100, row=100)
+
+        self._reg_a_address_0_label = ttk.Label(self._reg_a_inner_frame, text="A0")
+        self._reg_a_address_0_label.grid(column=200, row=100)
+
+        self._reg_a_status_var = tk.StringVar(value="Unknown")
+        self._reg_a_status_label = ttk.Label(self._reg_a_frame, textvariable=self._reg_a_status_var)
+        self._reg_a_status_label.grid(column=100, row=200)
+        self._reg_a_status_label.config(foreground=self._orange_col)
+
+        ## REG_B Frame
+        self._reg_b_frame = ttk.LabelFrame(self._frame_extra_global, text="REG_B")
+        self._reg_b_frame.grid(column=reg_b_col, row=100, sticky=(tk.W, tk.E, tk.S, tk.N), padx=2)
+        self._reg_b_frame.columnconfigure(0, weight=1)
+        self._reg_b_frame.columnconfigure(200, weight=1)
+
+        self._reg_b_display_var = tk.StringVar(value="0b11111xx")
+        self._reg_b_display_label = ttk.Label(self._reg_b_frame, textvariable=self._reg_b_display_var)
+        self._reg_b_display_label.grid(column=100, row=0)
+
+        self._reg_b_inner_frame = ttk.Frame(self._reg_b_frame)
+        self._reg_b_inner_frame.grid(column=100, row=100)
+
+        self._reg_b_address_1_label = ttk.Label(self._reg_b_inner_frame, text="B1")
+        self._reg_b_address_1_label.grid(column=100, row=100)
+
+        self._reg_b_address_0_label = ttk.Label(self._reg_b_inner_frame, text="B0")
+        self._reg_b_address_0_label.grid(column=200, row=100)
+
+        self._reg_b_status_var = tk.StringVar(value="Unknown")
+        self._reg_b_status_label = ttk.Label(self._reg_b_frame, textvariable=self._reg_b_status_var)
+        self._reg_b_status_label.grid(column=100, row=200)
+        self._reg_b_status_label.config(foreground=self._orange_col)
+
+        ## Full Pixel Frame
+        self._reg_full_pixel_frame = ttk.LabelFrame(self._frame_extra_global, text="Full Pixel")
+        self._reg_full_pixel_frame.grid(column=reg_pix_col, row=100, sticky=(tk.W, tk.E, tk.S, tk.N), padx=2)
+        self._reg_full_pixel_frame.columnconfigure(0, weight=1)
+        self._reg_full_pixel_frame.columnconfigure(200, weight=1)
+
+        self._reg_tdc_inner_frame = ttk.Frame(self._reg_full_pixel_frame)
+        self._reg_tdc_inner_frame.grid(column=100, row=100)
+
+        ## TDC Frame
+        self._reg_tdc_frame = ttk.LabelFrame(self._frame_extra_global, text="TDC Test Block")
+        self._reg_tdc_frame.grid(column=reg_tdc_col, row=100, sticky=(tk.W, tk.E, tk.S, tk.N), padx=2)
+        self._reg_tdc_frame.columnconfigure(0, weight=1)
+        self._reg_tdc_frame.columnconfigure(200, weight=1)
+
+        self._reg_tdc_inner_frame = ttk.Frame(self._reg_tdc_frame)
+        self._reg_tdc_inner_frame.grid(column=100, row=100)
 
     def read_all(self):
         if self._valid_i2c_address_a and self._valid_i2c_address_b:
