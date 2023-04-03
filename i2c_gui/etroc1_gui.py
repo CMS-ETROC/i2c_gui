@@ -132,6 +132,48 @@ class ETROC1_GUI(Base_GUI):
 
     def _connection_update(self, value):
         super()._connection_update(value)
+        if value:
+            if hasattr(self, "_reg_a_frame"):
+                self._reg_a_address_1_checkbox.config(state='normal')
+                self._reg_a_address_0_checkbox.config(state='normal')
+                self._reg_b_address_1_checkbox.config(state='normal')
+                self._reg_b_address_0_checkbox.config(state='normal')
+                self._reg_full_pixel_check_button.config(state='normal')
+                self._reg_tdc_address_0_checkbox.config(state='normal')
+                self.check_i2c_address_a()
+                self.check_i2c_address_b()
+                self.check_i2c_address_full_pixel()
+                self.check_i2c_address_tdc()
+            if hasattr(self, "_filemenu"):
+                self._filemenu.entryconfigure('Load Chip Config', state='normal')
+                self._filemenu.entryconfigure('Save Chip Config', state='normal')
+                self._filemenu.entryconfigure('Reset Chip Config', state='normal')
+                self._filemenu.entryconfigure('Revert Chip Config', state='normal')
+        else:
+            if hasattr(self, "_reg_a_frame"):
+                self._reg_a_address_1_checkbox.config(state='disabled')
+                self._reg_a_address_0_checkbox.config(state='disabled')
+                self._reg_b_address_1_checkbox.config(state='disabled')
+                self._reg_b_address_0_checkbox.config(state='disabled')
+                self._reg_full_pixel_check_button.config(state='disabled')
+                self._reg_tdc_address_0_checkbox.config(state='disabled')
+                self._reg_a_status_var.set("Unknown")
+                self._reg_b_status_var.set("Unknown")
+                self._reg_full_pixel_status_var.set("Unknown")
+                self._reg_tdc_status_var.set("Unknown")
+                self._reg_a_status_label.config(foreground=self._orange_col)
+                self._reg_b_status_label.config(foreground=self._orange_col)
+                self._reg_full_pixel_status_label.config(foreground=self._orange_col)
+                self._reg_tdc_status_label.config(foreground=self._orange_col)
+                self._valid_i2c_address_a = False
+                self._valid_i2c_address_b = False
+                self._valid_i2c_address_full_pixel = False
+                self._valid_i2c_address_tdc_test = False
+            if hasattr(self, "_filemenu"):
+                self._filemenu.entryconfigure('Load Chip Config', state='disabled')
+                self._filemenu.entryconfigure('Save Chip Config', state='disabled')
+                self._filemenu.entryconfigure('Reset Chip Config', state='disabled')
+                self._filemenu.entryconfigure('Revert Chip Config', state='disabled')
 
     def extra_global_controls(self, element: tk.Tk, column: int, row: int, extra_pad: tuple[int, int] = (0,0)):
         self._frame_extra_global = ttk.LabelFrame(element, text="I2C Addresses")
@@ -162,12 +204,12 @@ class ETROC1_GUI(Base_GUI):
         self._reg_a_inner_frame.grid(column=100, row=100)
 
         self._reg_a_address_1_var = tk.BooleanVar(value="0")
-        self._reg_a_address_1_checkbox = ttk.Checkbutton(self._reg_a_inner_frame, variable=self._reg_a_address_1_var, text="A1")
+        self._reg_a_address_1_checkbox = ttk.Checkbutton(self._reg_a_inner_frame, variable=self._reg_a_address_1_var, text="A1", state='disabled')
         self._reg_a_address_1_checkbox.grid(column=100, row=100, padx=(0, 10))
         self._reg_a_address_1_var.trace('w', self.check_i2c_address_a)
 
         self._reg_a_address_0_var = tk.BooleanVar(value="0")
-        self._reg_a_address_0_checkbox = ttk.Checkbutton(self._reg_a_inner_frame, variable=self._reg_a_address_0_var, text="A0")
+        self._reg_a_address_0_checkbox = ttk.Checkbutton(self._reg_a_inner_frame, variable=self._reg_a_address_0_var, text="A0", state='disabled')
         self._reg_a_address_0_checkbox.grid(column=200, row=100)
         self._reg_a_address_0_var.trace('w', self.check_i2c_address_a)
 
@@ -193,12 +235,12 @@ class ETROC1_GUI(Base_GUI):
         self._reg_b_inner_frame.grid(column=100, row=100)
 
         self._reg_b_address_1_var = tk.BooleanVar(value="0")
-        self._reg_b_address_1_checkbox = ttk.Checkbutton(self._reg_b_inner_frame, variable=self._reg_b_address_1_var, text="B1")
+        self._reg_b_address_1_checkbox = ttk.Checkbutton(self._reg_b_inner_frame, variable=self._reg_b_address_1_var, text="B1", state='disabled')
         self._reg_b_address_1_checkbox.grid(column=100, row=100, padx=(0, 10))
         self._reg_b_address_1_var.trace('w', self.check_i2c_address_b)
 
         self._reg_b_address_0_var = tk.BooleanVar(value="0")
-        self._reg_b_address_0_checkbox = ttk.Checkbutton(self._reg_b_inner_frame, variable=self._reg_b_address_0_var, text="B0")
+        self._reg_b_address_0_checkbox = ttk.Checkbutton(self._reg_b_inner_frame, variable=self._reg_b_address_0_var, text="B0", state='disabled')
         self._reg_b_address_0_checkbox.grid(column=200, row=100)
         self._reg_b_address_0_var.trace('w', self.check_i2c_address_b)
 
@@ -223,7 +265,7 @@ class ETROC1_GUI(Base_GUI):
         self._reg_full_pixel_inner_frame = ttk.Frame(self._reg_full_pixel_frame)
         self._reg_full_pixel_inner_frame.grid(column=100, row=100)
 
-        self._reg_full_pixel_check_button = ttk.Button(self._reg_full_pixel_inner_frame, text="Check", command=self.check_i2c_address_full_pixel)
+        self._reg_full_pixel_check_button = ttk.Button(self._reg_full_pixel_inner_frame, text="Check", command=self.check_i2c_address_full_pixel, state='disabled')
         self._reg_full_pixel_check_button.grid(column=100, row=100)
 
         self._reg_full_pixel_status_var = tk.StringVar(value="Unknown")
@@ -248,7 +290,7 @@ class ETROC1_GUI(Base_GUI):
         self._reg_tdc_inner_frame.grid(column=100, row=100)
 
         self._reg_tdc_address_0_var = tk.BooleanVar(value="0")
-        self._reg_tdc_address_0_checkbox = ttk.Checkbutton(self._reg_tdc_inner_frame, variable=self._reg_tdc_address_0_var, text="bit0")
+        self._reg_tdc_address_0_checkbox = ttk.Checkbutton(self._reg_tdc_inner_frame, variable=self._reg_tdc_address_0_var, text="bit0", state='disabled')
         self._reg_tdc_address_0_checkbox.grid(column=100, row=100)
         self._reg_tdc_address_0_var.trace('w', self.check_i2c_address_tdc)
 
