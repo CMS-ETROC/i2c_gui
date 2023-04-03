@@ -37,56 +37,637 @@ etroc1_version = "0.0.1"
 
 register_model = {
     "Array_Reg_A": {  # Address Space (i.e. separate I2C memory spaces)
-        "Memory Size": 32,
+        "Memory Size": 48,
         "Register Blocks": {
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "Base Address": 0x0000,
                 "Registers": {
-                    "PeriCfg0": {
+                    "Reg_A_00": {
                         "offset": 0x0000,
-                        "default": 0x2C,
+                        "default": 0xF8,
+                    },
+                    "Reg_A_01": {
+                        "offset": 0x0001,
+                        "default": 0x37,
+                    },
+                    "Reg_A_02": {
+                        "offset": 0x0002,
+                        "default": 0xFF,
+                    },
+                    "Reg_A_03": {
+                        "offset": 0x0003,
+                        "default": 0xFF,
+                    },
+                    "Reg_A_04": {
+                        "offset": 0x0004,
+                        "default": 0x11,
+                    },
+                    "Reg_A_05": {
+                        "offset": 0x0005,
+                        "default": 0x01,
+                    },
+                    "Reg_A_06": {
+                        "offset": 0x0006,
+                        "default": 0x00,
+                    },
+                    "Reg_A_07": {
+                        "offset": 0x0007,
+                        "default": 0x01,
+                    },
+                    "Reg_A_08": {
+                        "offset": 0x0008,
+                        "default": 0x00,
+                    },
+                    "Reg_A_09": {
+                        "offset": 0x0009,
+                        "default": 0x00,
+                    },
+                    "Reg_A_0A": {
+                        "offset": 0x000A,
+                        "default": 0x00,
+                    },
+                    "Reg_A_0B": {
+                        "offset": 0x000B,
+                        "default": 0x02,
+                    },
+                    "Reg_A_0C": {
+                        "offset": 0x000C,
+                        "default": 0x08,
+                    },
+                    "Reg_A_0D": {
+                        "offset": 0x000D,
+                        "default": 0x20,
+                    },
+                    "Reg_A_0E": {
+                        "offset": 0x000E,
+                        "default": 0x80,
+                    },
+                    "Reg_A_0F": {
+                        "offset": 0x000F,
+                        "default": 0x00,
+                    },
+                    "Reg_A_10": {
+                        "offset": 0x0010,
+                        "default": 0x02,
+                    },
+                    "Reg_A_11": {
+                        "offset": 0x0011,
+                        "default": 0x08,
+                    },
+                    "Reg_A_12": {
+                        "offset": 0x0012,
+                        "default": 0x20,
+                    },
+                    "Reg_A_13": {
+                        "offset": 0x0013,
+                        "default": 0x80,
+                    },
+                    "Reg_A_14": {
+                        "offset": 0x0014,
+                        "default": 0x00,
+                    },
+                    "Reg_A_15": {
+                        "offset": 0x0015,
+                        "default": 0x02,
+                    },
+                    "Reg_A_16": {
+                        "offset": 0x0016,
+                        "default": 0x08,
+                    },
+                    "Reg_A_17": {
+                        "offset": 0x0017,
+                        "default": 0x20,
+                    },
+                    "Reg_A_18": {
+                        "offset": 0x0018,
+                        "default": 0x80,
+                    },
+                    "Reg_A_19": {
+                        "offset": 0x0019,
+                        "default": 0x00,
+                    },
+                    "Reg_A_1A": {
+                        "offset": 0x001A,
+                        "default": 0x02,
+                    },
+                    "Reg_A_1B": {
+                        "offset": 0x001B,
+                        "default": 0x08,
+                    },
+                    "Reg_A_1C": {
+                        "offset": 0x001C,
+                        "default": 0x20,
+                    },
+                    "Reg_A_1D": {
+                        "offset": 0x001D,
+                        "default": 0x80,
+                    },
+                    "Reg_A_1E": {
+                        "offset": 0x001E,
+                        "default": 0xFF,
+                    },
+                    "Reg_A_1F": {
+                        "offset": 0x001F,
+                        "default": 0xFF,
+                    },
+                    "Reg_A_20": {
+                        "offset": 0x001F,
+                        "default": 0x00,
+                        "read_only": True,
                     },
                 }
             },
         }
     },
-    "Array_Reg_B": {  # Address Space (i.e. separate I2C memory spaces)
+    "Array_Reg_B": {
         "Memory Size": 32,
         "Register Blocks": {
-            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+            "Registers": {
                 "Base Address": 0x0000,
                 "Registers": {
-                    "PeriCfg0": {
+                    "Reg_B_00": {
                         "offset": 0x0000,
-                        "default": 0x2C,
+                        "default": 0x1C,
+                    },
+                    "Reg_B_01": {
+                        "offset": 0x0001,
+                        "default": 0x01,
+                    },
+                    "Reg_B_02": {
+                        "offset": 0x0002,
+                        "default": 0x00,
+                    },
+                    "Reg_B_03": {
+                        "offset": 0x0003,
+                        "default": 0x09,
+                    },
+                    "Reg_B_04": {
+                        "offset": 0x0004,
+                        "default": 0x00,
+                    },
+                    "Reg_B_05": {
+                        "offset": 0x0005,
+                        "default": 0x03,
+                    },
+                    "Reg_B_06": {
+                        "offset": 0x0006,
+                        "default": 0x41,
+                    },
+                    "Reg_B_07": {
+                        "offset": 0x0007,
+                        "default": 0x38,
+                    },
+                    "Reg_B_08": {
+                        "offset": 0x0008,
+                        "default": 0x18,
+                    },
+                    "Reg_B_09": {
+                        "offset": 0x0009,
+                        "default": 0x18,
+                    },
+                    "Reg_B_0A": {
+                        "offset": 0x000A,
+                        "default": 0x38,
+                    },
+                    "Reg_B_0B": {
+                        "offset": 0x000B,
+                        "default": 0x77,
                     },
                 }
             },
         }
     },
-    "Full_Pixel": {  # Address Space (i.e. separate I2C memory spaces)
-        "Memory Size": 32,
+    "Full_Pixel": {
+        "Memory Size": 48,
         "Register Blocks": {
-            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+            "Registers": {
                 "Base Address": 0x0000,
                 "Registers": {
-                    "PeriCfg0": {
+                    "Reg_00": {
                         "offset": 0x0000,
                         "default": 0x2C,
+                    },
+                    "Reg_01": {
+                        "offset": 0x0001,
+                        "default": 0x2C,
+                    },
+                    "Reg_02": {
+                        "offset": 0x0002,
+                        "default": 0x2C,
+                    },
+                    "Reg_03": {
+                        "offset": 0x0003,
+                        "default": 0x2C,
+                    },
+                    "Reg_04": {
+                        "offset": 0x0004,
+                        "default": 0x2C,
+                    },
+                    "Reg_05": {
+                        "offset": 0x0005,
+                        "default": 0x2C,
+                    },
+                    "Reg_06": {
+                        "offset": 0x0006,
+                        "default": 0x2C,
+                    },
+                    "Reg_07": {
+                        "offset": 0x0007,
+                        "default": 0x2C,
+                    },
+                    "Reg_08": {
+                        "offset": 0x0008,
+                        "default": 0x2C,
+                    },
+                    "Reg_09": {
+                        "offset": 0x0009,
+                        "default": 0x2C,
+                    },
+                    "Reg_0A": {
+                        "offset": 0x000A,
+                        "default": 0x2C,
+                    },
+                    "Reg_0B": {
+                        "offset": 0x000B,
+                        "default": 0x2C,
+                    },
+                    "Reg_0C": {
+                        "offset": 0x000C,
+                        "default": 0x2C,
+                    },
+                    "Reg_0D": {
+                        "offset": 0x000D,
+                        "default": 0x2C,
+                    },
+                    "Reg_0E": {
+                        "offset": 0x000E,
+                        "default": 0x2C,
+                    },
+                    "Reg_0F": {
+                        "offset": 0x000F,
+                        "default": 0x2C,
+                    },
+                    "Reg_10": {
+                        "offset": 0x0010,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_11": {
+                        "offset": 0x0011,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_12": {
+                        "offset": 0x0012,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_13": {
+                        "offset": 0x0013,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_14": {
+                        "offset": 0x0014,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_15": {
+                        "offset": 0x0015,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_16": {
+                        "offset": 0x0016,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_17": {
+                        "offset": 0x0017,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_18": {
+                        "offset": 0x0018,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_19": {
+                        "offset": 0x0019,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1A": {
+                        "offset": 0x001A,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1B": {
+                        "offset": 0x001B,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1C": {
+                        "offset": 0x001C,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1D": {
+                        "offset": 0x001D,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1E": {
+                        "offset": 0x001E,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1F": {
+                        "offset": 0x001F,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_20": {
+                        "offset": 0x0020,
+                        "default": 0x2C,
+                        "read_only": True,
                     },
                 }
             },
         }
     },
-    "TDC_Test_Block": {  # Address Space (i.e. separate I2C memory spaces)
-        "Memory Size": 32,
+    "TDC_Test_Block": {
+        "Memory Size": 48,
         "Register Blocks": {
-            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+            "Registers": {
                 "Base Address": 0x0000,
                 "Registers": {
-                    "PeriCfg0": {
+                    "Reg_00": {
                         "offset": 0x0000,
                         "default": 0x2C,
+                    },
+                    "Reg_01": {
+                        "offset": 0x0001,
+                        "default": 0x2C,
+                    },
+                    "Reg_02": {
+                        "offset": 0x0002,
+                        "default": 0x2C,
+                    },
+                    "Reg_03": {
+                        "offset": 0x0003,
+                        "default": 0x2C,
+                    },
+                    "Reg_04": {
+                        "offset": 0x0004,
+                        "default": 0x2C,
+                    },
+                    "Reg_05": {
+                        "offset": 0x0005,
+                        "default": 0x2C,
+                    },
+                    "Reg_06": {
+                        "offset": 0x0006,
+                        "default": 0x2C,
+                    },
+                    "Reg_07": {
+                        "offset": 0x0007,
+                        "default": 0x2C,
+                    },
+                    "Reg_08": {
+                        "offset": 0x0008,
+                        "default": 0x2C,
+                    },
+                    "Reg_09": {
+                        "offset": 0x0009,
+                        "default": 0x2C,
+                    },
+                    "Reg_0A": {
+                        "offset": 0x000A,
+                        "default": 0x2C,
+                    },
+                    "Reg_0B": {
+                        "offset": 0x000B,
+                        "default": 0x2C,
+                    },
+                    "Reg_0C": {
+                        "offset": 0x000C,
+                        "default": 0x2C,
+                    },
+                    "Reg_0D": {
+                        "offset": 0x000D,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_0E": {
+                        "offset": 0x000E,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_0F": {
+                        "offset": 0x000F,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_10": {
+                        "offset": 0x0010,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_11": {
+                        "offset": 0x0011,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_12": {
+                        "offset": 0x0012,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_13": {
+                        "offset": 0x0013,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_14": {
+                        "offset": 0x0014,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_15": {
+                        "offset": 0x0015,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_16": {
+                        "offset": 0x0016,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_17": {
+                        "offset": 0x0017,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_18": {
+                        "offset": 0x0018,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_19": {
+                        "offset": 0x0019,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1A": {
+                        "offset": 0x001A,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1B": {
+                        "offset": 0x001B,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1C": {
+                        "offset": 0x001C,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1D": {
+                        "offset": 0x001D,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1E": {
+                        "offset": 0x001E,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_1F": {
+                        "offset": 0x001F,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_20": {
+                        "offset": 0x0020,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_21": {
+                        "offset": 0x0021,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_22": {
+                        "offset": 0x0022,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_23": {
+                        "offset": 0x0023,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_24": {
+                        "offset": 0x0024,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_25": {
+                        "offset": 0x0025,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_26": {
+                        "offset": 0x0026,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_27": {
+                        "offset": 0x0027,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_28": {
+                        "offset": 0x0028,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_29": {
+                        "offset": 0x0029,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_2A": {
+                        "offset": 0x002A,
+                        "default": 0x2C,
+                        "read_only": True,
+                    },
+                    "Reg_2B": {
+                        "offset": 0x002B,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_2C": {
+                        "offset": 0x002C,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_2D": {
+                        "offset": 0x002D,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_2E": {
+                        "offset": 0x002E,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
+                    },
+                    "Reg_2F": {
+                        "offset": 0x002F,
+                        "default": 0x2C,
+                        "read_only": True,
+                        "display": False,
                     },
                 }
             },
@@ -100,7 +681,7 @@ register_decoding = {
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "PLL_ClkGen_disCLK": {
                     "bits": 1,
-                    "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_A_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
                 },
             },
         }
@@ -110,7 +691,7 @@ register_decoding = {
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "PLL_ClkGen_disCLK": {
                     "bits": 1,
-                    "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_B_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
                 },
             },
         }
@@ -120,7 +701,7 @@ register_decoding = {
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "PLL_ClkGen_disCLK": {
                     "bits": 1,
-                    "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
                 },
             },
         }
@@ -130,7 +711,7 @@ register_decoding = {
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "PLL_ClkGen_disCLK": {
                     "bits": 1,
-                    "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
                 },
             },
         }
