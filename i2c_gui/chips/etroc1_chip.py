@@ -158,6 +158,7 @@ class ETROC1_Chip(Base_Chip):
             "Graphical View",
             {
                 "canvas": False,
+                "builder": self.graphical_interface_builder
             }
         )
         self.register_tab(
@@ -198,5 +199,33 @@ class ETROC1_Chip(Base_Chip):
             }
         )
 
-    def array_register_builder(self, frame: ttk.Frame):
+    def graphical_interface_builder(self, frame: ttk.Frame):
         pass
+
+    def array_register_builder(self, frame: ttk.Frame):
+        frame.columnconfigure(100, weight=1)
+        columns = 4
+
+        self._ETROC2_peripheral_config_frame = self.build_block_interface(
+            element=frame,
+            title="Register Block A",
+            internal_title="Register Block A",
+            button_title="REG A",
+            address_space="Array_Reg_A",
+            block="Registers",
+            col=100,
+            row=100,
+            register_columns=columns
+        )
+
+        self._ETROC2_peripheral_config_frame = self.build_block_interface(
+            element=frame,
+            title="Register Block B",
+            internal_title="Register Block B",
+            button_title="REG B",
+            address_space="Array_Reg_B",
+            block="Registers",
+            col=100,
+            row=200,
+            register_columns=columns
+        )
