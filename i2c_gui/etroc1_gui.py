@@ -213,6 +213,60 @@ class ETROC1_GUI(Base_GUI):
         self._reg_tdc_inner_frame = ttk.Frame(self._reg_tdc_frame)
         self._reg_tdc_inner_frame.grid(column=100, row=100)
 
+    def check_i2c_address_a(self, var=None, index=None, mode=None):
+        bit_1 = self._reg_a_address_1_var.get()
+        bit_0 = self._reg_a_address_0_var.get()
+
+        if bit_0:
+            bit_0 = "1"
+        else:
+            bit_0 = "0"
+        if bit_1:
+            bit_1 = "1"
+        else:
+            bit_1 = "0"
+
+        address = "0x00000{}{}".format(bit_1, bit_0)
+        self._reg_a_display_var.set(address)
+
+        if self._i2c_controller.check_i2c_device(address):
+            self._reg_a_status_label.config(foreground=self._green_col)
+            self._reg_a_status_var.set("Available")
+            self._chip.config_i2c_address_a(int(address, 16))
+            self._valid_i2c_address_a = True
+        else:
+            self._reg_a_status_label.config(foreground=self._red_col)
+            self._reg_a_status_var.set("Not available")
+            self._chip.config_i2c_address_a(None)
+            self._valid_i2c_address_a = False
+
+    def check_i2c_address_b(self, var=None, index=None, mode=None):
+        bit_1 = self._reg_b_address_1_var.get()
+        bit_0 = self._reg_b_address_0_var.get()
+
+        if bit_0:
+            bit_0 = "1"
+        else:
+            bit_0 = "0"
+        if bit_1:
+            bit_1 = "1"
+        else:
+            bit_1 = "0"
+
+        address = "0x00000{}{}".format(bit_1, bit_0)
+        self._reg_b_display_var.set(address)
+
+        if self._i2c_controller.check_i2c_device(address):
+            self._reg_b_status_label.config(foreground=self._green_col)
+            self._reg_b_status_var.set("Available")
+            self._chip.config_i2c_address_b(int(address, 16))
+            self._valid_i2c_address_b = True
+        else:
+            self._reg_b_status_label.config(foreground=self._red_col)
+            self._reg_b_status_var.set("Not available")
+            self._chip.config_i2c_address_b(None)
+            self._valid_i2c_address_b = False
+
     def read_all(self):
         if self._valid_i2c_address_a and self._valid_i2c_address_b:
             self.send_message("Reading full ETROC1 chip")
