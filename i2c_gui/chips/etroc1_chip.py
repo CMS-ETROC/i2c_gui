@@ -199,6 +199,58 @@ class ETROC1_Chip(Base_Chip):
             }
         )
 
+    def update_whether_modified(self):
+        if self._i2c_address_a is not None:
+            state_a = self._address_space["Array_Reg_A"].is_modified
+        else:
+            state_a = None
+
+        if self._i2c_address_b is not None:
+            state_b = self._address_space["Array_Reg_B"].is_modified
+        else:
+            state_b = None
+
+        if self._i2c_address_full_pixel is not None:
+            state_full = self._address_space["Full_Pixel"].is_modified
+        else:
+            state_full = None
+
+        if self._i2c_address_tdc_test_block is not None:
+            state_tdc = self._address_space["TDC_Test_Block"].is_modified
+        else:
+            state_tdc = None
+
+        state_summary = []
+        if state_a is not None:
+            state_summary += [state_a]
+        if state_b is not None:
+            state_summary += [state_b]
+        if state_full is not None:
+            state_summary += [state_full]
+        if state_tdc is not None:
+            state_summary += [state_tdc]
+
+        if len(state_summary) == 0:
+            final_state = "Unknown"
+        elif len(state_summary) == 0:
+            final_state = state_summary[0]
+        else:
+            if len(set(state_summary)) == 1: # If all elements are equal
+                final_state = state_summary[0]
+            elif "Unknown" in state_summary: # If at least one has unknown status, the full chip has unknown status
+                final_state = "Unknown"
+            elif True in state_summary: # If at least one is modified, the full chip is modified
+                final_state = True
+            else:
+                final_state = False
+
+        if final_state == True:
+            final_state = "Modified"
+        elif final_state == False:
+            final_state = "Unmodified"
+
+        self._parent._local_status_update(final_state)
+
     def graphical_interface_builder(self, frame: ttk.Frame):
         pass
 
