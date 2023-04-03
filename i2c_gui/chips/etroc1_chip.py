@@ -36,10 +36,52 @@ import logging
 etroc1_version = "0.0.1"
 
 register_model = {
-    "ETROC2": {  # Address Space (i.e. separate I2C memory spaces)
-        "Memory Size": 65536,  # 16 bit memory space
+    "Array_Reg_A": {  # Address Space (i.e. separate I2C memory spaces)
+        "Memory Size": 32,
         "Register Blocks": {
-            "Peripheral Config": {  # Register Block (i.e. group of registers to be handled as one unit)
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+                "Base Address": 0x0000,
+                "Registers": {
+                    "PeriCfg0": {
+                        "offset": 0x0000,
+                        "default": 0x2C,
+                    },
+                }
+            },
+        }
+    },
+    "Array_Reg_B": {  # Address Space (i.e. separate I2C memory spaces)
+        "Memory Size": 32,
+        "Register Blocks": {
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+                "Base Address": 0x0000,
+                "Registers": {
+                    "PeriCfg0": {
+                        "offset": 0x0000,
+                        "default": 0x2C,
+                    },
+                }
+            },
+        }
+    },
+    "Full_Pixel": {  # Address Space (i.e. separate I2C memory spaces)
+        "Memory Size": 32,
+        "Register Blocks": {
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+                "Base Address": 0x0000,
+                "Registers": {
+                    "PeriCfg0": {
+                        "offset": 0x0000,
+                        "default": 0x2C,
+                    },
+                }
+            },
+        }
+    },
+    "TDC_Test_Block": {  # Address Space (i.e. separate I2C memory spaces)
+        "Memory Size": 32,
+        "Register Blocks": {
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "Base Address": 0x0000,
                 "Registers": {
                     "PeriCfg0": {
@@ -53,22 +95,46 @@ register_model = {
 }
 
 register_decoding = {
-    "ETROC2": {  # Address Space (i.e. separate I2C memory spaces)
+    "Array_Reg_A": {  # Address Space (i.e. separate I2C memory spaces)
         "Register Blocks":{
-            "Peripheral Config": {  # Register Block (i.e. group of registers to be handled as one unit)
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "PLL_ClkGen_disCLK": {
                     "bits": 1,
                     "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
                 },
             },
-            "Peripheral Status": {  # Register Block
-            },
-            "Pixel Config": {  # Register Block
-            },
-            "Pixel Status": {  # Register Block
+        }
+    },
+    "Array_Reg_B": {  # Address Space (i.e. separate I2C memory spaces)
+        "Register Blocks":{
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+                "PLL_ClkGen_disCLK": {
+                    "bits": 1,
+                    "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                },
             },
         }
-    }
+    },
+    "Full_Pixel": {  # Address Space (i.e. separate I2C memory spaces)
+        "Register Blocks":{
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+                "PLL_ClkGen_disCLK": {
+                    "bits": 1,
+                    "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                },
+            },
+        }
+    },
+    "TDC_Test_Block": {  # Address Space (i.e. separate I2C memory spaces)
+        "Register Blocks":{
+            "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
+                "PLL_ClkGen_disCLK": {
+                    "bits": 1,
+                    "position": [("PeriCfg0", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                },
+            },
+        }
+    },
 }
 
 class ETROC1_Chip(Base_Chip):
