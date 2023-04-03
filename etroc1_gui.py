@@ -21,6 +21,7 @@
 #############################################################################
 
 import tkinter as tk
+import tkinter.ttk as ttk
 import logging
 
 import i2c_gui
@@ -30,6 +31,10 @@ def main():
     i2c_gui.__no_connect__ = True
     i2c_gui.set_swap_endian()
     i2c_gui.set_platform(root.tk.call('tk', 'windowingsystem'))
+
+    # Only for development purposes, uncomment to have a preview of the window in windows while running on macOS
+    style = ttk.Style(root)
+    #style.theme_use('classic')
 
     # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(name)s %(levelname)s:%(message)s')
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
