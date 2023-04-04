@@ -728,6 +728,15 @@ register_decoding = {
                     "info": "{0} powers down the DAC and the discriminator in pixels, active high.\n Each bit controls a pixel.\n Users can specify none or more pixels to control.",
                     "show_binary": "New Line"
                 },
+                "ROI": {
+                    "bits": 16,
+                    "position": [
+                        ("Reg_A_1F", "7-0", "15-8"),
+                        ("Reg_A_1E", "7-0", "7-0"),
+                    ],
+                    "info": "{0} defines the region of interest. 16-bit vector specifies which pixels are enabled for readout.",
+                    "show_binary": "New Line"
+                },
                 "OE_DMRO_Row": {
                     "bits": 4,
                     "position": [("Reg_A_07", "3-0", "3-0")],
@@ -927,6 +936,15 @@ register_decoding = {
                     ],
                     "info": "{0} is the threshold voltage input of pixel 15",
                     "show_binary": "New Line"
+                },
+
+                "dllLate": {
+                    "bits": 1,
+                    "position": [
+                        ("Reg_A_20", "0", "0"),
+                    ],
+                    "info": "{0} is the lock status prompt",
+                    "read_only": True,
                 },
             },
         }
