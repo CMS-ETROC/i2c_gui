@@ -171,7 +171,7 @@ register_model = {
                         "default": 0xFF,
                     },
                     "Reg_A_20": {
-                        "offset": 0x001F,
+                        "offset": 0x0020,
                         "default": 0x00,
                         "read_only": True,
                     },
