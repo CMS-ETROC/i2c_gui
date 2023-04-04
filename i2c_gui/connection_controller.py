@@ -33,11 +33,17 @@ import time
 
 from usb_iss import UsbIss
 from .usb_iss_helper import USB_ISS_Helper
+from .fpga_eth_helper import FPGA_ETH_Helper
 
 class Connection_Controller(GUI_Helper):
     _orange_col = '#f0c010'
     _green_col = '#08ef10'
     _black_col = '#000000'
+
+    _connection_types = [
+        "USB-ISS",
+        "FPGA-Eth",
+    ]
 
     _parent: Base_GUI
     def __init__(self, parent: Base_GUI, usb_iss_max_seq_byte = 8, override_logger = None):
@@ -47,10 +53,14 @@ class Connection_Controller(GUI_Helper):
             super().__init__(parent, None, override_logger)
         self._is_connected = False
 
+        self._usb_iss_max_seq_byte = usb_iss_max_seq_byte
+
         #  The i2c connection is instantiated as a helper class, the helper class will manage
         # the connection itself, allowing to replace the class with others in case other I2C
         # interfaces need to be supported
         self._i2c_connection = USB_ISS_Helper(self, usb_iss_max_seq_byte)
+
+        self._i2c_connection_type_var = tk.StringVar(value=self._connection_types[0])
 
         self._registered_connection_callbacks = []
 
@@ -77,6 +87,29 @@ class Connection_Controller(GUI_Helper):
             for function in self._registered_connection_callbacks:
                 function(value)
 
+    def _update_connection_type(self, var=None, index=None, mode=None):
+        if hasattr(self, "_i2c_connection_frame") and self._i2c_connection_frame is not None:
+            connection_type = self._i2c_connection_type_var.get()
+            update_display = False
+            if connection_type == "USB-ISS":
+                self._i2c_connection = USB_ISS_Helper(self, self._usb_iss_max_seq_byte)
+                update_display = True
+            elif connection_type == "FPGA-Eth":
+                self._i2c_connection = FPGA_ETH_Helper(self)
+                update_display = True
+            else:
+                self.send_message("Unknown I2C Connection Type: {}".format(connection_type), "Error")
+                self._i2c_connection_type_var.set(self._connection_types[0])
+                self._update_connection_type()
+
+            if update_display:
+                self._i2c_connection_frame.destroy()
+
+                self._i2c_connection_frame = ttk.Frame(self._frame)
+                self._i2c_connection_frame.grid(column=1, row=0, sticky=(tk.W, tk.E))
+
+                self._i2c_connection.display_in_frame(self._i2c_connection_frame)
+
     def check_i2c_device(self, address: str):
         from . import __no_connect__
         if __no_connect__:
@@ -96,7 +129,9 @@ class Connection_Controller(GUI_Helper):
         self._frame = ttk.LabelFrame(element, text="I2C Connection Configuration")
         self._frame.grid(column=col, row=row, sticky=(tk.N, tk.W, tk.E, tk.S))
 
-        # TODO: Add here the toggle for different I2C backends
+        self._connection_type_option = ttk.OptionMenu(self._frame, self._i2c_connection_type_var, self._connection_types[0], *self._connection_types)
+        self._connection_type_option.grid(column=0, row=0, sticky=(tk.W, tk.E), padx=(5, 20))
+        self._i2c_connection_type_var.trace_add("write", self._update_connection_type) # This should probably be moved lower
 
         self._i2c_connection_frame = ttk.Frame(self._frame)
         self._i2c_connection_frame.grid(column=1, row=0, sticky=(tk.W, tk.E))
@@ -105,7 +140,7 @@ class Connection_Controller(GUI_Helper):
         self._i2c_connection.display_in_frame(self._i2c_connection_frame)
 
         self._connect_button = ttk.Button(self._frame, text="Connect", command=self.connect)
-        self._connect_button.grid(column=2, row=0, sticky=(tk.W, tk.E))
+        self._connect_button.grid(column=2, row=0, sticky=(tk.W, tk.E), padx=(0,5))
 
     def connect(self):
         if self.is_connected:
