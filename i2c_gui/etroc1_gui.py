@@ -375,7 +375,7 @@ class ETROC1_GUI(Base_GUI):
         if self._i2c_controller.check_i2c_device(address):
             self._reg_tdc_status_label.config(foreground=self._green_col)
             self._reg_tdc_status_var.set("Available")
-            self._chip.config_i2c_address_tdc(int(address, 16))
+            self._chip.config_i2c_address_tdc(int(address, 0))
             self._valid_i2c_address_tdc_test = True
         else:
             self._reg_tdc_status_label.config(foreground=self._red_col)
