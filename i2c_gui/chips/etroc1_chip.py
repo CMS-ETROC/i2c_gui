@@ -679,11 +679,27 @@ register_decoding = {
     "Array_Reg_A": {  # Address Space (i.e. separate I2C memory spaces)
         "Register Blocks":{
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
-                "CLSel": {
-                    "bits": 2,
-                    "position": [("Reg_A_00", "1-0", "1-0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
-                    "info": "Shared by all pixels.\n{0} selects the load capacitance of the preamp first stage:\n - 0b00: 0 fC\n - 0b01: 80 fC\n - 0b10: 80 fC\n - 0b11: 160 fC",
-                    "show_binary": False
+                "EN_DiscriOut": {
+                    "bits": 8,
+                    "position": [
+                        ("Reg_A_04", "7-0", "7-0"),
+                    ],
+                    "info": "{0} enables the discriminator output, active high.\n Each bit in {0}[7:4] represents the row, and each bit in {0}[3:0] represents the column. Users can enable the discriminator output for a specified pixel. Only one row can be specified at a time. That means no more than one bit in {0}[7:4] can be set to 1 at a time.\n When more than one bit is set to 1, or all bits are set to 0 in {0}[3:0], the discriminator output is disabled.\n\nFor example:\n - 0b0010_0100→pixel in row 1 and column 2\n - 0b0001_0001→pixel in row 0 and column 0\n - 0b1000_0100→pixel in row 3 and column 2\n - 0bxxxx_0101→disable discriminator output, but invalid\n - 0b1011_xxxx→invalid\n - 0b0000_0111→disable discriminator output\n - 0b0000_0000→disable discriminator output",
+                    "show_binary": "New Line"
+                },
+                "EN_DiscriOut_Row": {
+                    "bits": 4,
+                    "position": [
+                        ("Reg_A_04", "7-4", "3-0"),
+                    ],
+                    "show_binary": True
+                },
+                "EN_DiscriOut_Column": {
+                    "bits": 4,
+                    "position": [
+                        ("Reg_A_04", "3-0", "3-0"),
+                    ],
+                    "show_binary": True
                 },
                 "DIS_VTHInOut": {
                     "bits": 16,
@@ -692,7 +708,38 @@ register_decoding = {
                         ("Reg_A_02", "7-0", "7-0"),
                     ],
                     "info": "{0} disables the threshold voltage input/output of the specified pixel, active high. Each bit controls a pixel according the pixels index map.\nOnly one of thresholds can be enabled at a time.\nFor example: DIS_VTHInOut = 0x4000.",
-                    "show_binary": True
+                    "show_binary": "New Line"
+                },
+                "EN_QInj": {
+                    "bits": 16,
+                    "position": [
+                        ("Reg_A_06", "7-0", "15-8"),
+                        ("Reg_A_05", "7-0", "7-0"),
+                    ],
+                    "info": "{0} enables the charge injection of the specified pixel, active high.\n Each bit controls a pixel.\n Users can specify non or more pixels to enable the charge injection.",
+                    "show_binary": "New Line"
+                },
+                "CLSel": {
+                    "bits": 2,
+                    "position": [("Reg_A_00", "1-0", "1-0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "info": "Shared by all pixels.\n{0} selects the load capacitance of the preamp first stage:\n - 0b00: 0 fC\n - 0b01: 80 fC\n - 0b10: 80 fC\n - 0b11: 160 fC",
+                    "show_binary": False
+                },
+                "HysSel": {
+                    "bits": 4,
+                    "position": [
+                        ("Reg_A_00", "7-4", "3-0"),
+                    ],
+                    "info": "Shared by all pixels.\n{0} selects the hysteresis voltage:\n - 0b0000 --> Vhys1\n - 0b0001 --> Vhys2\n - 0b0011 --> Vhys3\n - 0b0111 --> Vhys4\n - 0b1111 --> Vhys5\nVhys1 > Vhys2 > Vhys3 > Vhys4 = Vhys5 = 0",
+                    "show_binary": False
+                },
+                "IBSel": {
+                    "bits": 3,
+                    "position": [
+                        ("Reg_A_01", "2-0", "2-0"),
+                    ],
+                    "info": "Shared by all pixels.\n{0} selects the bias current of the input transistor in the preamp:\n - 0b000 --> I1\n - 0b001, 0b010, 0b100 --> I2\n - 0b011, 0b110, 0b101 --> I3\n - 0b111 --> I4\nI1 > I2 > I3 > I4",
+                    "show_binary": False
                 },
             },
         }
