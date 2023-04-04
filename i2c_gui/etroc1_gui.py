@@ -218,8 +218,6 @@ class ETROC1_GUI(Base_GUI):
         self._reg_a_status_label.grid(column=100, row=200)
         self._reg_a_status_label.config(foreground=self._orange_col)
 
-        self.check_i2c_address_a()
-
         ## REG_B Frame
         self._reg_b_frame = ttk.LabelFrame(self._frame_extra_global, text="REG_B")
         self._reg_b_frame.grid(column=reg_b_col, row=100, sticky=(tk.W, tk.E, tk.S, tk.N), padx=2)
@@ -249,8 +247,6 @@ class ETROC1_GUI(Base_GUI):
         self._reg_b_status_label.grid(column=100, row=200)
         self._reg_b_status_label.config(foreground=self._orange_col)
 
-        self.check_i2c_address_b()
-
         ## Full Pixel Frame
         self._reg_full_pixel_frame = ttk.LabelFrame(self._frame_extra_global, text="Full Pixel")
         self._reg_full_pixel_frame.grid(column=reg_pix_col, row=100, sticky=(tk.W, tk.E, tk.S, tk.N), padx=2)
@@ -272,8 +268,6 @@ class ETROC1_GUI(Base_GUI):
         self._reg_full_pixel_status_label = ttk.Label(self._reg_full_pixel_frame, textvariable=self._reg_full_pixel_status_var)
         self._reg_full_pixel_status_label.grid(column=100, row=200)
         self._reg_full_pixel_status_label.config(foreground=self._orange_col)
-
-        self.check_i2c_address_full_pixel()
 
         ## TDC Frame
         self._reg_tdc_frame = ttk.LabelFrame(self._frame_extra_global, text="TDC Test Block")
@@ -298,8 +292,6 @@ class ETROC1_GUI(Base_GUI):
         self._reg_tdc_status_label = ttk.Label(self._reg_tdc_frame, textvariable=self._reg_tdc_status_var)
         self._reg_tdc_status_label.grid(column=100, row=200)
         self._reg_tdc_status_label.config(foreground=self._orange_col)
-
-        self.check_i2c_address_tdc()
 
     def check_i2c_address_a(self, var=None, index=None, mode=None):
         bit_1 = self._reg_a_address_1_var.get()
