@@ -33,7 +33,7 @@ import time
 from usb_iss import UsbIss
 
 class USB_ISS_Helper(I2C_Connection_Helper):
-    def __init__(self, parent: Base_GUI, max_seq_byte = 8, swap_endian = True):
+    def __init__(self, parent: Base_GUI, max_seq_byte: int = 8, swap_endian: bool = True):
         super().__init__(parent, max_seq_byte, swap_endian)
 
         self._iss = UsbIss()
