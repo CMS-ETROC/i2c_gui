@@ -977,6 +977,42 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_B_00", "3", "0")],
                 },
+                "resetn_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_B_00", "4", "0")],
+                },
+                "selRawCode_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_B_00", "5", "0")],
+                },
+                "testMode_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_B_00", "6", "0")],
+                },
+                "timeStampMode_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_B_00", "7", "0")],
+                },
+                "dllEnable": {
+                    "bits": 1,
+                    "position": [("Reg_B_03", "0", "0")],
+                    "info": "{0} enables loop control of DLL. The control voltage is tied to ground when dllEnable==low."
+                },
+                "dllForceDown": {
+                    "bits": 1,
+                    "position": [("Reg_B_03", "1", "0")],
+                    "info": "{0} forces to pull down the output of the phase detector, active high."
+                },
+                "dllCapReset": {
+                    "bits": 1,
+                    "position": [("Reg_B_03", "2", "0")],
+                    "info": "{0} resets the control voltage of DLL to power supply, active high."
+                },
+                "dllCPCurrent": {
+                    "bits": 4,
+                    "position": [("Reg_B_03", "6-3", "3-0")],
+                    "info": "{0} is the charge pump current control bits, ranging from 0 to 15uA for charge and discharge."
+                },
             },
         }
     },
