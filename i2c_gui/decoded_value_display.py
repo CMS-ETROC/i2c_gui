@@ -234,12 +234,13 @@ class Decoded_Value_Display(GUI_Helper):
             self._display_var.set(hex_0fill(value ^ (1 << bit_idx), self._bits))
 
     def _update_display_var(self, var=None, index=None, mode=None):
-        self._logger.debug("Attempting to update display var from shadow var for {}".format(self._name))
+        self._logger.detailed_trace("Attempting to update display var from shadow var for {}".format(self._name))
         if hasattr(self, "_updating_from_display_var"):  # Avoid an infinite loop where the two variables trigger each other
             return
-        self._logger.debug("Updating display var from shadow var for {}".format(self._name))
 
         if self._shadow_var is not None:
+            self._logger.trace("Updating display var from shadow var for {}".format(self._name))
+
             self._updating_from_shadow_var = True
 
             self._display_var.set(self._shadow_var.get())
@@ -247,12 +248,13 @@ class Decoded_Value_Display(GUI_Helper):
             del self._updating_from_shadow_var
 
     def _update_shadow_var(self, var=None, index=None, mode=None):
-        self._logger.debug("Attempting to update shadow var from display var for {}".format(self._name))
+        self._logger.detailed_trace("Attempting to update shadow var from display var for {}".format(self._name))
         if hasattr(self, "_updating_from_shadow_var"):  # Avoid an infinite loop where the two variables trigger each other
             return
-        self._logger.debug("Updating shadow var from display var for {}".format(self._name))
 
         if self._shadow_var is not None:
+            self._logger.trace("Updating shadow var from display var for {}".format(self._name))
+
             self._updating_from_display_var = True
 
             self._shadow_var.set(self._display_var.get())
