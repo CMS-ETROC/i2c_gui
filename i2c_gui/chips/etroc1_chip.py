@@ -767,15 +767,197 @@ register_decoding = {
                     "info": "Shared by all pixels.\n{0} selects the bias current of the input transistor in the preamp:\n - 0b000 --> I1\n - 0b001, 0b010, 0b100 --> I2\n - 0b011, 0b110, 0b101 --> I3\n - 0b111 --> I4\nI1 > I2 > I3 > I4",
                     "show_binary": False
                 },
+                "QSel": {
+                    "bits": 5,
+                    "position": [
+                        ("Reg_A_01", "7-3", "4-0"),
+                    ],
+                    "info": "Shared by all pixels.\n{0} selects the injected charge, from 1 fC(0b00000) to 32 fC(0b11111).\nTypical charge from LGAD sensor is 7 fC(0b00110)",
+                    "show_binary": True
+                },
+                "RfSel": {
+                    "bits": 2,
+                    "position": [
+                        ("Reg_A_00", "3-2", "1-0"),
+                    ],
+                    "info": "Shared by all pixels.\n{0} selects the feedback resistance:\n - 0b00 --> 20 kOHm\n - 0b01--> 10 kOHm\n - 0b10--> 5.7 kOHm\n - 0b11--> 4.4 kOHm",
+                    "show_binary": False
+                },
+
+                "VTHIn_Pix0": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_0A", "7-0", "7-0"),
+                        ("Reg_A_0B", "1-0", "9-8"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 0",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix1": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_0B", "7-2", "5-0"),
+                        ("Reg_A_0C", "3-0", "9-6"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 1",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix2": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_0C", "7-4", "3-0"),
+                        ("Reg_A_0D", "5-0", "9-4"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 2",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix3": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_0D", "7-6", "1-0"),
+                        ("Reg_A_0E", "7-0", "9-2"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 3",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix4": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_0F", "7-0", "7-0"),
+                        ("Reg_A_10", "1-0", "9-8"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 4",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix5": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_10", "7-2", "5-0"),
+                        ("Reg_A_11", "3-0", "9-6"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 5",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix6": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_11", "7-4", "3-0"),
+                        ("Reg_A_12", "5-0", "9-4"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 6",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix7": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_12", "7-6", "1-0"),
+                        ("Reg_A_13", "7-0", "9-2"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 7",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix8": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_14", "7-0", "7-0"),
+                        ("Reg_A_15", "1-0", "9-8"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 8",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix9": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_15", "7-2", "5-0"),
+                        ("Reg_A_16", "3-0", "9-6"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 9",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix10": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_16", "7-4", "3-0"),
+                        ("Reg_A_17", "5-0", "9-4"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 10",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix11": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_17", "7-6", "1-0"),
+                        ("Reg_A_18", "7-0", "9-2"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 11",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix12": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_19", "7-0", "7-0"),
+                        ("Reg_A_1A", "1-0", "9-8"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 12",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix13": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_1A", "7-2", "5-0"),
+                        ("Reg_A_1B", "3-0", "9-6"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 13",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix14": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_1B", "7-4", "3-0"),
+                        ("Reg_A_1C", "5-0", "9-4"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 14",
+                    "show_binary": "New Line"
+                },
+                "VTHIn_Pix15": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_A_1C", "7-6", "1-0"),
+                        ("Reg_A_1D", "7-0", "9-2"),
+                    ],
+                    "info": "{0} is the threshold voltage input of pixel 15",
+                    "show_binary": "New Line"
+                },
             },
         }
     },
     "Array_Reg_B": {  # Address Space (i.e. separate I2C memory spaces)
         "Register Blocks":{
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
-                "PLL_ClkGen_disCLK": {
+                "autoReset_TDC": {
                     "bits": 1,
-                    "position": [("Reg_B_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_B_00", "0", "0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                },
+                "enableMon_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_B_00", "1", "0")],
+                    "info": "This bit is actually used to control the readout test mode in ROTestGen.",
+                },
+                "enable_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_B_00", "2", "0")],
+                },
+                "level_TDC": {
+                    "bits": 3,
+                    "position": [("Reg_B_01", "2-0", "2-0")],
+                },
+                "offset_TDC": {
+                    "bits": 7,
+                    "position": [("Reg_B_02", "6-0", "6-0")],
+                },
+                "polaritySel_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_B_00", "3", "0")],
                 },
             },
         }
