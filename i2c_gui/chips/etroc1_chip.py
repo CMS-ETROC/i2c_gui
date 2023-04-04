@@ -682,7 +682,7 @@ register_decoding = {
                 "EN_DiscriOut": {
                     "bits": 8,
                     "position": [
-                        ("Reg_A_04", "7-0", "7-0"),
+                        ("Reg_A_04", "7-0", "7-0"),  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
                     ],
                     "info": "{0} enables the discriminator output, active high.\n Each bit in {0}[7:4] represents the row, and each bit in {0}[3:0] represents the column. Users can enable the discriminator output for a specified pixel. Only one row can be specified at a time. That means no more than one bit in {0}[7:4] can be set to 1 at a time.\n When more than one bit is set to 1, or all bits are set to 0 in {0}[3:0], the discriminator output is disabled.\n\nFor example:\n - 0b0010_0100→pixel in row 1 and column 2\n - 0b0001_0001→pixel in row 0 and column 0\n - 0b1000_0100→pixel in row 3 and column 2\n - 0bxxxx_0101→disable discriminator output, but invalid\n - 0b1011_xxxx→invalid\n - 0b0000_0111→disable discriminator output\n - 0b0000_0000→disable discriminator output",
                     "show_binary": "New Line"
@@ -716,12 +716,38 @@ register_decoding = {
                         ("Reg_A_06", "7-0", "15-8"),
                         ("Reg_A_05", "7-0", "7-0"),
                     ],
-                    "info": "{0} enables the charge injection of the specified pixel, active high.\n Each bit controls a pixel.\n Users can specify non or more pixels to enable the charge injection.",
+                    "info": "{0} enables the charge injection of the specified pixel, active high.\n Each bit controls a pixel.\n Users can specify none or more pixels to enable the charge injection.",
                     "show_binary": "New Line"
+                },
+                "PD_DACDiscri": {
+                    "bits": 16,
+                    "position": [
+                        ("Reg_A_09", "7-0", "15-8"),
+                        ("Reg_A_08", "7-0", "7-0"),
+                    ],
+                    "info": "{0} powers down the DAC and the discriminator in pixels, active high.\n Each bit controls a pixel.\n Users can specify none or more pixels to control.",
+                    "show_binary": "New Line"
+                },
+                "OE_DMRO_Row": {
+                    "bits": 4,
+                    "position": [("Reg_A_07", "3-0", "3-0")],
+                    "info": "{0} enables the output of DMRO in rows. Each bit represents a row. Only one row can be enabled for output at a time.\nFor example:\n - 0b0000→no DMRO output enabled\n - 0b0001→the row 0 of DMRO output is enabled\n - 0b0100→the row 2 of DMRO output is enabled\n - 0b1010→invalid",
+                    "show_binary": True
+                },
+                "DMRO_COL": {
+                    "bits": 2,
+                    "position": [("Reg_A_07", "5-4", "1-0")],
+                    "info": "{0} selects DMRO output from a specified column:\n - 0b00→column 0\n - 0b01→column 1\n - 0b10→column 2\n - 0b11→column 3",
+                    "show_binary": True
+                },
+                "RO_SEL": {
+                    "bits": 1,
+                    "position": [("Reg_A_07", "6", "0")],
+                    "info": "{0} selects readout mode from either SRO or DMRO:\n - Low→DMRO enabled\n - High→SRO enabled",
                 },
                 "CLSel": {
                     "bits": 2,
-                    "position": [("Reg_A_00", "1-0", "1-0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_A_00", "1-0", "1-0")],
                     "info": "Shared by all pixels.\n{0} selects the load capacitance of the preamp first stage:\n - 0b00: 0 fC\n - 0b01: 80 fC\n - 0b10: 80 fC\n - 0b11: 160 fC",
                     "show_binary": False
                 },
