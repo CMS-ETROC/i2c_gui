@@ -45,12 +45,12 @@ class ETROC1_GUI(Base_GUI):
     _orange_col = '#f0c010'
 
     def __init__(self, root: tk.Tk, logger: logging.Logger):
-        super().__init__("ETROC1 I2C GUI", root, logger, stack_global_controls=True)
-
         self._valid_i2c_address_a = False
         self._valid_i2c_address_b = False
         self._valid_i2c_address_full_pixel = False
         self._valid_i2c_address_tdc_test = False
+
+        super().__init__("ETROC1 I2C GUI", root, logger, stack_global_controls=True)
 
     def _load_config(self):
         if not hasattr(self, "_chip") or self._chip is None:

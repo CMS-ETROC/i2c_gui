@@ -44,10 +44,10 @@ class ETROC2_GUI(Base_GUI):
     _green_col = '#00c000'
 
     def __init__(self, root: tk.Tk, logger: logging.Logger):
-        super().__init__("ETROC2 I2C GUI", root, logger)
-
         self._valid_i2c_address = False
         self._valid_ws_i2c_address = False
+
+        super().__init__("ETROC2 I2C GUI", root, logger)
 
     def _load_config(self):
         if not hasattr(self, "_chip") or self._chip is None:
