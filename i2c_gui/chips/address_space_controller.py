@@ -213,8 +213,12 @@ class Address_Space_Controller(GUI_Helper):
         return False
 
     def _update_register(self, block, value, bits, position):
+        #self._logger.detailed_trace("Entered Address_Space_Controller._update_register(block={}, value={}, bits={}, position={})".format(block, value, bits, position))
+        self._logger.detailed_trace("Attempting to update register {} from decoded value {}".format("{}/{}[{}]".format(block, position[0], position[1]), "{}[{}]".format(value, position[2])))
         if hasattr(self, "_updating_from_register"):  # Avoid an infinite loop where the two variables trigger each other
             return
+
+        self._logger.trace("Updating register {} from decoded value {}".format("{}/{}[{}]".format(block, position[0], position[1]), "{}[{}]".format(value, position[2])))
 
         self._updating_from_decoded_value = True
 
@@ -235,8 +239,12 @@ class Address_Space_Controller(GUI_Helper):
         del self._updating_from_decoded_value
 
     def _update_decoded_value(self, block, value, bits, position):
+        #self._logger.detailed_trace("Entered Address_Space_Controller._update_decoded_value(block={}, value={}, bits={}, position={})".format(block, value, bits, position))
+        self._logger.detailed_trace("Attempting to update decoded value {} from register {}".format("{}[{}]".format(value, position[2]), "{}/{}[{}]".format(block, position[0], position[1])))
         if hasattr(self, "_updating_from_decoded_value"):  # Avoid an infinite loop where the two variables trigger each other
             return
+
+        self._logger.trace("Updating decoded value {} from register {}".format("{}[{}]".format(value, position[2]), "{}/{}[{}]".format(block, position[0], position[1])))
 
         self._updating_from_register = True
 
