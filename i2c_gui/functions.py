@@ -35,6 +35,10 @@ def is_valid_hostname(hostname: str):
 
     labels = hostname.split(".")
 
+    if len(labels) == 1:
+        if labels[0] != "localhost":
+            return False
+
     # the TLD must not be all-numeric
     if re.match(r"[0-9]+$", labels[-1]):
         return False
