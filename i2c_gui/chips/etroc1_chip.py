@@ -1013,6 +1013,37 @@ register_decoding = {
                     "position": [("Reg_B_03", "6-3", "3-0")],
                     "info": "{0} is the charge pump current control bits, ranging from 0 to 15uA for charge and discharge."
                 },
+                "PhaseAdj": {
+                    "bits": 8,
+                    "position": [("Reg_B_04", "7-0", "7-0")],
+                    "info": "{0} is the Phase selecting control bits, {0}[7:3] for coarse, {0}[2:0] for fine.",
+                    "show_binary": "New Line"
+                },
+                "RefStrSel": {
+                    "bits": 8,
+                    "position": [("Reg_B_05", "7-0", "7-0")],
+                    "info": "{0} is the TDC reference strobe selection."
+                },
+                "ENScr_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_B_06", "0", "0")],
+                    "info": "{0} enables scrambling, active high."
+                },
+                "REVCLK_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_B_06", "1", "0")],
+                    "info": "{0} reverses the clock used for input data latch, active-high. When REVData=0 data is latched at the rising edges of CLKWord, otherwise data is latched at the falling edges of CLKWord."
+                },
+                "REVData_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_B_06", "2", "0")],
+                    "info": "{0} reverses input data, active-high."
+                },
+                "TestMode_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_B_06", "3", "0")],
+                    "info": "{0} is the test mode input, active high. The PRBS7 is sent out in test mode (TestMode == 1) while the data is sent out in normal mode (TestMode == 0)."
+                },
             },
         }
     },
