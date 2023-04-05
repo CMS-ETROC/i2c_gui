@@ -1044,6 +1044,21 @@ register_decoding = {
                     "position": [("Reg_B_06", "3", "0")],
                     "info": "{0} is the test mode input, active high. The PRBS7 is sent out in test mode (TestMode == 1) while the data is sent out in normal mode (TestMode == 0)."
                 },
+                "TestCLK0": {
+                    "bits": 1,
+                    "position": [("Reg_B_06", "4", "0")],
+                    "info": "When {0}=1, the phase shifter is bypassed and off-chip 40MHz and 320MHz are used."
+                },
+                "TestCLK1": {
+                    "bits": 1,
+                    "position": [("Reg_B_06", "5", "0")],
+                    "info": "When {0}=1, the TDC reference strobe generator is bypassed and off-chip 40MHz and 320MHz are used."
+                },
+                "CLKOutSel": {
+                    "bits": 1,
+                    "position": [("Reg_B_06", "6", "0")],
+                    "info": "{0} selects output from either 40 MHz clock or TDC reference strobe:\n - 0b0: 40 MHz clock\n - 0b1: TDC reference strobe"
+                },
             },
         }
     },
