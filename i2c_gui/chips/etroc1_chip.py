@@ -760,6 +760,14 @@ register_decoding = {
                     "info": "Shared by all pixels.\n{0} selects the load capacitance of the preamp first stage:\n - 0b00: 0 fC\n - 0b01: 80 fC\n - 0b10: 80 fC\n - 0b11: 160 fC",
                     "show_binary": False
                 },
+                "RfSel": {
+                    "bits": 2,
+                    "position": [
+                        ("Reg_A_00", "3-2", "1-0"),
+                    ],
+                    "info": "Shared by all pixels.\n{0} selects the feedback resistance:\n - 0b00 --> 20 kOHm\n - 0b01--> 10 kOHm\n - 0b10--> 5.7 kOHm\n - 0b11--> 4.4 kOHm",
+                    "show_binary": False
+                },
                 "HysSel": {
                     "bits": 4,
                     "position": [
@@ -783,14 +791,6 @@ register_decoding = {
                     ],
                     "info": "Shared by all pixels.\n{0} selects the injected charge, from 1 fC(0b00000) to 32 fC(0b11111).\nTypical charge from LGAD sensor is 7 fC(0b00110)",
                     "show_binary": True
-                },
-                "RfSel": {
-                    "bits": 2,
-                    "position": [
-                        ("Reg_A_00", "3-2", "1-0"),
-                    ],
-                    "info": "Shared by all pixels.\n{0} selects the feedback resistance:\n - 0b00 --> 20 kOHm\n - 0b01--> 10 kOHm\n - 0b10--> 5.7 kOHm\n - 0b11--> 4.4 kOHm",
-                    "show_binary": False
                 },
 
                 "VTHIn_Pix0": {
@@ -965,14 +965,6 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_B_00", "2", "0")],
                 },
-                "level_TDC": {
-                    "bits": 3,
-                    "position": [("Reg_B_01", "2-0", "2-0")],
-                },
-                "offset_TDC": {
-                    "bits": 7,
-                    "position": [("Reg_B_02", "6-0", "6-0")],
-                },
                 "polaritySel_TDC": {
                     "bits": 1,
                     "position": [("Reg_B_00", "3", "0")],
@@ -992,6 +984,14 @@ register_decoding = {
                 "timeStampMode_TDC": {
                     "bits": 1,
                     "position": [("Reg_B_00", "7", "0")],
+                },
+                "level_TDC": {
+                    "bits": 3,
+                    "position": [("Reg_B_01", "2-0", "2-0")],
+                },
+                "offset_TDC": {
+                    "bits": 7,
+                    "position": [("Reg_B_02", "6-0", "6-0")],
                 },
                 "dllEnable": {
                     "bits": 1,
