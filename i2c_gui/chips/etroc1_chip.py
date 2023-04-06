@@ -1119,6 +1119,66 @@ register_decoding = {
                     "position": [("Reg_B_09", "4", "0")],
                     "info": "{0} sets the common voltage of the Rx for the 40 MHz clock to 1/2 vdd, active high"
                 },
+                "enableTER_40M": {
+                    "bits": 1,
+                    "position": [("Reg_B_09", "3", "0")],
+                    "info": "{0} enables the internal termination of the Rx for the 40 MHz clock, active high"
+                },
+                "invertData_40M": {
+                    "bits": 1,
+                    "position": [("Reg_B_09", "2", "0")],
+                    "info": "{0} inverts the data of the Rx for the 40 MHz clock, active high"
+                },
+                "equ_40M": {
+                    "bits": 2,
+                    "position": [("Reg_B_09", "1-0", "1-0")],
+                    "info": "{0} sets the equalization strength of the Rx for the 40 MHz clock\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "enableRx_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_B_0A", "5", "0")],
+                    "info": "{0} enables the Rx for the QInj, active high"
+                },
+                "setCM_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_B_0A", "4", "0")],
+                    "info": "{0} sets the common voltage of the Rx for the QInj to 1/2 vdd, active high"
+                },
+                "enableTER_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_B_0A", "3", "0")],
+                    "info": "{0} enables internal termination of the Rx for the QInj, active high"
+                },
+                "invertData_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_B_0A", "2", "0")],
+                    "info": "{0} inverts data of the Rx for the QInj, active high"
+                },
+                "equ_QInj": {
+                    "bits": 2,
+                    "position": [("Reg_B_0A", "1-0", "1-0")],
+                    "info": "{0} sets the equalization strength of the Rx for the QInj\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "AMPL_CLKTO": {
+                    "bits": 3,
+                    "position": [("Reg_B_0B", "2-0", "2-0")],
+                    "info": "3bits to select different output amplitude.\n - 0b000 = min amplitude(50m)\n - 0b111 = max amplitude(320m)\n(Step size ≈ 40mV)"
+                },
+                "disCML_CLKTO": {
+                    "bits": 1,
+                    "position": [("Reg_B_0B", "3", "0")],
+                    "info": "{0} disables the CML driver, active high"
+                },
+                "AMPL_DOut": {
+                    "bits": 3,
+                    "position": [("Reg_B_0B", "6-4", "2-0")],
+                    "info": "3bits to select different output amplitude.\n - 0b000 = min amplitude(50m)\n - 0b111 = max amplitude(320m)\n(Step size ≈ 40mV)"
+                },
+                "disCML_DOut": {
+                    "bits": 1,
+                    "position": [("Reg_B_0B", "7", "0")],
+                    "info": "{0} disables the CML driver, active high"
+                },
             },
         }
     },
