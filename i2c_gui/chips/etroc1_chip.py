@@ -1074,6 +1074,51 @@ register_decoding = {
                     "position": [("Reg_B_07", "3", "0")],
                     "info": "{0} enables internal termination of the Rx for the 1.28 GHz clock, active high"
                 },
+                "invertData_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_B_07", "2", "0")],
+                    "info": "{0} inverts data of the Rx for the 1.28 GHz clock, active high"
+                },
+                "equ_1P28G": {
+                    "bits": 2,
+                    "position": [("Reg_B_07", "1-0", "1-0")],
+                    "info": "{0} sets the equalization strength of the Rx for the 320 MHz clock\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "enableRx_320M": {
+                    "bits": 1,
+                    "position": [("Reg_B_08", "5", "0")],
+                    "info": "{0} enables the Rx for the 320 MHz clock, active high"
+                },
+                "setCM_320M": {
+                    "bits": 1,
+                    "position": [("Reg_B_08", "4", "0")],
+                    "info": "{0} sets the common voltage of the Rx for the 320 MHz clock to 1/2 vdd, active high"
+                },
+                "enableTER_320M": {
+                    "bits": 1,
+                    "position": [("Reg_B_08", "3", "0")],
+                    "info": "{0} enables internal termination of the Rx for the 320 MHz clock, active high"
+                },
+                "invertData_320M": {
+                    "bits": 1,
+                    "position": [("Reg_B_08", "2", "0")],
+                    "info": "{0} inverts data of the Rx for the 320 MHz clock, active high"
+                },
+                "equ_320M": {
+                    "bits": 2,
+                    "position": [("Reg_B_08", "1-0", "1-0")],
+                    "info": "{0} set the equalization strength of the Rx for the 320 MHz clock\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "enableRx_40M": {
+                    "bits": 1,
+                    "position": [("Reg_B_09", "5", "0")],
+                    "info": "{0} enables the Rx for the 40 MHz clock, active high"
+                },
+                "setCM_40M": {
+                    "bits": 1,
+                    "position": [("Reg_B_09", "4", "0")],
+                    "info": "{0} sets the common voltage of the Rx for the 40 MHz clock to 1/2 vdd, active high"
+                },
             },
         }
     },
