@@ -1059,6 +1059,21 @@ register_decoding = {
                     "position": [("Reg_B_06", "6", "0")],
                     "info": "{0} selects output from either 40 MHz clock or TDC reference strobe:\n - 0b0: 40 MHz clock\n - 0b1: TDC reference strobe"
                 },
+                "enableRx_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_B_07", "5", "0")],
+                    "info": "{0} enables the Rx for 1.28 GHz clock, active high"
+                },
+                "setCM_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_B_07", "4", "0")],
+                    "info": "{0} sets the common voltage of the Rx for the 1.28 GHz clock to 1/2 vdd, active high"
+                },
+                "enableTER_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_B_07", "3", "0")],
+                    "info": "{0} enables internal termination of the Rx for the 1.28 GHz clock, active high"
+                },
             },
         }
     },
