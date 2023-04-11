@@ -456,7 +456,7 @@ register_model = {
                     },
                     "Reg_09": {
                         "offset": 0x0009,
-                        "default": 0x00,
+                        "default": 0x38,
                     },
                     "Reg_0A": {
                         "offset": 0x000A,
@@ -1673,6 +1673,31 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_08", "5", "0")],
                     "info": "Enable 320M clock input eRx"
+                },
+                "Clk1G28_equalizer": {
+                    "bits": 2,
+                    "position": [("Reg_09", "1-0", "1-0")],
+                    "info": "1.28G clock input eRx equalizer intensity"
+                },
+                "Clk1G28_invertData": {
+                    "bits": 1,
+                    "position": [("Reg_09", "2", "0")],
+                    "info": "1.28G clock input eRx data invert"
+                },
+                "Clk1G28_enableTermination": {
+                    "bits": 1,
+                    "position": [("Reg_09", "3", "0")],
+                    "info": "Enable 1.28G clock input eRx termination"
+                },
+                "Clk1G28_setCommonMode": {
+                    "bits": 1,
+                    "position": [("Reg_09", "4", "0")],
+                    "info": "Set 1.28G clock input eRx common mode"
+                },
+                "Clk1G28_enableRx": {
+                    "bits": 1,
+                    "position": [("Reg_09", "5", "0")],
+                    "info": "Enable 1.28G clock input eRx"
                 },
             },
         }
