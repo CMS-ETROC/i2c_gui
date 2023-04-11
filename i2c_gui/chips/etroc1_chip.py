@@ -428,7 +428,7 @@ register_model = {
                     },
                     "Reg_02": {
                         "offset": 0x0002,
-                        "default": 0x00,
+                        "default": 0x61,
                     },
                     "Reg_03": {
                         "offset": 0x0003,
@@ -1518,6 +1518,36 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_01", "7", "0")],
                     "info": "TDC enable"
+                },
+                "tdc_level": {
+                    "bits": 3,
+                    "position": [("Reg_02", "2-0", "2-0")],
+                    "info": "TDC Encoder bubble tolerance."
+                },
+                "tdc_testMode": {
+                    "bits": 1,
+                    "position": [("Reg_02", "3", "0")],
+                    "info": "TDC Test Mode"
+                },
+                "tdc_selRawCode": {
+                    "bits": 1,
+                    "position": [("Reg_02", "4", "0")],
+                    "info": "Select TDC Raw code, always \"0\""
+                },
+                "tdc_resetn": {
+                    "bits": 1,
+                    "position": [("Reg_02", "5", "0")],
+                    "info": "TDC reset signal"
+                },
+                "tdc_polaritySel": {
+                    "bits": 1,
+                    "position": [("Reg_02", "6", "0")],
+                    "info": "TDC controller output signal polarity"
+                },
+                "tdc_autoReset": {
+                    "bits": 1,
+                    "position": [("Reg_02", "7", "0")],
+                    "info": "TDC automatic reset signal"
                 },
             },
         }
