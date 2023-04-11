@@ -245,7 +245,7 @@ register_model = {
                 "Registers": {
                     "Reg_00": {
                         "offset": 0x0000,
-                        "default": 0x2C,
+                        "default": 0x1C,
                     },
                     "Reg_01": {
                         "offset": 0x0001,
@@ -1185,9 +1185,45 @@ register_decoding = {
     "Full_Pixel": {  # Address Space (i.e. separate I2C memory spaces)
         "Register Blocks":{
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
-                "PLL_ClkGen_disCLK": {
+                "autoReset_TDC": {
                     "bits": 1,
-                    "position": [("Reg_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_00", "0", "0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "info": "TDC autoReset mode"
+                },
+                "enableMon_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_00", "1", "0")],
+                    "info": "Control of readout test mode in ROTestGen"
+                },
+                "enable_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_00", "2", "0")],
+                    "info": "Enable TDC"
+                },
+                "polaritySel_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_00", "3", "0")],
+                    "info": "TDC Controller control signal polarity select"
+                },
+                "resetn_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_00", "4", "0")],
+                    "info": "Reset TDC, low active"
+                },
+                "selRawCode_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_00", "5", "0")],
+                    "info": "Select Row data or combination data"
+                },
+                "testMode_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_00", "6", "0")],
+                    "info": "TDC test mode select"
+                },
+                "timeStampMode_TDC": {
+                    "bits": 1,
+                    "position": [("Reg_00", "7", "0")],
+                    "info": "Calibration data timestamp mode"
                 },
             },
         }
