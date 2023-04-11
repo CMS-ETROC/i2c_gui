@@ -464,7 +464,7 @@ register_model = {
                     },
                     "Reg_0B": {
                         "offset": 0x000B,
-                        "default": 0x00,
+                        "default": 0x3F,
                     },
                     "Reg_0C": {
                         "offset": 0x000C,
@@ -1723,6 +1723,41 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_0A", "5", "0")],
                     "info": "Enable TDC pulse input eRx"
+                },
+                "TDCRawData_Sel": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "0", "0")],
+                    "info": "TDC Raw data group select"
+                },
+                "GRO_TOT_CK": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "1", "0")],
+                    "info": "GRO TOT clock"
+                },
+                "GRO_TOTRST_N": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "2", "0")],
+                    "info": "GRO TOT Reset, active low"
+                },
+                "GRO_TOA_Latch": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "3", "0")],
+                    "info": "GRO TOA Latch clock"
+                },
+                "GRO_TOA_CK": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "4", "0")],
+                    "info": "GRO TOA clock"
+                },
+                "GRO_TOARST_N": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "5", "0")],
+                    "info": "GRO TOA Reset, low active"
+                },
+                "GRO_Start": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "6", "0")],
+                    "info": "GRO Start signal, high active"
                 },
             },
         }
