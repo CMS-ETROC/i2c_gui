@@ -39,6 +39,12 @@ from .functions import validate_variable_bit_register
 from .functions import validate_i2c_address
 from .functions import validate_pixel_index
 from .functions import hex_0fill
+from .functions import addLoggingLevel
+
+# Add custom log levels to logging
+addLoggingLevel('TRACE', 8)
+addLoggingLevel('DETAILED_TRACE', 5)
+#addLoggingLevel('HIGH_TEST', 100)
 
 def set_platform(value):
     global __platform__

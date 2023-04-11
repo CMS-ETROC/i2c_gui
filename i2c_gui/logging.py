@@ -30,27 +30,21 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 import io
 
-from .functions import addLoggingLevel
-
 class Logging_Helper(GUI_Helper):
     _parent: Base_GUI
     _log_levels = {
-        "Detailed Trace": 5,  # (Custom)
-        "Trace": 8,  # (Custom)
-        "Debug": 10,
-        "Info": 20,
-        "Warning": 30,
-        "Error": 40,
-        "Critical": 50,
+        "Detailed Trace": logging.DETAILED_TRACE,  # (Custom)
+        "Trace": logging.TRACE,  # (Custom)
+        "Debug": logging.DEBUG,
+        "Info": logging.INFO,
+        "Warning": logging.WARNING,
+        "Error": logging.ERROR,
+        "Critical": logging.CRITICAL,
     }
     _default_log_level = "Info"
 
     def __init__(self, parent: Base_GUI):
         super().__init__(parent, None, parent._logger)
-
-        # Add custom log levels to logging
-        addLoggingLevel('TRACE', 8)  # Numbers should match the definition above
-        addLoggingLevel('DETAILED_TRACE', 5)
 
         self._do_logging = False
         self._logger.disabled = True
