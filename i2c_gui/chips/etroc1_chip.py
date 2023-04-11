@@ -436,7 +436,7 @@ register_model = {
                     },
                     "Reg_04": {
                         "offset": 0x0004,
-                        "default": 0x00,
+                        "default": 0x51,
                     },
                     "Reg_05": {
                         "offset": 0x0005,
@@ -1563,6 +1563,36 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_03", "4", "0")],
                     "info": "TDC Calibration data timeStamp Mode"
+                },
+                "Dataout_AmplSel": {
+                    "bits": 3,
+                    "position": [("Reg_04", "2-0", "2-0")],
+                    "info": "1.28 GHz Serial data output Amplitude select"
+                },
+                "ro_testmode": {
+                    "bits": 1,
+                    "position": [("Reg_04", "3", "0")],
+                    "info": "40 MHz clock CML output Amplitude select"
+                },
+                "ro_enable": {
+                    "bits": 1,
+                    "position": [("Reg_04", "4", "0")],
+                    "info": "Enable DMRO"
+                },
+                "ro_reverse": {
+                    "bits": 1,
+                    "position": [("Reg_04", "5", "0")],
+                    "info": "DMRO output data reverse"
+                },
+                "ro_resetn": {
+                    "bits": 1,
+                    "position": [("Reg_04", "6", "0")],
+                    "info": "DMRO reset, low active"
+                },
+                "ro_revclk": {
+                    "bits": 1,
+                    "position": [("Reg_04", "7", "0")],
+                    "info": "DMRO 40 MHz clock reverse"
                 },
             },
         }
