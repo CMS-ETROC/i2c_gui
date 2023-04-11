@@ -432,7 +432,7 @@ register_model = {
                     },
                     "Reg_03": {
                         "offset": 0x0003,
-                        "default": 0x00,
+                        "default": 0x09,
                     },
                     "Reg_04": {
                         "offset": 0x0004,
@@ -1548,6 +1548,21 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_02", "7", "0")],
                     "info": "TDC automatic reset signal"
+                },
+                "Clk40Mout_AmplSel": {
+                    "bits": 3,
+                    "position": [("Reg_03", "2-0", "2-0")],
+                    "info": "40 MHz clock CML output Amplitude select"
+                },
+                "tdc_enableMon": {
+                    "bits": 1,
+                    "position": [("Reg_03", "3", "0")],
+                    "info": "40 MHz clock CML output Amplitude select"
+                },
+                "tdc_timeStampMode": {
+                    "bits": 1,
+                    "position": [("Reg_03", "4", "0")],
+                    "info": "TDC Calibration data timeStamp Mode"
                 },
             },
         }
