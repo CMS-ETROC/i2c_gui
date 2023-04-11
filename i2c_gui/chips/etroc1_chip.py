@@ -440,7 +440,7 @@ register_model = {
                     },
                     "Reg_05": {
                         "offset": 0x0005,
-                        "default": 0x00,
+                        "default": 0x1F,
                     },
                     "Reg_06": {
                         "offset": 0x0006,
@@ -1593,6 +1593,31 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_04", "7", "0")],
                     "info": "DMRO 40 MHz clock reverse"
+                },
+                "Dataout_Sel": {
+                    "bits": 1,
+                    "position": [("Reg_05", "0", "0")],
+                    "info": "1.28GHz data output when asserted, 320MHz clock pulse output when deserted"
+                },
+                "Clk320M_Psel": {
+                    "bits": 1,
+                    "position": [("Reg_05", "1", "0")],
+                    "info": "320M Pulse clock comes from external when asserted, otherwise comes from internal"
+                },
+                "Clk40M_Psel": {
+                    "bits": 1,
+                    "position": [("Reg_05", "2", "0")],
+                    "info": "40M Pulse clock comes from external when asserted, otherwise comes from internal"
+                },
+                "Clk320M_Sel": {
+                    "bits": 1,
+                    "position": [("Reg_05", "3", "0")],
+                    "info": "320M clock comes from internal divider when asserted, otherwise comes from external input."
+                },
+                "Clk40M_Sel": {
+                    "bits": 1,
+                    "position": [("Reg_05", "4", "0")],
+                    "info": "40M clock comes from internal divider when asserted, otherwise comes from external input."
                 },
             },
         }
