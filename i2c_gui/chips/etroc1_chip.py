@@ -289,7 +289,7 @@ register_model = {
                     },
                     "Reg_0B": {
                         "offset": 0x000B,
-                        "default": 0x2C,
+                        "default": 0x77,
                     },
                     "Reg_0C": {
                         "offset": 0x000C,
@@ -1406,6 +1406,26 @@ register_decoding = {
                     "bits": 2,
                     "position": [("Reg_0A", "1-0", "1-0")],
                     "info": "Equalization strength of the Rx for the QInj:\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "AMPL_CLKTO": {
+                    "bits": 3,
+                    "position": [("Reg_0B", "2-0", "2-0")],
+                    "info": "3bits to select different output amplitude.\n - 0b000 = min amplitude(50m)\n - 0b111 = max amplitude(320m)\nStep size ≈ 40mV"
+                },
+                "disCML_CLKTO": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "3", "0")],
+                    "info": "Disable CML driver, active high"
+                },
+                "AMPL_DOut": {
+                    "bits": 3,
+                    "position": [("Reg_0B", "6-4", "2-0")],
+                    "info": "3bits to select different output amplitude.\n - 0b000 = min amplitude(50m)\n - 0b111 = max amplitude(320m)\nStep size ≈ 40mV"
+                },
+                "disCML_DOut": {
+                    "bits": 1,
+                    "position": [("Reg_0B", "7", "0")],
+                    "info": "Disable CML driver, active high"
                 },
 
                 "dllLate": {
