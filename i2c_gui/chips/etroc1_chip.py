@@ -468,7 +468,7 @@ register_model = {
                     },
                     "Reg_0C": {
                         "offset": 0x000C,
-                        "default": 0x00,
+                        "default": 0x02,
                     },
                     "Reg_0D": {
                         "offset": 0x000D,
@@ -1758,6 +1758,16 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_0B", "6", "0")],
                     "info": "GRO Start signal, high active"
+                },
+                "GROout_disCMLDriver_BIAS": {
+                    "bits": 1,
+                    "position": [("Reg_0C", "0", "0")],
+                    "info": "Disable GRO output CML Driver"
+                },
+                "GROout_AmplSel": {
+                    "bits": 3,
+                    "position": [("Reg_0C", "3-1", "2-0")],
+                    "info": "GRO output CML Driver Amplitude selection"
                 },
             },
         }
