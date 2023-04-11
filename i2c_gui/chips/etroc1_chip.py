@@ -452,7 +452,7 @@ register_model = {
                     },
                     "Reg_08": {
                         "offset": 0x0008,
-                        "default": 0x00,
+                        "default": 0x38,
                     },
                     "Reg_09": {
                         "offset": 0x0009,
@@ -1648,6 +1648,31 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_07", "5", "0")],
                     "info": "Enable 40M clock input eRx"
+                },
+                "Clk320M_equalizer": {
+                    "bits": 2,
+                    "position": [("Reg_08", "1-0", "1-0")],
+                    "info": "320M clock input eRx equalizer intensity"
+                },
+                "Clk320M_invertData": {
+                    "bits": 1,
+                    "position": [("Reg_08", "2", "0")],
+                    "info": "320M clock input eRx data invert"
+                },
+                "Clk320M_enableTermination": {
+                    "bits": 1,
+                    "position": [("Reg_08", "3", "0")],
+                    "info": "Enable 320M clock input eRx termination"
+                },
+                "Clk320M_setCommonMode": {
+                    "bits": 1,
+                    "position": [("Reg_08", "4", "0")],
+                    "info": "Set 320M clock input eRx common mode"
+                },
+                "Clk320M_enableRx": {
+                    "bits": 1,
+                    "position": [("Reg_08", "5", "0")],
+                    "info": "Enable 320M clock input eRx"
                 },
             },
         }
