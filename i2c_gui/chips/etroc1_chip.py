@@ -444,11 +444,11 @@ register_model = {
                     },
                     "Reg_06": {
                         "offset": 0x0006,
-                        "default": 0x00,
+                        "default": 0x03,
                     },
                     "Reg_07": {
                         "offset": 0x0007,
-                        "default": 0x00,
+                        "default": 0x38,
                     },
                     "Reg_08": {
                         "offset": 0x0008,
@@ -1618,6 +1618,36 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_05", "4", "0")],
                     "info": "40M clock comes from internal divider when asserted, otherwise comes from external input."
+                },
+                "Pulse_Sel": {
+                    "bits": 8,
+                    "position": [("Reg_06", "7-0", "7-0")],
+                    "info": "320M clock pulse location select"
+                },
+                "Clk40M_equalizer": {
+                    "bits": 2,
+                    "position": [("Reg_07", "1-0", "1-0")],
+                    "info": "40M clock input eRx equalizer intensity"
+                },
+                "Clk40M_invertData": {
+                    "bits": 1,
+                    "position": [("Reg_07", "2", "0")],
+                    "info": "40M clock input eRx data invert"
+                },
+                "Clk40M_enableTermination": {
+                    "bits": 1,
+                    "position": [("Reg_07", "3", "0")],
+                    "info": "Enable 40M clock input eRx termination"
+                },
+                "Clk40M_setCommonMode": {
+                    "bits": 1,
+                    "position": [("Reg_07", "4", "0")],
+                    "info": "Set 40M clock input eRx common mode"
+                },
+                "Clk40M_enableRx": {
+                    "bits": 1,
+                    "position": [("Reg_07", "5", "0")],
+                    "info": "Enable 40M clock input eRx"
                 },
             },
         }
