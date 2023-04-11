@@ -424,7 +424,7 @@ register_model = {
                     },
                     "Reg_01": {
                         "offset": 0x0001,
-                        "default": 0x00,
+                        "default": 0x80,
                     },
                     "Reg_02": {
                         "offset": 0x0002,
@@ -1508,6 +1508,16 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_00", "1", "0")],
                     "info": "Disable Clk40M CML Driver"
+                },
+                "tdc_offset": {
+                    "bits": 7,
+                    "position": [("Reg_01", "6-0", "6-0")],
+                    "info": "TDC ripple counter metastability window offset."
+                },
+                "tdc_enable": {
+                    "bits": 1,
+                    "position": [("Reg_01", "7", "0")],
+                    "info": "TDC enable"
                 },
             },
         }
