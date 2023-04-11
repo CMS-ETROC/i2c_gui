@@ -273,19 +273,19 @@ register_model = {
                     },
                     "Reg_07": {
                         "offset": 0x0007,
-                        "default": 0x2C,
+                        "default": 0x38,
                     },
                     "Reg_08": {
                         "offset": 0x0008,
-                        "default": 0x2C,
+                        "default": 0x18,
                     },
                     "Reg_09": {
                         "offset": 0x0009,
-                        "default": 0x2C,
+                        "default": 0x18,
                     },
                     "Reg_0A": {
                         "offset": 0x000A,
-                        "default": 0x2C,
+                        "default": 0x38,
                     },
                     "Reg_0B": {
                         "offset": 0x000B,
@@ -1306,6 +1306,106 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_06", "7", "0")],
                     "info": "Select output from either 40 MHz clock or TDC reference strobe:\n - 0b0: 40 MHz clock\n - 0b1: TDC reference strobe"
+                },
+                "enableRx_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_07", "5", "0")],
+                    "info": "Enable the Rx for 1.28 GHz clock, active high"
+                },
+                "setCM_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_07", "4", "0")],
+                    "info": "Set common voltage of the Rx for the 1.28 GHz clock to 1/2 vdd, active high"
+                },
+                "enableTER_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_07", "3", "0")],
+                    "info": "Enable internal termination of the Rx for the 1.28 GHz clock, active high"
+                },
+                "invertData_1P28G": {
+                    "bits": 1,
+                    "position": [("Reg_07", "2", "0")],
+                    "info": "Invert data of the Rx for the 1.28 GHz clock, active high"
+                },
+                "equ_1P28G": {
+                    "bits": 2,
+                    "position": [("Reg_07", "1-0", "1-0")],
+                    "info": "Equalization strength of the Rx for the 1.28 GHz clock:\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "enableRx_320M": {
+                    "bits": 1,
+                    "position": [("Reg_08", "5", "0")],
+                    "info": "Enable the Rx for 320 MHz clock, active high"
+                },
+                "setCM_320M": {
+                    "bits": 1,
+                    "position": [("Reg_08", "4", "0")],
+                    "info": "Set common voltage of the Rx for the 320 MHz clock to 1/2 vdd, active high"
+                },
+                "enableTER_320M": {
+                    "bits": 1,
+                    "position": [("Reg_08", "3", "0")],
+                    "info": "Enable internal termination of the Rx for the 320 MHz clock, active high"
+                },
+                "invertData_320M": {
+                    "bits": 1,
+                    "position": [("Reg_08", "2", "0")],
+                    "info": "Invert data of the Rx for the 320 MHz clock, active high"
+                },
+                "equ_320M": {
+                    "bits": 2,
+                    "position": [("Reg_08", "1-0", "1-0")],
+                    "info": "Equalization strength of the Rx for the 320 MHz clock:\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "enableRx_40M": {
+                    "bits": 1,
+                    "position": [("Reg_09", "5", "0")],
+                    "info": "Enable the Rx for 40 MHz clock, active high"
+                },
+                "setCM_40M": {
+                    "bits": 1,
+                    "position": [("Reg_09", "4", "0")],
+                    "info": "Set common voltage of the Rx for the 40 MHz clock to 1/2 vdd, active high"
+                },
+                "enableTER_40M": {
+                    "bits": 1,
+                    "position": [("Reg_09", "3", "0")],
+                    "info": "Enable internal termination of the Rx for the 40 MHz clock, active high"
+                },
+                "invertData_40M": {
+                    "bits": 1,
+                    "position": [("Reg_09", "2", "0")],
+                    "info": "Invert data of the Rx for the 40 MHz clock, active high"
+                },
+                "equ_40M": {
+                    "bits": 2,
+                    "position": [("Reg_09", "1-0", "1-0")],
+                    "info": "Equalization strength of the Rx for the 40 MHz clock:\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
+                },
+                "enableRx_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "5", "0")],
+                    "info": "Enable the Rx for the QInj, active high"
+                },
+                "setCM_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "4", "0")],
+                    "info": "Set common voltage of the Rx for the QInj to 1/2 vdd, active high"
+                },
+                "enableTER_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "3", "0")],
+                    "info": "Enable internal termination of the Rx for the QInj, active high"
+                },
+                "invertData_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "2", "0")],
+                    "info": "Invert data of the Rx for the QInj, active high"
+                },
+                "equ_QInj": {
+                    "bits": 2,
+                    "position": [("Reg_0A", "1-0", "1-0")],
+                    "info": "Equalization strength of the Rx for the QInj:\n - 0b00, equalization is turned off\n - 0b11, largest equalization"
                 },
 
                 "dllLate": {
