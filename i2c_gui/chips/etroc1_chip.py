@@ -297,7 +297,7 @@ register_model = {
                     },
                     "Reg_0D": {
                         "offset": 0x000D,
-                        "default": 0x2C,
+                        "default": 0x37,
                     },
                     "Reg_0E": {
                         "offset": 0x000E,
@@ -1441,6 +1441,16 @@ register_decoding = {
                     "bits": 4,
                     "position": [("Reg_0C", "7-4", "3-0")],
                     "info": "Hysteresis voltage selection:\n - 0b0000 --> Vhys1\n - 0b0001 --> Vhys2\n - 0b0011 --> Vhys3\n - 0b0111 --> Vhys4\n - 0b1111 --> Vhys5\nVhys1 > Vhys2 > Vhys3 > Vhys4 = Vhys5 = 0"
+                },
+                "IBSel": {
+                    "bits": 3,
+                    "position": [("Reg_0D", "2-0", "2-0")],
+                    "info": "Bias current selection of the input transistor in the preamp:\n - 0b000 --> I1\n - 0b001, 0b010, 0b100 --> I2\n - 0b011, 0b110, 0b101 --> I3\n - 0b111 --> I4\nI1 > I2 > I3 > I4"
+                },
+                "QSel": {
+                    "bits": 5,
+                    "position": [("Reg_0D", "7-3", "4-0")],
+                    "info": "Select injected charge, from 1 fC(0b00000) to 32 fC(0b11111)\nTypical charge from LGAD sensor is 7 fC(0b00111)"
                 },
 
                 "dllLate": {
