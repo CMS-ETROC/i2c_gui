@@ -1499,9 +1499,15 @@ register_decoding = {
     "TDC_Test_Block": {  # Address Space (i.e. separate I2C memory spaces)
         "Register Blocks":{
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
-                "PLL_ClkGen_disCLK": {
+                "Dataout_disCMLDriver_BIAS": {
                     "bits": 1,
-                    "position": [("Reg_00", "0", "0")]  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "position": [("Reg_00", "0", "0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
+                    "info": "Disable Dataout CML Driver"
+                },
+                "Clk40Mout_disCMLDriver_BIAS": {
+                    "bits": 1,
+                    "position": [("Reg_00", "1", "0")],
+                    "info": "Disable Clk40M CML Driver"
                 },
             },
         }
