@@ -261,11 +261,11 @@ register_model = {
                     },
                     "Reg_04": {
                         "offset": 0x0004,
-                        "default": 0x2C,
+                        "default": 0x00,
                     },
                     "Reg_05": {
                         "offset": 0x0005,
-                        "default": 0x2C,
+                        "default": 0x03,
                     },
                     "Reg_06": {
                         "offset": 0x0006,
@@ -1254,6 +1254,18 @@ register_decoding = {
                     "bits": 4,
                     "position": [("Reg_03", "6-3", "3-0")],
                     "info": "Charge pump current control bits, ranging from 0 to 15uA for charge and discharge."
+                },
+                "PhaseAdj": {
+                    "bits": 8,
+                    "position": [("Reg_04", "7-0", "7-0")],
+                    "info": "Phase selecting control bits, PhaseAdj <7:3> for coarse, PhaseAdj <2:0> for fine.",
+                    "show_binary": True
+                },
+                "RefStrSel": {
+                    "bits": 8,
+                    "position": [("Reg_05", "7-0", "7-0")],
+                    "info": "TDC reference strobe selection.",
+                    "show_binary": True
                 },
 
                 "dllLate": {
