@@ -301,11 +301,11 @@ register_model = {
                     },
                     "Reg_0E": {
                         "offset": 0x000E,
-                        "default": 0x2C,
+                        "default": 0x00,
                     },
                     "Reg_0F": {
                         "offset": 0x000F,
-                        "default": 0x2C,
+                        "default": 0x2E,
                     },
                     "Reg_10": {
                         "offset": 0x0010,
@@ -1451,6 +1451,15 @@ register_decoding = {
                     "bits": 5,
                     "position": [("Reg_0D", "7-3", "4-0")],
                     "info": "Select injected charge, from 1 fC(0b00000) to 32 fC(0b11111)\nTypical charge from LGAD sensor is 7 fC(0b00111)"
+                },
+                "VTHIn": {
+                    "bits": 10,
+                    "position": [
+                        ("Reg_0E", "7-0", "7-0"),
+                        ("Reg_0F", "1-0", "9-8"),
+                    ],
+                    "info": "Threshold voltage input of Discriminator , VTHIn[9:0] represents DAC setting",
+                    "show_binary": True
                 },
 
                 "dllLate": {
