@@ -305,7 +305,7 @@ register_model = {
                     },
                     "Reg_0F": {
                         "offset": 0x000F,
-                        "default": 0x2E,
+                        "default": 0x56,
                     },
                     "Reg_10": {
                         "offset": 0x0010,
@@ -1460,6 +1460,31 @@ register_decoding = {
                     ],
                     "info": "Threshold voltage input of Discriminator , VTHIn[9:0] represents DAC setting",
                     "show_binary": True
+                },
+                "EN_QInj": {
+                    "bits": 1,
+                    "position": [("Reg_0F", "2", "0")],
+                    "info": "enable the charge injection"
+                },
+                "EN_DiscriOut": {
+                    "bits": 1,
+                    "position": [("Reg_0F", "3", "0")],
+                    "info": "Enable Discriminator Output"
+                },
+                "Dis_VTHInOut": {
+                    "bits": 1,
+                    "position": [("Reg_0F", "4", "0")],
+                    "info": "Disable VTHIn Output"
+                },
+                "PD_DACDiscri": {
+                    "bits": 1,
+                    "position": [("Reg_0F", "5", "0")],
+                    "info": "Power down the DAC and the discriminator, active low"
+                },
+                "OE_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_0F", "6", "0")],
+                    "info": "Output enable of DMRO"
                 },
 
                 "dllLate": {
