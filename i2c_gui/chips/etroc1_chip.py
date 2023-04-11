@@ -460,7 +460,7 @@ register_model = {
                     },
                     "Reg_0A": {
                         "offset": 0x000A,
-                        "default": 0x00,
+                        "default": 0x38,
                     },
                     "Reg_0B": {
                         "offset": 0x000B,
@@ -1698,6 +1698,31 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_09", "5", "0")],
                     "info": "Enable 1.28G clock input eRx"
+                },
+                "Pulse_equalizer": {
+                    "bits": 2,
+                    "position": [("Reg_0A", "1-0", "1-0")],
+                    "info": "TDC pulse input eRx equalizer intensity"
+                },
+                "Pulse_invertData": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "2", "0")],
+                    "info": "TDC pulse input eRx data invert"
+                },
+                "Pulse_enableTermination": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "3", "0")],
+                    "info": "Enable TDC pulse input eRx termination"
+                },
+                "Pulse_setCommonMode": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "4", "0")],
+                    "info": "Set TDC pulse input eRx common mode"
+                },
+                "Pulse_enableRx": {
+                    "bits": 1,
+                    "position": [("Reg_0A", "5", "0")],
+                    "info": "Enable TDC pulse input eRx"
                 },
             },
         }
