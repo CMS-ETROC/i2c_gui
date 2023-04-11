@@ -269,7 +269,7 @@ register_model = {
                     },
                     "Reg_06": {
                         "offset": 0x0006,
-                        "default": 0x2C,
+                        "default": 0x83,
                     },
                     "Reg_07": {
                         "offset": 0x0007,
@@ -1266,6 +1266,46 @@ register_decoding = {
                     "position": [("Reg_05", "7-0", "7-0")],
                     "info": "TDC reference strobe selection.",
                     "show_binary": True
+                },
+                "RSTN_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_06", "0", "0")],
+                    "info": "DMRO Reset, active low"
+                },
+                "ENScr_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_06", "1", "0")],
+                    "info": "Enable scrambling, active high"
+                },
+                "REVCLK_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_06", "2", "0")],
+                    "info": "Reversing the clock used for input data latch, active-high. When REVData=0 data is latched at the rising edges of CLKWord, otherwise data is latched at the falling edges of CLKWord."
+                },
+                "REVData_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_06", "3", "0")],
+                    "info": "reversing input data, active- high"
+                },
+                "TestMode_DMRO": {
+                    "bits": 1,
+                    "position": [("Reg_06", "4", "0")],
+                    "info": "Test mode input, active high. The PRBS7 is sent out in test mode (TestMode == 1) while the data is sent out in normal mode (TestMode == 1)."
+                },
+                "TestCLK0": {
+                    "bits": 1,
+                    "position": [("Reg_06", "5", "0")],
+                    "info": "When TestCLK0=1, the phase shifter is bypassed and off-chip 40MHz and 320MHz are used."
+                },
+                "TestCLK1": {
+                    "bits": 1,
+                    "position": [("Reg_06", "6", "0")],
+                    "info": "When TestCLK1=1, the TDC reference strobe generator is bypassed and off-chip 40MHz and 320MHz are used."
+                },
+                "CLKOutSel": {
+                    "bits": 1,
+                    "position": [("Reg_06", "7", "0")],
+                    "info": "Select output from either 40 MHz clock or TDC reference strobe:\n - 0b0: 40 MHz clock\n - 0b1: TDC reference strobe"
                 },
 
                 "dllLate": {
