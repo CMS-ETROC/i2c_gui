@@ -249,15 +249,15 @@ register_model = {
                     },
                     "Reg_01": {
                         "offset": 0x0001,
-                        "default": 0x2C,
+                        "default": 0x01,
                     },
                     "Reg_02": {
                         "offset": 0x0002,
-                        "default": 0x2C,
+                        "default": 0x00,
                     },
                     "Reg_03": {
                         "offset": 0x0003,
-                        "default": 0x2C,
+                        "default": 0x9,
                     },
                     "Reg_04": {
                         "offset": 0x0004,
@@ -405,7 +405,7 @@ register_model = {
                     },
                     "Reg_20": {
                         "offset": 0x0020,
-                        "default": 0x2C,
+                        "default": 0x00,
                         "read_only": True,
                     },
                 }
@@ -1224,6 +1224,43 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_00", "7", "0")],
                     "info": "Calibration data timestamp mode"
+                },
+                "level_TDC": {
+                    "bits": 3,
+                    "position": [("Reg_01", "2-0", "2-0")],
+                    "info": "Bubble level"
+                },
+                "offset_TDC": {
+                    "bits": 7,
+                    "position": [("Reg_02", "6-0", "6-0")],
+                    "info": "Ripple counter window offest"
+                },
+                "dllEnable": {
+                    "bits": 1,
+                    "position": [("Reg_03", "0", "0")],
+                    "info": "{0} enables loop control of DLL. The control voltage is tied to ground when {0}==low."
+                },
+                "dllForceDown": {
+                    "bits": 1,
+                    "position": [("Reg_03", "1", "0")],
+                    "info": "Force to pull down the output of the phase detector, active high."
+                },
+                "dllCapReset": {
+                    "bits": 1,
+                    "position": [("Reg_03", "2", "0")],
+                    "info": "Reset the control voltage of DLL to power supply, active high."
+                },
+                "dllCPCurrent": {
+                    "bits": 4,
+                    "position": [("Reg_03", "6-3", "3-0")],
+                    "info": "Charge pump current control bits, ranging from 0 to 15uA for charge and discharge."
+                },
+
+                "dllLate": {
+                    "bits": 1,
+                    "position": [("Reg_20", "0", "0")],
+                    "info": "Lock status prompt.",
+                    "read_only": True
                 },
             },
         }
