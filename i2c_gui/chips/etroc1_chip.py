@@ -293,7 +293,7 @@ register_model = {
                     },
                     "Reg_0C": {
                         "offset": 0x000C,
-                        "default": 0x2C,
+                        "default": 0xf8,
                     },
                     "Reg_0D": {
                         "offset": 0x000D,
@@ -1426,6 +1426,21 @@ register_decoding = {
                     "bits": 1,
                     "position": [("Reg_0B", "7", "0")],
                     "info": "Disable CML driver, active high"
+                },
+                "CLSel": {
+                    "bits": 2,
+                    "position": [("Reg_0C", "1-0", "1-0")],
+                    "info": "Select of load capacitance of the preamp first stage:\n - 0b00--> 0 fC\n - 0b01--> 80 fC\n - 0b10--> 80 fC\n - 0b01--> 160 fC"
+                },
+                "RfSel": {
+                    "bits": 2,
+                    "position": [("Reg_0C", "3-2", "1-0")],
+                    "info": "Feedback resistance selection:\n - 0b00--> 20 kOHm\n - 0b01--> 10 kOHm\n - 0b10--> 5.7 kOHm\n - 0b11--> 4.4 kOHm"
+                },
+                "HysSel": {
+                    "bits": 4,
+                    "position": [("Reg_0C", "7-4", "3-0")],
+                    "info": "Hysteresis voltage selection:\n - 0b0000 --> Vhys1\n - 0b0001 --> Vhys2\n - 0b0011 --> Vhys3\n - 0b0111 --> Vhys4\n - 0b1111 --> Vhys5\nVhys1 > Vhys2 > Vhys3 > Vhys4 = Vhys5 = 0"
                 },
 
                 "dllLate": {
