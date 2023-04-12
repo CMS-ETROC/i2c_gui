@@ -31,7 +31,6 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 import time
 
-from usb_iss import UsbIss
 from .usb_iss_helper import USB_ISS_Helper
 from .fpga_eth_helper import FPGA_ETH_Helper
 
