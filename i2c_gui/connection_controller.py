@@ -152,6 +152,8 @@ class Connection_Controller(GUI_Helper):
         if self._i2c_connection.connect(__no_connect__):
             if hasattr(self, "_connect_button"):
                 self._connect_button.config(text="Disconnect", command=self.disconnect)
+            if hasattr(self, "_connection_type_option"):
+                self._connection_type_option.config(state="disabled")
             self._set_connected(True)
             if hasattr(self, "_i2c_window"):
                 self._test_device_button.config(state='normal')
@@ -168,6 +170,8 @@ class Connection_Controller(GUI_Helper):
 
         if hasattr(self, "_connect_button"):
             self._connect_button.config(text="Connect", command=self.connect)
+        if hasattr(self, "_connection_type_option"):
+            self._connection_type_option.config(state="normal")
         self._set_connected(False)
         if hasattr(self, "_i2c_window"):
             self._test_device_button.config(state='disabled')
