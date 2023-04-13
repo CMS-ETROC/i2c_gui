@@ -1668,6 +1668,10 @@ class ETROC2_Chip(Base_Chip):
         self._i2c_address = None
         self._waveform_sampler_i2c_address = None
 
+        from .waveform_sampler_helper import Waveform_Sampler_Helper
+        self._ws_helper = Waveform_Sampler_Helper(self)
+        self._i2c_controller.register_connection_callback(self._ws_helper._connection_update)
+
         self.clear_tab("Empty")
         self.register_tab(
             "Graphical View",
@@ -1724,6 +1728,10 @@ class ETROC2_Chip(Base_Chip):
         for var in self._indexer_vars:
             indexer_var = self._indexer_vars[var]['variable']
             self._callback_indexer_var[var] = indexer_var.trace_add('write', self._update_indexed_vars)
+
+    def _display_ws_monitor(self):
+        #self._ws_helper.prepare_display(self._frame, 100, 100)
+        self._ws_helper.display_window()
 
     def _update_indexed_vars(self, var=None, index=None, mode=None):
         #if self._indexer_vars['column']['variable'].get() == "" or self._indexer_vars['row']['variable'].get() == "":
