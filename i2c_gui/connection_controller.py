@@ -95,6 +95,7 @@ class Connection_Controller(GUI_Helper):
                 update_display = True
             elif connection_type == "FPGA-Eth":
                 self._i2c_connection = FPGA_ETH_Helper(self)
+                self.send_message("The FPGA-Eth connection is not fully implement yet - this will not work", "Warning")
                 update_display = True
             else:
                 self.send_message("Unknown I2C Connection Type: {}".format(connection_type), "Error")
