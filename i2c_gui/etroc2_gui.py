@@ -112,6 +112,15 @@ class ETROC2_GUI(Base_GUI):
 
         menubar.add_cascade(menu=self._filemenu, label='File')
 
+    def _create_monitor_menu_entries(self, monitormenu: tk.Menu):
+        super()._create_monitor_menu_entries(monitormenu)
+
+        monitormenu.add_command(label='Open WS Monitor', command=self._open_ws_monitor)#, state='disabled')
+
+    def _open_ws_monitor(self):
+        if hasattr(self, "_chip") and self._chip is not None:
+            self._chip._display_ws_monitor()
+
     def _about_contents(self, element: tk.Tk, column: int, row: int):
         self._about_img = ImageTk.PhotoImage(Image.open(importlib.resources.open_binary("i2c_gui.static", "ETROC2_Emulator.png")))
         self._about_img_label = tk.Label(element, image = self._about_img)
