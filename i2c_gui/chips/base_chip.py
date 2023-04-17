@@ -121,10 +121,23 @@ class Base_Chip(GUI_Helper):
             raise ValueError("An address space with the name '{}' already exists".format(name))
 
         size = address_space_model["Memory Size"]
+        if "Register Bits" in address_space_model:
+            bits = address_space_model["Register Bits"]
+        else:
+            bits = 16
         decoded_registers = None
         if register_decoding is not None:
             decoded_registers = register_decoding["Register Blocks"]
-        self._address_space[name] = Address_Space_Controller(parent=self, name=name, i2c_address=address, memory_size=size, i2c_controller=self._i2c_controller, register_map=address_space_model["Register Blocks"], decoded_registers=decoded_registers)
+        self._address_space[name] = Address_Space_Controller(
+            parent=self,
+            name=name,
+            i2c_address=address,
+            memory_size=size,
+            i2c_controller=self._i2c_controller,
+            register_map=address_space_model["Register Blocks"],
+            decoded_registers=decoded_registers,
+            register_bits=bits,
+        )
 
     def _build_indexer_vars(self, indexer_info):
         indexer_variables = indexer_info["vars"]

@@ -62,6 +62,7 @@ def etroc2_column_row_to_base_address(block: str, column: int, row: int, broadca
 register_model = {
     "ETROC2": {  # Address Space (i.e. separate I2C memory spaces)
         "Memory Size": 65536,  # 16 bit memory space
+        "Register Bits": 16,
         "Register Blocks": {
             "Peripheral Config": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "Base Address": 0x0000,
@@ -475,6 +476,7 @@ register_model = {
     },
     "Waveform Sampler": {  # Address Space
         "Memory Size": 48,
+        "Register Bits": 8,
         "Register Blocks": {
             "Config": {
                 "Base Address": 0x0000,

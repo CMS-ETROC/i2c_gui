@@ -38,6 +38,7 @@ etroc1_version = "0.0.1"
 register_model = {
     "Array_Reg_A": {  # Address Space (i.e. separate I2C memory spaces)
         "Memory Size": 48,
+        "Register Bits": 8,
         "Register Blocks": {
             "Registers": {  # Register Block (i.e. group of registers to be handled as one unit)
                 "Base Address": 0x0000,
@@ -181,6 +182,7 @@ register_model = {
     },
     "Array_Reg_B": {
         "Memory Size": 32,
+        "Register Bits": 8,
         "Register Blocks": {
             "Registers": {
                 "Base Address": 0x0000,
@@ -239,6 +241,7 @@ register_model = {
     },
     "Full_Pixel": {
         "Memory Size": 48,
+        "Register Bits": 8,
         "Register Blocks": {
             "Registers": {
                 "Base Address": 0x0000,
@@ -414,6 +417,7 @@ register_model = {
     },
     "TDC_Test_Block": {
         "Memory Size": 48,
+        "Register Bits": 8,
         "Register Blocks": {
             "Registers": {
                 "Base Address": 0x0000,
