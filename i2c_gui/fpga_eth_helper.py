@@ -62,10 +62,10 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
     def _check_i2c_device(self, address: int):
         return False  # TODO: implement this for the FPGA
 
-    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int]):
+    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16):
         return  # TODO: implement this for the FPGA
 
-    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int) -> list[int]:
+    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16) -> list[int]:
         return []  # TODO: implement this for the FPGA
 
     def display_in_frame(self, frame: ttk.Frame):
