@@ -102,7 +102,7 @@ class I2C_Connection_Helper(GUI_Helper):
             self._parent.send_i2c_logging_message("   Software emulation (no connect) is enabled, so returning dummy values.\n   {}\n".format(repr(data)))
 
         elif self._max_seq_byte is None:
-            if self._swap_endian:
+            if self._swap_endian and register_bits == 16:
                 memory_address = self.swap_endian_16bit(memory_address)
             data = self._read_i2c_device_memory(device_address, memory_address, byte_count, register_bits)
             self._parent.send_i2c_logging_message("   {}\n".format(repr(data)))
@@ -124,7 +124,7 @@ class I2C_Connection_Helper(GUI_Helper):
                 bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
                 self._parent.send_i2c_logging_message("      Read operation {}: reading {} bytes starting from 0x{:04x}".format(i, bytes_to_read, this_block_address))
 
-                if self._swap_endian:
+                if self._swap_endian and register_bits == 16:
                     this_block_address = self.swap_endian_16bit(this_block_address)
                 this_data = self._read_i2c_device_memory(device_address, this_block_address, bytes_to_read, register_bits)
                 self._parent.send_i2c_logging_message("         {}".format(repr(this_data)))
@@ -157,7 +157,7 @@ class I2C_Connection_Helper(GUI_Helper):
 
         if self._max_seq_byte is None:
             self._parent.send_i2c_logging_message("   Writing the full block at once\n")
-            if self._swap_endian:
+            if self._swap_endian and register_bits == 16:
                 memory_address = self.swap_endian_16bit(memory_address)
             self._write_i2c_device_memory(device_address, memory_address, data, register_bits)
         else:
@@ -180,7 +180,7 @@ class I2C_Connection_Helper(GUI_Helper):
                 this_data = data[i*self._max_seq_byte:i*self._max_seq_byte+bytes_to_write]
                 self._parent.send_i2c_logging_message("         {}".format(repr(this_data)))
 
-                if self._swap_endian:
+                if self._swap_endian and register_bits == 16:
                     this_block_address = self.swap_endian_16bit(this_block_address)
                 self._write_i2c_device_memory(device_address, this_block_address, this_data, register_bits)
 
