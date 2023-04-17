@@ -34,7 +34,7 @@ import logging
 import time
 
 class Address_Space_Controller(GUI_Helper):
-    def __init__(self, parent: GUI_Helper, name, i2c_address, memory_size, i2c_controller: Connection_Controller, register_map, decoded_registers):
+    def __init__(self, parent: GUI_Helper, name, i2c_address, memory_size, i2c_controller: Connection_Controller, register_map, decoded_registers, register_bits: int = 16):
         super().__init__(parent, None, parent._logger)
 
         self._name = name
@@ -43,6 +43,7 @@ class Address_Space_Controller(GUI_Helper):
         self._memory_size = memory_size
         self._blocks = {}
         self._register_map_metadata = register_map
+        self._register_bits = register_bits
 
         self._not_read = True
 
@@ -328,7 +329,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Reading the full '{}' address space".format(self._name))
 
-        self._memory = self._i2c_controller.read_device_memory(self._i2c_address, 0, self._memory_size)
+        self._memory = self._i2c_controller.read_device_memory(self._i2c_address, 0, self._memory_size, self._register_bits)
         for idx in range(self._memory_size):
             self._display_vars[idx].set(hex_0fill(self._memory[idx], 8))
         self._not_read = False
@@ -350,10 +351,10 @@ class Address_Space_Controller(GUI_Helper):
 
         for idx in range(self._memory_size):
             self._memory[idx] = int(self._display_vars[idx].get(), 0)
-        self._i2c_controller.write_device_memory(self._i2c_address, 0, self._memory)
+        self._i2c_controller.write_device_memory(self._i2c_address, 0, self._memory, self._register_bits)
 
         if write_check:
-            self._memory = self._i2c_controller.read_device_memory(self._i2c_address, 0, self._memory_size)
+            self._memory = self._i2c_controller.read_device_memory(self._i2c_address, 0, self._memory_size, self._register_bits)
             failed = []
             for i in range(self._memory_size):
                 if self._memory[i] != int(self._display_vars[i].get(), 0):
@@ -379,7 +380,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Reading register at address {} in the address space '{}'".format(address, self._name))
 
-        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1)
+        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1, self._register_bits)
         self._memory[address] = tmp[0]
         self._display_vars[address].set(hex_0fill(tmp[0], 8))
 
@@ -397,10 +398,10 @@ class Address_Space_Controller(GUI_Helper):
         self._logger.info("Writing register at address {} in the address space '{}'".format(address, self._name))
 
         self._memory[address] = int(self._display_vars[address].get(), 0)
-        self._i2c_controller.write_device_memory(self._i2c_address, address, [self._memory[address]])
+        self._i2c_controller.write_device_memory(self._i2c_address, address, [self._memory[address]], self._register_bits)
 
         if write_check:
-            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1)
+            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1, self._register_bits)
             if self._memory[address] != tmp[0]:
                 self.send_message("Failure to write register at address 0x{:0x} in the {} address space (I2C address 0x{:0x})".format(address, self._name, self._i2c_address),
                                   status="Error"
@@ -423,7 +424,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Reading a block of {} bytes starting at address {} in the address space '{}'".format(data_size, address, self._name))
 
-        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size)
+        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size, self._register_bits)
         for i in range(data_size):
             self._memory[address+i] = tmp[i]
             self._display_vars[address+i].set(hex_0fill(tmp[i], 8))
@@ -474,10 +475,10 @@ class Address_Space_Controller(GUI_Helper):
 
         for i in range(data_size):
             self._memory[address+i] = int(self._display_vars[address+i].get(), 0)
-        self._i2c_controller.write_device_memory(self._i2c_address, address, self._memory[address:address+data_size])
+        self._i2c_controller.write_device_memory(self._i2c_address, address, self._memory[address:address+data_size], self._register_bits)
 
         if write_check:
-            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size)
+            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size, self._register_bits)
             failed = []
             for i in range(data_size):
                 if self._memory[address+i] != tmp[i]:
