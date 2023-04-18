@@ -59,7 +59,7 @@ It may be desirable to install the dependencies and run the GUI inside a `venv` 
     * CMD: `venv\Scripts\activate.bat`
     * Power Shell: `venv\Scripts\Activate.ps1`
 * Linux/macOS:
-    * bash/zsh: `source venv/ben/activate`
+    * bash/zsh: `source venv/bin/activate`
 
 On windows Power Shell you may also need to run the following command first: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`. See the official venv documentation for any questions: [link](https://docs.python.org/3/library/venv.html)
 
