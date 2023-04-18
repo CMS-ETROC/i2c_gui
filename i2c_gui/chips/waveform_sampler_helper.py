@@ -75,6 +75,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._ws_data_out = self._parent.get_decoded_display_var("Waveform Sampler", "Status", "dout")
 
         self._has_data = False
+        self._configuration_read = False
         self._is_configured = False
         self._pll_enabled = False
 
@@ -94,6 +95,80 @@ class Waveform_Sampler_Helper(GUI_Helper):
             self._save_raw_button.config(state=state)
         if hasattr(self, "_save_wave_button"):
             self._save_wave_button.config(state=state)
+
+    @property
+    def is_connected(self):
+        return self._is_connected
+
+    @is_connected.setter
+    def is_connected(self, value: bool):
+        self._is_connected = value
+
+        state = "disabled"
+        if value:
+            state = "normal"
+            if hasattr(self, "_status_display"):
+                self._status_display.connection_status = "Connected"
+        else:
+            self.configuration_read = False
+            self.is_configured = False
+            self.pll_enabled = False
+            if hasattr(self, "_status_display"):
+                self._status_display.connection_status = "Not Connected"
+                self._status_display.local_status = "Unknown"
+
+        if hasattr(self, "_control_dropdowns"):
+            for control_var in self._control_dropdowns:
+                self._control_dropdowns[control_var].config(state=state)
+        if hasattr(self, "_read_config_button"):
+            self._read_config_button.config(state=state)
+
+    @property
+    def configuration_read(self):
+        return self._configuration_read
+
+    @configuration_read.setter
+    def configuration_read(self, value: bool):
+        self._configuration_read = value
+
+        state = "disabled"
+        if value:
+            state = "normal"
+
+        if hasattr(self, "_configure_button"):
+            self._configure_button.config(state=state)
+        if hasattr(self, "_pll_button"):
+            self._pll_button.config(state=state)
+
+    @property
+    def is_configured(self):
+        return self._is_configured
+
+    @is_configured.setter
+    def is_configured(self, value: bool):
+        self._is_configured = value
+
+        state = "disabled"
+        if value and self.pll_enabled:
+            state = "normal"
+
+        if hasattr(self, "_read_button"):
+            self._read_button.config(state=state)
+
+    @property
+    def pll_enabled(self):
+        return self._pll_enabled
+
+    @pll_enabled.setter
+    def pll_enabled(self, value: bool):
+        self._pll_enabled = value
+
+        state = "disabled"
+        if value and self.is_configured:
+            state = "normal"
+
+        if hasattr(self, "_read_button"):
+            self._read_button.config(state=state)
 
     def _update_config_from_display(self, control_var, var=None, index=None, mode=None):
         if self._control_var_updating[control_var] is not None and self._control_var_updating[control_var] == "from config":
@@ -122,20 +197,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._control_var_updating[control_var] = None
 
     def _connection_update(self, value):
-        self._is_connected = value
-        if value:
-            if hasattr(self, "_status_display"):
-                self._status_display.connection_status = "Connected"
-            if hasattr(self, "_control_dropdowns"):
-                for control_var in self._control_dropdowns:
-                    self._control_dropdowns[control_var].config(state="normal")
-        else:
-            if hasattr(self, "_status_display"):
-                self._status_display.connection_status = "Not Connected"
-                self._status_display.local_status = "Unknown"
-            if hasattr(self, "_control_dropdowns"):
-                for control_var in self._control_dropdowns:
-                    self._control_dropdowns[control_var].config(state="disabled")
+        self.is_connected = value
 
     def display_window(self):
         if hasattr(self, "_window"):
@@ -144,7 +206,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
             return
 
         state = "disabled"
-        if self._is_connected:
+        if self.is_connected:
             state = "normal"
 
         self._window = tk.Toplevel(self._parent._parent._root)
@@ -163,6 +225,9 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._control_frame.columnconfigure(0, weight=1)
         self._control_frame.columnconfigure(200, weight=1)
 
+        self._read_config_button = ttk.Button(self._control_frame, text="Read Config", state=state)
+        self._read_config_button.grid(column=110, row=90)
+
         self._control_labels = {}
         self._control_dropdowns = {}
         current_row = 100
@@ -178,17 +243,27 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
             current_row += 10
 
-        self._configure_button = ttk.Button(self._control_frame, text="Config WS")
+        config_state = "disabled"
+        if self.configuration_read:
+            config_state = "normal"
+
+        self._configure_button = ttk.Button(self._control_frame, text="Config WS", state=config_state)
         self._configure_button.grid(column=110, row=current_row)
 
 
         self._daq_frame = ttk.LabelFrame(self._sidebar_frame, text="DAQ")
         self._daq_frame.grid(column=100, row=110)
 
-        self._pll_button = ttk.Button(self._daq_frame, text="Enable PLL")
+        pll_state = config_state
+
+        self._pll_button = ttk.Button(self._daq_frame, text="Enable PLL", state=pll_state)
         self._pll_button.grid(column=100, row=100)
 
-        self._read_button = ttk.Button(self._daq_frame, text="Read Memory", command=self._read_memory_show_progress)
+        read_state = "disabled"
+        if self.pll_enabled and self.is_configured:
+            read_state = "normal"
+
+        self._read_button = ttk.Button(self._daq_frame, text="Read Memory", command=self._read_memory_show_progress, state=read_state)
         self._read_button.grid(column=110, row=100)
 
         data_state = "disabled"
