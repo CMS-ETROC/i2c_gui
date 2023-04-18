@@ -393,7 +393,7 @@ class Base_Chip(GUI_Helper):
 
         return block_ref, params
 
-    def read_register(self, address_space_name: str, block_name: str, register: str):
+    def read_register(self, address_space_name: str, block_name: str, register: str, no_message: bool = False):
         self._validate_indexers()
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
@@ -401,11 +401,12 @@ class Base_Chip(GUI_Helper):
             full_array=False,
         )
 
-        self.send_message("Reading register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
+        if not no_message:
+            self.send_message("Reading register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
         address_space.read_register(block_ref, register)
 
-    def write_register(self, address_space_name: str, block_name: str, register: str, write_check: bool = True):
+    def write_register(self, address_space_name: str, block_name: str, register: str, write_check: bool = True, no_message: bool = False):
         self._validate_indexers()
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
@@ -413,23 +414,24 @@ class Base_Chip(GUI_Helper):
             full_array=False,
         )
 
-        self.send_message("Writing register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
+        if not no_message:
+            self.send_message("Writing register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
         address_space: Address_Space_Controller = self._address_space[address_space_name]
         return address_space.write_register(block_ref, register, write_check=write_check)
 
-    def read_decoded_value(self, address_space_name: str, block_name: str, decoded_value_name: str):
+    def read_decoded_value(self, address_space_name: str, block_name: str, decoded_value_name: str, no_message: bool = False):
         value_info = self._register_decoding[address_space_name]['Register Blocks'][block_name][decoded_value_name]
 
         for position in value_info['position']:
             register = position[0]
-            self.read_register(address_space_name, block_name, register)
+            self.read_register(address_space_name, block_name, register, no_message=no_message)
 
-    def write_decoded_value(self, address_space_name: str, block_name: str, decoded_value_name: str, write_check: bool = True):
+    def write_decoded_value(self, address_space_name: str, block_name: str, decoded_value_name: str, write_check: bool = True, no_message: bool = False):
         value_info = self._register_decoding[address_space_name]['Register Blocks'][block_name][decoded_value_name]
 
         for position in value_info['position']:
             register = position[0]
-            self.write_register(address_space_name, block_name, register, write_check)
+            self.write_register(address_space_name, block_name, register, write_check, no_message=no_message)
 
     def tab_needs_canvas(self, tab: str):
         return self._tabs[tab]["canvas"]

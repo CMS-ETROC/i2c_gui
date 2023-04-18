@@ -1849,7 +1849,7 @@ class ETROC2_Chip(Base_Chip):
             )
 
     #  We need to overload the write register method so that we intercept the call for the broadcast feature
-    def write_register(self, address_space_name: str, block_name: str, register: str, write_check: bool = True):
+    def write_register(self, address_space_name: str, block_name: str, register: str, write_check: bool = True, no_message: bool = False):
         broadcast = self._indexer_vars['broadcast']['variable'].get()
         if address_space_name == "ETROC2" and "Indexer" in self._register_model[address_space_name]["Register Blocks"][block_name] and broadcast == "1":
             block_ref, params = self._gen_block_ref_from_indexers(
@@ -1859,7 +1859,8 @@ class ETROC2_Chip(Base_Chip):
             )
             params['broadcast'] = True
 
-            self.send_message("Broadcast writing register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
+            if not no_message:
+                self.send_message("Broadcast writing register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
 
             # Fetch the base address for the broadcast block array
             broadcast_base_address = etroc2_column_row_to_base_address(**params)
