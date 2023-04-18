@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from ..gui_helper import GUI_Helper
 from .base_chip import Base_Chip
+from ..functions import hex_0fill
 
 import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
@@ -35,6 +36,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 import pandas
+import time
 
 class Waveform_Sampler_Helper(GUI_Helper):
     _orange_col = '#f0c010'
