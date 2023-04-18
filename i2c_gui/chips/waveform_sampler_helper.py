@@ -198,9 +198,10 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._save_wave_button.grid(column=110, row=110)
 
 
-        import numpy as np
-        t = np.arange(0.0,3.0,0.01)
-        self._df = pandas.DataFrame({'t':t, 's':np.sin(2*np.pi*t), 'u':np.sin(np.pi*t)})  # Test df contents
+        #import numpy as np
+        #t = np.arange(0.0,3.0,0.01)
+        #self._df = pandas.DataFrame({'t':t, 's':np.sin(2*np.pi*t), 'u':np.sin(np.pi*t)})  # Test df contents
+        self._df = pandas.DataFrame()
 
         self._fig = Figure(figsize=(7,5), dpi=100)
         self._ax = self._fig.add_subplot(111)
