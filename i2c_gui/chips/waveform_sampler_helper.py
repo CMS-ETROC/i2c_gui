@@ -192,7 +192,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
         import numpy as np
         t = np.arange(0.0,3.0,0.01)
-        self._df = pandas.DataFrame({'t':t, 's':np.sin(2*np.pi*t)})  # Test df contents
+        self._df = pandas.DataFrame({'t':t, 's':np.sin(2*np.pi*t), 'u':np.sin(np.pi*t)})  # Test df contents
 
         self._fig = Figure(figsize=(7,5), dpi=100)
         self._ax = self._fig.add_subplot(111)
@@ -214,6 +214,8 @@ class Waveform_Sampler_Helper(GUI_Helper):
     def read_memory(self):
         self._ax.clear()
         self._df.plot(x='t', y='s', ax=self._ax)
+        self._df.plot(x='t', y='u', ax=self._ax)
+        self.has_data = True
         self._canvas.draw()
 
     def close_window(self):
