@@ -38,6 +38,8 @@ from matplotlib.figure import Figure
 import pandas
 import time
 
+from tkinter import filedialog as tkfd
+
 class Waveform_Sampler_Helper(GUI_Helper):
     _orange_col = '#f0c010'
     _green_col = '#08ef10'
@@ -152,12 +154,14 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._window.rowconfigure(100, weight=1)
 
         self._sidebar_frame = ttk.Frame(self._window)
-        self._sidebar_frame.grid(column=100, row=100)
+        self._sidebar_frame.grid(column=100, row=100, padx=5, pady=5)
         self._main_frame = ttk.Frame(self._window)
-        self._main_frame.grid(column=200, row=100)
+        self._main_frame.grid(column=200, row=100, padx=5, pady=5)
 
         self._control_frame = ttk.LabelFrame(self._sidebar_frame, text="Control")
         self._control_frame.grid(column=100, row=100, sticky=(tk.E, tk.W))
+        self._control_frame.columnconfigure(0, weight=1)
+        self._control_frame.columnconfigure(200, weight=1)
 
         self._control_labels = {}
         self._control_dropdowns = {}
@@ -191,10 +195,10 @@ class Waveform_Sampler_Helper(GUI_Helper):
         if self.has_data:
             data_state = "normal"
 
-        self._save_raw_button = ttk.Button(self._daq_frame, text="Save Raw", state=data_state)
+        self._save_raw_button = ttk.Button(self._daq_frame, text="Save Raw", state=data_state, command=self._save_raw_data_dialog)
         self._save_raw_button.grid(column=100, row=110)
 
-        self._save_wave_button = ttk.Button(self._daq_frame, text="Save Waveform", state=data_state)
+        self._save_wave_button = ttk.Button(self._daq_frame, text="Save Waveform", state=data_state, command=self._save_waveform_data_dialog)
         self._save_wave_button.grid(column=110, row=110)
 
 
@@ -339,6 +343,50 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C")
 
         self.has_data = True
+
+    def _save_raw_data_dialog(self):
+        raw_extension = "csv"
+
+        filename = tkfd.asksaveasfilename(
+            parent=self._window,
+            title='Save WS Raw Data',
+            initialdir='./',
+            initialfile='ws_raw_data.'+raw_extension,
+            defaultextension=raw_extension,
+            filetypes=[('CSV files', '*.'+raw_extension)],  # TODO: Not sure about this parameter...
+        )
+
+        if filename is None or filename == "":
+            return
+
+        self._logger.trace("Saving WS Raw data to file: {}".format(filename))
+
+        self.save_raw_data(filename)
+
+    def save_raw_data(self, filename):  # data is saved as a CSV
+        self._df.to_csv(filename, columns=["Raw Data"])
+
+    def _save_waveform_data_dialog(self):
+        raw_extension = "csv"
+
+        filename = tkfd.asksaveasfilename(
+            parent=self._window,
+            title='Save WS Waveform',
+            initialdir='./',
+            initialfile='ws_waveform.'+raw_extension,
+            defaultextension=raw_extension,
+            filetypes=[('CSV files', '*.'+raw_extension)],  # TODO: Not sure about this parameter...
+        )
+
+        if filename is None or filename == "":
+            return
+
+        self._logger.trace("Saving WS waveform to file: {}".format(filename))
+
+        self.save_waveform_data(filename)
+
+    def save_waveform_data(self, filename):  # data is saved as a CSV
+        self._df.to_csv(filename, columns=["Time [ns]", "Dout"], index=False)
 
     def close_window(self):
         if not hasattr(self, "_window"):
