@@ -49,6 +49,8 @@ This is the recommended method here as well, so just follow the commands below f
 ```
 python -m pip install usb-iss
 python -m pip install pillow
+python -m pip install matplotlib
+python -m pip install pandas
 ```
 
 
