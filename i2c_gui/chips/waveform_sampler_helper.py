@@ -127,12 +127,11 @@ class Waveform_Sampler_Helper(GUI_Helper):
         for control_var in self._control_decoded_assoc:
             current_row += 10
             values = self._control_decoded_assoc[control_var][1]
-            selected_val = values[int(self._decoded_display_vars[control_var].get())]
 
             self._control_labels[control_var] = ttk.Label(self._control_frame, text=control_var+":")
             self._control_labels[control_var].grid(column=100, row=current_row)
 
-            self._control_dropdowns[control_var] = ttk.OptionMenu(self._control_frame, self._control_vars[control_var], selected_val, *values)
+            self._control_dropdowns[control_var] = ttk.OptionMenu(self._control_frame, self._control_vars[control_var], self._control_vars[control_var].get(), *values)
             self._control_dropdowns[control_var].grid(column=110, row=current_row)
             self._control_dropdowns[control_var].config(state=state)
 
