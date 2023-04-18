@@ -30,6 +30,12 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 import time
 
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.figure import Figure
+import pandas
+
 class Waveform_Sampler_Helper(GUI_Helper):
     _orange_col = '#f0c010'
     _green_col = '#08ef10'
@@ -118,14 +124,18 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._window.columnconfigure(200, weight=1)
         self._window.rowconfigure(100, weight=1)
 
-        self._control_frame = ttk.LabelFrame(self._window, text="Control")
-        self._control_frame.grid(column=100, row=100)
+        self._sidebar_frame = ttk.Frame(self._window)
+        self._sidebar_frame.grid(column=100, row=100)
+        self._main_frame = ttk.Frame(self._window)
+        self._main_frame.grid(column=200, row=100)
+
+        self._control_frame = ttk.LabelFrame(self._sidebar_frame, text="Control")
+        self._control_frame.grid(column=100, row=100, sticky=(tk.E, tk.W))
 
         self._control_labels = {}
         self._control_dropdowns = {}
-        current_row = 90
+        current_row = 100
         for control_var in self._control_decoded_assoc:
-            current_row += 10
             values = self._control_decoded_assoc[control_var][1]
 
             self._control_labels[control_var] = ttk.Label(self._control_frame, text=control_var+":")
@@ -134,6 +144,48 @@ class Waveform_Sampler_Helper(GUI_Helper):
             self._control_dropdowns[control_var] = ttk.OptionMenu(self._control_frame, self._control_vars[control_var], self._control_vars[control_var].get(), *values)
             self._control_dropdowns[control_var].grid(column=110, row=current_row)
             self._control_dropdowns[control_var].config(state=state)
+
+            current_row += 10
+
+        self._configure_button = ttk.Button(self._control_frame, text="Config WS")
+        self._configure_button.grid(column=110, row=current_row)
+
+
+        self._daq_frame = ttk.LabelFrame(self._sidebar_frame, text="DAQ")
+        self._daq_frame.grid(column=100, row=110)
+
+        self._pll_button = ttk.Button(self._daq_frame, text="Enable PLL")
+        self._pll_button.grid(column=100, row=100)
+
+        self._read_button = ttk.Button(self._daq_frame, text="Read Memory", command=self.read_memory)
+        self._read_button.grid(column=110, row=100)
+
+
+        import numpy as np
+        t = np.arange(0.0,3.0,0.01)
+        self._df = pandas.DataFrame({'t':t, 's':np.sin(2*np.pi*t)})  # Test df contents
+
+        self._fig = Figure(figsize=(7,5), dpi=100)
+        self._ax = self._fig.add_subplot(111)
+
+        # Test plot
+        #self._df.plot(x='t', y='s', ax=self._ax)
+
+        self._canvas = FigureCanvasTkAgg(self._fig, master=self._main_frame)
+        self._canvas.get_tk_widget().grid(row=0, column=0)
+
+        # Original approach, but the above seems more flexible
+        #fig = df.plot(x='t', y='s').get_figure()
+        #plot = FigureCanvasTkAgg(fig, master=self._main_frame)
+        #plot.get_tk_widget().grid(row=0, column=0)
+
+        self._window.update()
+        self._window.minsize(self._window.winfo_width(), self._window.winfo_height())
+
+    def read_memory(self):
+        self._ax.clear()
+        self._df.plot(x='t', y='s', ax=self._ax)
+        self._canvas.draw()
 
     def close_window(self):
         if not hasattr(self, "_window"):
