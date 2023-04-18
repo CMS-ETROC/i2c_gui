@@ -91,22 +91,16 @@ class Waveform_Sampler_Helper(GUI_Helper):
         if value:
             if hasattr(self, "_status_display"):
                 self._status_display.connection_status = "Connected"
-            if hasattr(self, "_mode_dropdown"):
-                self._mode_dropdown.config(state="normal")
-            if hasattr(self, "_power_mode_dropdown"):
-                self._power_mode_dropdown.config(state="normal")
-            if hasattr(self, "_write_enable_dropdown"):
-                self._write_enable_dropdown.config(state="normal")
+            if hasattr(self, "_control_dropdowns"):
+                for control_var in self._control_dropdowns:
+                    self._control_dropdowns[control_var].config(state="normal")
         else:
             if hasattr(self, "_status_display"):
                 self._status_display.connection_status = "Not Connected"
                 self._status_display.local_status = "Unknown"
-            if hasattr(self, "_mode_dropdown"):
-                self._mode_dropdown.config(state="disabled")
-            if hasattr(self, "_power_mode_dropdown"):
-                self._power_mode_dropdown.config(state="disabled")
-            if hasattr(self, "_write_enable_dropdown"):
-                self._write_enable_dropdown.config(state="disabled")
+            if hasattr(self, "_control_dropdowns"):
+                for control_var in self._control_dropdowns:
+                    self._control_dropdowns[control_var].config(state="disabled")
 
     def display_window(self):
         if hasattr(self, "_window"):
@@ -127,32 +121,20 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._control_frame = ttk.LabelFrame(self._window, text="Control")
         self._control_frame.grid(column=100, row=100)
 
-        # Mode selection
-        mode_values = self._control_decoded_assoc["Mode"][1]
-        selected_mode = mode_values[int(self._decoded_display_vars["Mode"].get())]
-        self._mode_label = ttk.Label(self._control_frame, text="Mode:")
-        self._mode_label.grid(column=100, row=100)
-        self._mode_dropdown = ttk.OptionMenu(self._control_frame, self._control_vars["Mode"], selected_mode, *mode_values)
-        self._mode_dropdown.grid(column=110, row=100)
-        self._mode_dropdown.config(state=state)
+        self._control_labels = {}
+        self._control_dropdowns = {}
+        current_row = 90
+        for control_var in self._control_decoded_assoc:
+            current_row += 10
+            values = self._control_decoded_assoc[control_var][1]
+            selected_val = values[int(self._decoded_display_vars[control_var].get())]
 
-        # Power mode selection
-        power_mode_values = self._control_decoded_assoc["Power Mode"][1]
-        selected_power_mode = power_mode_values[int(self._decoded_display_vars["Power Mode"].get())]
-        self._power_mode_label = ttk.Label(self._control_frame, text="Power Mode:")
-        self._power_mode_label.grid(column=100, row=200)
-        self._power_mode_dropdown = ttk.OptionMenu(self._control_frame, self._control_vars["Power Mode"], selected_power_mode, *power_mode_values)
-        self._power_mode_dropdown.grid(column=110, row=200)
-        self._power_mode_dropdown.config(state=state)
+            self._control_labels[control_var] = ttk.Label(self._control_frame, text=control_var+":")
+            self._control_labels[control_var].grid(column=100, row=current_row)
 
-        # Write enable selection
-        write_enable_values = self._control_decoded_assoc["Write Enable"][1]
-        selected_write_enable = write_enable_values[int(self._decoded_display_vars["Write Enable"].get())]
-        self._write_enable_label = ttk.Label(self._control_frame, text="Write Enable:")
-        self._write_enable_label.grid(column=100, row=300)
-        self._write_enable_dropdown = ttk.OptionMenu(self._control_frame, self._control_vars["Write Enable"], selected_write_enable, *write_enable_values)
-        self._write_enable_dropdown.grid(column=110, row=300)
-        self._write_enable_dropdown.config(state=state)
+            self._control_dropdowns[control_var] = ttk.OptionMenu(self._control_frame, self._control_vars[control_var], selected_val, *values)
+            self._control_dropdowns[control_var].grid(column=110, row=current_row)
+            self._control_dropdowns[control_var].config(state=state)
 
     def close_window(self):
         if not hasattr(self, "_window"):
