@@ -179,6 +179,16 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._read_button = ttk.Button(self._daq_frame, text="Read Memory", command=self.read_memory)
         self._read_button.grid(column=110, row=100)
 
+        data_state = "disabled"
+        if self.has_data:
+            data_state = "normal"
+
+        self._save_raw_button = ttk.Button(self._daq_frame, text="Save Raw", state=data_state)
+        self._save_raw_button.grid(column=100, row=110)
+
+        self._save_wave_button = ttk.Button(self._daq_frame, text="Save Waveform", state=data_state)
+        self._save_wave_button.grid(column=110, row=110)
+
 
         import numpy as np
         t = np.arange(0.0,3.0,0.01)
