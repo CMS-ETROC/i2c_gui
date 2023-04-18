@@ -184,7 +184,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._pll_button = ttk.Button(self._daq_frame, text="Enable PLL")
         self._pll_button.grid(column=100, row=100)
 
-        self._read_button = ttk.Button(self._daq_frame, text="Read Memory", command=self.read_memory)
+        self._read_button = ttk.Button(self._daq_frame, text="Read Memory", command=self._read_memory_show_progress)
         self._read_button.grid(column=110, row=100)
 
         data_state = "disabled"
@@ -220,12 +220,125 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._window.update()
         self._window.minsize(self._window.winfo_width(), self._window.winfo_height())
 
-    def read_memory(self):
+    def _show_progress_diag(self):
+        self._dialog = tk.Toplevel(self._window)
+        # Idea from https://tkdocs.com/tutorial/windows.html; but I have not been able to get the combination of properties I want
+        #self._dialog.tk.call("::tk::unsupported::MacWindowStyle", "style", self._dialog._w, "help")
+        self._dialog.title("WS Read Memory Progress")
+        self._read_early_stop = False
+
+        self._dialog_info_label = ttk.Label(self._dialog, text="Data is being read from the WS memory, please do not disconnect.")
+        self._dialog_info_label.grid(column=0, row=0)
+
+        self._dialog_inner_frame = ttk.Frame(self._dialog)
+        self._dialog_inner_frame.grid(column=0, row=1)
+
+        self._dialog_progress_label = ttk.Label(self._dialog_inner_frame, text="Progress:")
+        self._dialog_progress_label.grid(column=0, row=0)
+        self._dialog_progress = ttk.Progressbar(self._dialog_inner_frame, mode='determinate', length='300')
+        self._dialog_progress.grid(column=1, row=0)
+
+        self._dialog_stop_button = ttk.Button(self._dialog, text="Stop", command=self._trigger_early_stop)
+        self._dialog_stop_button.grid(column=0, row=2)
+
+        self._dialog.protocol("WM_DELETE_WINDOW", self._trigger_early_stop)  # Redirect the close dialog
+        self._dialog.transient(self._window)   # dialog window is related to main window
+        self._dialog.wait_visibility() # can't grab until window appears, so we wait
+        self._dialog.grab_set()        # ensure all input goes to our window
+        #self._dialog.wait_window()     # block until window is destroyed / stops code here
+
+    def _trigger_early_stop(self):
+        self._read_early_stop = True
+
+    def _delete_progress_diag(self):
+        self._dialog.grab_release()
+        self._dialog.destroy()
+        del self._dialog_progress
+
+    def _read_memory_show_progress(self):
         self._ax.clear()
-        self._df.plot(x='t', y='s', ax=self._ax)
-        self._df.plot(x='t', y='u', ax=self._ax)
-        self.has_data = True
+
+        self._show_progress_diag()
+        self.read_memory()
+        self._delete_progress_diag()
+
+        #print(self._df)
+        self._df.plot(x='Time [ns]', y='Dout', ax=self._ax)
+        self._df.plot(x='Time [ns]', y='Dout_S1', ax=self._ax)
+        self._df.plot(x='Time [ns]', y='Dout_S2', ax=self._ax)
         self._canvas.draw()
+
+    def read_memory(self):
+        # Enable reading data from WS (change the value, then write it):
+        self._ws_read_en.set(1)
+        self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C")
+
+        # For loop to read data from WS
+        max_steps = 1024
+        lastUpdateTime = time.time_ns()
+        base_data = []
+        coeff=0.04/5*8.5  # This number comes from the example script in the manual
+        time_coeff = 1/2.56  # 2.56 GHz WS frequency
+        for time_idx in range(max_steps):
+            self._ws_read_address.set(hex_0fill(time_idx, 10))
+            self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_addr")
+
+            self._parent.read_decoded_value("Waveform Sampler", "Status", "dout")
+            data = self._ws_data_out.get()
+
+            #if time_idx == 1:
+            #    data = hex_0fill(int(data, 0) + 8192, 14)
+
+            binary_data = bin(int(data, 0))[2:].zfill(14)  # because dout is 14 bits long
+            Dout_S1 = int('0b'+binary_data[1:7], 0)
+            Dout_S2 = int(binary_data[ 7]) * 24 + \
+                      int(binary_data[ 8]) * 16 + \
+                      int(binary_data[ 9]) * 10 + \
+                      int(binary_data[10]) *  6 + \
+                      int(binary_data[11]) *  4 + \
+                      int(binary_data[12]) *  2 + \
+                      int(binary_data[13])
+
+            base_data.append(
+                {
+                    "Time Index": time_idx,
+                    "Data": int(data, 0),
+                    "Raw Data": bin(int(data, 0))[2:].zfill(14),
+                    "pointer": int(binary_data[0]),
+                    "Dout_S1": Dout_S1,
+                    "Dout_S2": Dout_S2,
+                    "Dout": Dout_S1*coeff + Dout_S2,
+                }
+            )
+
+            thisTime = time.time_ns()
+            if thisTime - lastUpdateTime > 0.3 * 10**9:
+                lastUpdateTime = thisTime
+                if hasattr(self, "_dialog_progress"):
+                    self._dialog_progress['value'] = int(time_idx*100.0/max_steps)
+                if hasattr(self, "_window"):
+                    self._window.update()
+
+            if self._read_early_stop:
+                break
+
+        self._df = pandas.DataFrame(base_data)
+
+        pointer_idx = self._df["pointer"].loc[self._df["pointer"] != 0].index
+        if len(pointer_idx) != 0:
+            pointer_idx = pointer_idx[0]
+            new_idx = list(set(range(len(self._df))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
+            self._df = self._df.iloc[new_idx].reset_index(drop = True)
+            self._df["Time Index"] = self._df.index
+
+        self._df["Time [ns]"] = self._df["Time Index"] * time_coeff
+        self._df.set_index('Time Index', inplace=True)
+
+        # Disable reading data from WS:
+        self._ws_read_en.set(0)
+        self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C")
+
+        self.has_data = True
 
     def close_window(self):
         if not hasattr(self, "_window"):
