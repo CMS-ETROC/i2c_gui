@@ -212,6 +212,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
         # Test plot
         #self._df.plot(x='t', y='s', ax=self._ax)
+        #self._df.plot(x='t', y='u', ax=self._ax)
 
         self._canvas = FigureCanvasTkAgg(self._fig, master=self._main_frame)
         self._canvas.get_tk_widget().grid(row=0, column=0)
