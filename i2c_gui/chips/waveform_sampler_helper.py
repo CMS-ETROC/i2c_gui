@@ -66,6 +66,25 @@ class Waveform_Sampler_Helper(GUI_Helper):
             self._decoded_display_vars[control].trace_add('write', lambda var, index, mode, control_var=control : self._update_display_from_config(control_var, var, index, mode))
             self._control_vars[control].trace_add('write', lambda var, index, mode, control_var=control : self._update_config_from_display(control_var, var, index, mode))
 
+        self._has_data = False
+
+    @property
+    def has_data(self):
+        return self._has_data
+
+    @has_data.setter
+    def has_data(self, value: bool):
+        self._has_data = value
+
+        state = "disabled"
+        if value:
+            state = "normal"
+
+        if hasattr(self, "_save_raw_button"):
+            self._save_raw_button.config(state=state)
+        if hasattr(self, "_save_wave_button"):
+            self._save_wave_button.config(state=state)
+
     def _update_config_from_display(self, control_var, var=None, index=None, mode=None):
         if self._control_var_updating[control_var] is not None and self._control_var_updating[control_var] == "from config":
             return
