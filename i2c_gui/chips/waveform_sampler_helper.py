@@ -66,6 +66,10 @@ class Waveform_Sampler_Helper(GUI_Helper):
             self._decoded_display_vars[control].trace_add('write', lambda var, index, mode, control_var=control : self._update_display_from_config(control_var, var, index, mode))
             self._control_vars[control].trace_add('write', lambda var, index, mode, control_var=control : self._update_config_from_display(control_var, var, index, mode))
 
+        self._ws_read_en = self._parent.get_decoded_display_var("Waveform Sampler", "Config", "rd_en_I2C")
+        self._ws_read_address = self._parent.get_decoded_display_var("Waveform Sampler", "Config", "rd_addr")
+        self._ws_data_out = self._parent.get_decoded_display_var("Waveform Sampler", "Status", "dout")
+
         self._has_data = False
 
     @property
