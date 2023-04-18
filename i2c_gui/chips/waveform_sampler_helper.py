@@ -275,7 +275,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
     def read_memory(self):
         # Enable reading data from WS (change the value, then write it):
         self._ws_read_en.set(1)
-        self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C")
+        self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C", no_message=True)
 
         # For loop to read data from WS
         max_steps = 1024
@@ -285,9 +285,9 @@ class Waveform_Sampler_Helper(GUI_Helper):
         time_coeff = 1/2.56  # 2.56 GHz WS frequency
         for time_idx in range(max_steps):
             self._ws_read_address.set(hex_0fill(time_idx, 10))
-            self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_addr")
+            self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_addr", no_message=True)
 
-            self._parent.read_decoded_value("Waveform Sampler", "Status", "dout")
+            self._parent.read_decoded_value("Waveform Sampler", "Status", "dout", no_message=True)
             data = self._ws_data_out.get()
 
             #if time_idx == 1:
@@ -340,7 +340,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
         # Disable reading data from WS:
         self._ws_read_en.set(0)
-        self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C")
+        self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C", no_message=True)
 
         self.has_data = True
 
