@@ -417,6 +417,20 @@ class Base_Chip(GUI_Helper):
         address_space: Address_Space_Controller = self._address_space[address_space_name]
         return address_space.write_register(block_ref, register, write_check=write_check)
 
+    def read_decoded_value(self, address_space_name: str, block_name: str, decoded_value_name: str):
+        value_info = self._register_decoding[address_space_name]['Register Blocks'][block_name][decoded_value_name]
+
+        for position in value_info['position']:
+            register = position[0]
+            self.read_register(address_space_name, block_name, register)
+
+    def write_decoded_value(self, address_space_name: str, block_name: str, decoded_value_name: str, write_check: bool = True):
+        value_info = self._register_decoding[address_space_name]['Register Blocks'][block_name][decoded_value_name]
+
+        for position in value_info['position']:
+            register = position[0]
+            self.write_register(address_space_name, block_name, register, write_check)
+
     def tab_needs_canvas(self, tab: str):
         return self._tabs[tab]["canvas"]
 
