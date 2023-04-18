@@ -40,6 +40,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
     _control_decoded_assoc = {
         "Mode": ("sel1", ["Bypass", "VGA"]),
         "Power Mode": ("sel2", ["Single Shot", "Continuous"]),
+        "Write Enable": ("sel3", ["on Chip", "off Chip"]),
     }
     def __init__(self, parent: Base_Chip):
         super().__init__(parent, None, parent._logger)
@@ -94,6 +95,8 @@ class Waveform_Sampler_Helper(GUI_Helper):
                 self._mode_dropdown.config(state="normal")
             if hasattr(self, "_power_mode_dropdown"):
                 self._power_mode_dropdown.config(state="normal")
+            if hasattr(self, "_write_enable_dropdown"):
+                self._write_enable_dropdown.config(state="normal")
         else:
             if hasattr(self, "_status_display"):
                 self._status_display.connection_status = "Not Connected"
@@ -102,6 +105,8 @@ class Waveform_Sampler_Helper(GUI_Helper):
                 self._mode_dropdown.config(state="disabled")
             if hasattr(self, "_power_mode_dropdown"):
                 self._power_mode_dropdown.config(state="disabled")
+            if hasattr(self, "_write_enable_dropdown"):
+                self._write_enable_dropdown.config(state="disabled")
 
     def display_window(self):
         if hasattr(self, "_window"):
@@ -139,6 +144,15 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._power_mode_dropdown = ttk.OptionMenu(self._control_frame, self._control_vars["Power Mode"], selected_power_mode, *power_mode_values)
         self._power_mode_dropdown.grid(column=110, row=200)
         self._power_mode_dropdown.config(state=state)
+
+        # Write enable selection
+        write_enable_values = self._control_decoded_assoc["Write Enable"][1]
+        selected_write_enable = write_enable_values[int(self._decoded_display_vars["Write Enable"].get())]
+        self._write_enable_label = ttk.Label(self._control_frame, text="Write Enable:")
+        self._write_enable_label.grid(column=100, row=300)
+        self._write_enable_dropdown = ttk.OptionMenu(self._control_frame, self._control_vars["Write Enable"], selected_write_enable, *write_enable_values)
+        self._write_enable_dropdown.grid(column=110, row=300)
+        self._write_enable_dropdown.config(state=state)
 
     def close_window(self):
         if not hasattr(self, "_window"):
