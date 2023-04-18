@@ -546,7 +546,8 @@ class Address_Space_Controller(GUI_Helper):
             if thisTime - lastUpdateTime > 0.3 * 10**9:
                 lastUpdateTime = thisTime
                 self.display_progress("Resetting:", count*100./register_count)
-                self._parent._parent._frame.update_idletasks()
+                #self._parent._parent._frame.update_idletasks()
+                self._parent._parent._frame.update()
 
             full_address = self._register_map[register_ref]
 
@@ -568,7 +569,8 @@ class Address_Space_Controller(GUI_Helper):
             if thisTime - lastUpdateTime > 0.3 * 10**9:
                 lastUpdateTime = thisTime
                 self.display_progress("Reverting:", idx*100./self._memory_size)
-                self._parent._parent._frame.update_idletasks()
+                #self._parent._parent._frame.update_idletasks()
+                self._parent._parent._frame.update()
 
             if self._memory[idx] is not None:
                 self._display_vars[idx].set(hex_0fill(self._memory[idx], 8))
