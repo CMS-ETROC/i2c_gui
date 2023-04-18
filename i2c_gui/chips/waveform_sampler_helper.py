@@ -71,6 +71,8 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._ws_data_out = self._parent.get_decoded_display_var("Waveform Sampler", "Status", "dout")
 
         self._has_data = False
+        self._is_configured = False
+        self._pll_enabled = False
 
     @property
     def has_data(self):
