@@ -394,7 +394,7 @@ class ETROC1_GUI(Base_GUI):
     def write_all(self):
         if self._valid_i2c_address_a and self._valid_i2c_address_b:
             self.send_message("Writing full ETROC1 chip")
-            self._chip.write_all()
+            self._chip.write_all(self._chip.enable_readback)
         else:
             self.send_message("Unable to write full ETROC1 chip", "Error")
         pass

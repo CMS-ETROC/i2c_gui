@@ -75,7 +75,7 @@ class Register_Block_Interface(Base_Interface):
     def write_register(self, register_name):
         if self._read_only:
             return
-        if not self._parent.write_register(self._address_space, self._block_name, register_name):
+        if not self._parent.write_register(self._address_space, self._block_name, register_name, write_check=self._parent.enable_readback):
             self.send_message("Failed writing the register {} in block {} of address space {}.".format(register_name, self._block_name, self._address_space), "Error")
 
     def prepare_display(self, element: tk.Tk, col: int, row: int, register_columns: int):
@@ -95,7 +95,7 @@ class Register_Block_Interface(Base_Interface):
         self._read_button = ttk.Button(
             self._control_frame,
             text="Read " + self._button_title,
-            command=lambda address_space=self._address_space, block=self._block_name:self._parent.read_all_block(address_space, block),
+            command=lambda parent=self._parent, address_space=self._address_space, block=self._block_name:parent.read_all_block(address_space, block),
             state=state
         )
         self._read_button.grid(column=100, row=100, sticky=(tk.W, tk.E))
@@ -104,7 +104,7 @@ class Register_Block_Interface(Base_Interface):
             self._write_button = ttk.Button(
                 self._control_frame,
                 text="Write " + self._button_title,
-                command=lambda address_space=self._address_space, block=self._block_name:self._parent.write_all_block(address_space, block),
+                command=lambda parent=self._parent, address_space=self._address_space, block=self._block_name:parent.write_all_block(address_space, block, write_check=parent.enable_readback),
                 state=state
             )
             self._write_button.grid(column=200, row=100, sticky=(tk.W, tk.E))
