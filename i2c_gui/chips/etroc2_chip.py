@@ -1895,6 +1895,7 @@ class ETROC2_Chip(Base_Chip):
                 block_name=block_name,
                 register=register,
                 write_check=write_check,
+                no_message=no_message,
             )
 
     def config_i2c_address(self, address):
