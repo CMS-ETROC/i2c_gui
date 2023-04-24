@@ -389,7 +389,6 @@ class ETROC1_GUI(Base_GUI):
             self._chip.read_all()
         else:
             self.send_message("Unable to read full ETROC1 chip", "Error")
-        pass
 
     def write_all(self):
         if self._valid_i2c_address_a and self._valid_i2c_address_b:
@@ -397,4 +396,6 @@ class ETROC1_GUI(Base_GUI):
             self._chip.write_all(self._chip.enable_readback)
         else:
             self.send_message("Unable to write full ETROC1 chip", "Error")
-        pass
+
+    def set_enable_readback(self, value):
+        self._chip.enable_readback = value

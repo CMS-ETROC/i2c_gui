@@ -244,7 +244,6 @@ class ETROC2_GUI(Base_GUI):
             self._chip.read_all()
         else:
             self.send_message("Unable to read full ETROC2 chip", "Error")
-        pass
 
     def write_all(self):
         if self._valid_i2c_address:
@@ -253,4 +252,6 @@ class ETROC2_GUI(Base_GUI):
                 self.send_message("Failed writing the full chip, one or more address spaces were not written to.", "Error")
         else:
             self.send_message("Unable to write full ETROC2 chip", "Error")
-        pass
+
+    def set_enable_readback(self, value):
+        self._chip.enable_readback = value

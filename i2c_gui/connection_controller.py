@@ -76,6 +76,9 @@ class Connection_Controller(GUI_Helper):
         self._i2c_window_register_value_var = tk.StringVar()
         self._i2c_window_block_size_var = tk.StringVar()
 
+        self._enable_readback_var = tk.BooleanVar(value=True)
+        self._enable_readback_var.trace_add("write", self._toggle_enable_readback)
+
     @property
     def is_connected(self):
         return self._is_connected
@@ -85,6 +88,10 @@ class Connection_Controller(GUI_Helper):
             self._is_connected = value
             for function in self._registered_connection_callbacks:
                 function(value)
+
+    def _toggle_enable_readback(self, var=None, index=None, mode=None):
+        value = self._enable_readback_var.get()
+        self._parent.set_enable_readback(value)
 
     def _update_connection_type(self, var=None, index=None, mode=None):
         if hasattr(self, "_i2c_connection_frame") and self._i2c_connection_frame is not None:
@@ -142,6 +149,9 @@ class Connection_Controller(GUI_Helper):
         self._connect_button = ttk.Button(self._frame, text="Connect", command=self.connect)
         self._connect_button.grid(column=2, row=0, sticky=(tk.W, tk.E), padx=(0,5))
 
+        self._enable_readback_checkbutton = ttk.Checkbutton(self._frame, variable=self._enable_readback_var, state='disabled', text='Enable Readback')
+        self._enable_readback_checkbutton.grid(column=3, row=0, sticky=(tk.W, tk.E), padx=(0,5))
+
     def connect(self):
         if self.is_connected:
             self.disconnect()
@@ -155,6 +165,8 @@ class Connection_Controller(GUI_Helper):
                 self._connect_button.config(text="Disconnect", command=self.disconnect)
             if hasattr(self, "_connection_type_option"):
                 self._connection_type_option.config(state="disabled")
+            if hasattr(self, "_enable_readback_checkbutton"):
+                self._enable_readback_checkbutton.config(state="normal")
             self._set_connected(True)
             if hasattr(self, "_i2c_window"):
                 self._test_device_button.config(state='normal')
@@ -173,6 +185,8 @@ class Connection_Controller(GUI_Helper):
             self._connect_button.config(text="Connect", command=self.connect)
         if hasattr(self, "_connection_type_option"):
             self._connection_type_option.config(state="normal")
+            if hasattr(self, "_enable_readback_checkbutton"):
+                self._enable_readback_checkbutton.config(state="disabled")
         self._set_connected(False)
         if hasattr(self, "_i2c_window"):
             self._test_device_button.config(state='disabled')

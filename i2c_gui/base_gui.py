@@ -303,3 +303,6 @@ class Base_GUI(GUI_Helper):
 
     def write_all(self):
         pass
+
+    def set_enable_readback(self, value):
+        pass
