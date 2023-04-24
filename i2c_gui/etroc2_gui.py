@@ -171,7 +171,7 @@ class ETROC2_GUI(Base_GUI):
         self._extra_i2c_label.grid(column=100, row=100)
 
         self._chip_i2c_address_var = tk.StringVar()
-        self._chip_i2c_address_var.set("0x72")
+        self._chip_i2c_address_var.set("0x60")
         self._i2c_address_entry = ttk.Entry(self._frame_extra_global, textvariable=self._chip_i2c_address_var, width=5, state='disabled')
         self._i2c_address_entry.grid(column=101, row=100, sticky=(tk.W, tk.E))
 
