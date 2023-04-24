@@ -72,10 +72,20 @@ class Global_Controls(GUI_Helper):
             logging_frame = self._control_frame
             extra_pad = (0,20)
 
-        self._read_button = ttk.Button(self._control_frame, text="Read All", command=self._parent.read_all, state='disabled')
+        self._read_button = ttk.Button(
+            self._control_frame,
+            text="Read All",
+            command=self._parent.read_all,
+            state='disabled',
+        )
         self._read_button.grid(column=read_col, row=read_row, sticky=(tk.W, tk.E), padx=read_pad)
 
-        self._write_button = ttk.Button(self._control_frame, text="Write All", command=self._parent.write_all, state='disabled')
+        self._write_button = ttk.Button(
+            self._control_frame,
+            text="Write All",
+            command=self._parent.write_all,
+            state='disabled',
+        )
         self._write_button.grid(column=write_col, row=write_row, sticky=(tk.W, tk.E), padx=write_pad)
 
         if hasattr(self._parent, "extra_global_controls"):
