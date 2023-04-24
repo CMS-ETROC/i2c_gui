@@ -34,7 +34,17 @@ import logging
 import time
 
 class Address_Space_Controller(GUI_Helper):
-    def __init__(self, parent: GUI_Helper, name, i2c_address, memory_size, i2c_controller: Connection_Controller, register_map, decoded_registers, register_bits: int = 16):
+    def __init__(
+        self,
+        parent: GUI_Helper,
+        name, i2c_address,
+        memory_size,
+        i2c_controller: Connection_Controller,
+        register_map,
+        decoded_registers,
+        register_bits: int = 16,
+        readback_delay_us : int = 1000,
+    ):
         super().__init__(parent, None, parent._logger)
 
         self._name = name
@@ -44,6 +54,7 @@ class Address_Space_Controller(GUI_Helper):
         self._blocks = {}
         self._register_map_metadata = register_map
         self._register_bits = register_bits
+        self._readback_delay_us = readback_delay_us
 
         self._not_read = True
 
@@ -401,6 +412,8 @@ class Address_Space_Controller(GUI_Helper):
         self._i2c_controller.write_device_memory(self._i2c_address, address, [self._memory[address]], self._register_bits)
 
         if write_check:
+            time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
+
             tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1, self._register_bits)
             if self._memory[address] != tmp[0]:
                 self.send_message("Failure to write register at address 0x{:0x} in the {} address space (I2C address 0x{:0x})".format(address, self._name, self._i2c_address),
@@ -478,6 +491,8 @@ class Address_Space_Controller(GUI_Helper):
         self._i2c_controller.write_device_memory(self._i2c_address, address, self._memory[address:address+data_size], self._register_bits)
 
         if write_check:
+            time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
+
             tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size, self._register_bits)
             failed = []
             for i in range(data_size):
