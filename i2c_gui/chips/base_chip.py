@@ -61,6 +61,8 @@ class Base_Chip(GUI_Helper):
         self._block_array_display_vars = {}
         self._block_array_decoded_display_vars = {}
 
+        self._enable_readback = True
+
         self._i2c_controller.register_connection_callback(self._connection_update)
 
         self._tabs = {}
@@ -99,6 +101,14 @@ class Base_Chip(GUI_Helper):
     @property
     def id(self):
         return self._id
+
+    @property
+    def enable_readback(self):
+        return self._enable_readback
+
+    @enable_readback.setter
+    def enable_readback(self, value: bool):
+        self._enable_readback = value
 
     def _connection_update(self, value):
         for element_name in self._toggle_elements:
