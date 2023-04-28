@@ -45,7 +45,13 @@ class Connection_Controller(GUI_Helper):
     ]
 
     _parent: Base_GUI
-    def __init__(self, parent: Base_GUI, usb_iss_max_seq_byte = 8, override_logger = None):
+    def __init__(
+        self,
+        parent: Base_GUI,
+        usb_iss_max_seq_byte = 8,
+        override_logger = None,
+        successive_i2c_delay_us : int = 1000,
+    ):
         if override_logger is None:
             super().__init__(parent, None, parent._logger)
         else:
@@ -62,6 +68,8 @@ class Connection_Controller(GUI_Helper):
         self._i2c_connection_type_var = tk.StringVar(value=self._connection_types[0])
 
         self._registered_connection_callbacks = []
+
+        self._successive_i2c_delay_us = successive_i2c_delay_us
 
         from . import __no_connect__
         if __no_connect__:
@@ -579,6 +587,9 @@ class Connection_Controller(GUI_Helper):
             address_hex = hex_0fill(device_address, 8)
             if self.check_i2c_device(address_hex):
                 found.append(address_hex)
+
+            # Delay for some time between successive calls so I2C bus has time
+            time.sleep(self._successive_i2c_delay_us/10E6)  # because sleep accepts seconds
 
             curr_time = time.time_ns()
             if curr_time - last_update > 0.3 * 10**9:
