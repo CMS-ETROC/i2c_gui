@@ -574,10 +574,21 @@ class Connection_Controller(GUI_Helper):
         self.scan_progress(0)
 
         found = []
+        last_update = time.time_ns()
         for device_address in range(128):
             address_hex = hex_0fill(device_address, 8)
             if self.check_i2c_device(address_hex):
                 found.append(address_hex)
+
+            curr_time = time.time_ns()
+            if curr_time - last_update > 0.3 * 10**9:
+                last_update = curr_time
+                progress = device_address/128.0 * 100.0
+                self.scan_progress(progress)
+                self._parent._root.update()
+
+            # For testing without hardware
+            #time.sleep(10**-2)
 
         if len(found) == 0:
             self._scan_display.configure(state='normal')
