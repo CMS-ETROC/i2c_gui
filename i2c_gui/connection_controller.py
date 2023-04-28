@@ -174,6 +174,8 @@ class Connection_Controller(GUI_Helper):
                 self._write_register_button.config(state='normal')
                 self._read_block_button.config(state='normal')
                 self._write_block_button.config(state='normal')
+            if hasattr(self, "_i2c_scan_window"):
+                self._toggle_logging_button.config(state='normal')
 
     def disconnect(self):
         if not self.is_connected:
@@ -194,6 +196,8 @@ class Connection_Controller(GUI_Helper):
             self._write_register_button.config(state='disabled')
             self._read_block_button.config(state='disabled')
             self._write_block_button.config(state='disabled')
+        if hasattr(self, "_i2c_scan_window"):
+            self._toggle_logging_button.config(state='disabled')
 
     def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits = 16):
         if not self.is_connected:
@@ -502,3 +506,106 @@ class Connection_Controller(GUI_Helper):
         self._text_display.configure(state='normal')
         self._text_display.insert('end', message + "\n")
         self._text_display.configure(state='disabled')
+
+    def display_i2c_scan_window(self):
+        if hasattr(self, "_i2c_scan_window"):
+            self._logger.info("Scan I2C window already open")
+            self._i2c_scan_window.focus()
+            return
+
+        state = 'normal'
+        if not self.is_connected:
+            state = 'disabled'
+
+        self._i2c_scan_window = tk.Toplevel(self._parent._root)
+        self._i2c_scan_window.title(self._parent._title + " - Scan I2C Devices")
+        self._i2c_scan_window.protocol('WM_DELETE_WINDOW', self.close_i2c_scan_window)
+        self._i2c_scan_window.columnconfigure(100, weight=1)
+        self._i2c_scan_window.rowconfigure(100, weight=1)
+
+        self._i2c_scan_window_top_frame = ttk.Frame(self._i2c_scan_window, padding="0 0 0 0")  # For the main content
+        self._i2c_scan_window_top_frame.grid(column=100, row=100, sticky=(tk.N, tk.W, tk.E, tk.S))
+        self._i2c_scan_window_top_frame.columnconfigure(100, weight=1)
+        self._i2c_scan_window_top_frame.rowconfigure(100, weight=1)
+
+        self._i2c_scan_window_bottom_frame = ttk.Frame(self._i2c_scan_window, padding="0 0 0 0")  # For the status info
+        self._i2c_scan_window_bottom_frame.grid(column=100, row=200, sticky=(tk.N, tk.W, tk.E, tk.S))
+        self._i2c_scan_window_bottom_frame.columnconfigure(0, weight=1)
+        self._i2c_scan_window_bottom_frame.columnconfigure(100, weight=1)
+
+        # Place a control frame on the right side of the top frame
+        self._i2c_scan_window_control_frame = ttk.Frame(self._i2c_scan_window_top_frame, padding="5 5 5 5")
+        self._i2c_scan_window_control_frame.grid(column=500, row=100, sticky=(tk.N, tk.W, tk.E, tk.S))
+        self._i2c_scan_window_control_frame.rowconfigure(0, weight=1)
+
+        # Place main display text on left side of the top frame
+        self._scan_display = tk.Text(self._i2c_scan_window_top_frame, state='disabled', width=80, wrap=tk.WORD)#'none')
+        self._scan_display.grid(column=100, row=100, sticky=(tk.N, tk.W, tk.E, tk.S))
+
+        # Place scrollbar against the main display text
+        self._scan_scrollbar = ttk.Scrollbar(self._i2c_scan_window_top_frame, command=self._scan_display.yview)
+        self._scan_scrollbar.grid(column=101, row=100, sticky=(tk.N, tk.W, tk.E, tk.S))
+        self._scan_display.config(yscrollcommand=self._scan_scrollbar.set)
+
+        # Place the scan devices button at the bottom of the control frame
+        self._toggle_logging_button = ttk.Button(self._i2c_scan_window_control_frame, text="Scan Devices", command=self.scan_i2c_devices, state=state)
+        self._toggle_logging_button.grid(column=100, row=100, sticky=(tk.W, tk.E), padx=(0,5))
+
+        # Place a clear button below
+        self._clear_scan_button = ttk.Button(self._i2c_scan_window_control_frame, text="Clear", command=self.clear_i2c_scan)
+        self._clear_scan_button.grid(column=100, row=110, sticky=(tk.W, tk.E), padx=(0,5))
+
+        # Place an empty label below to reserve the vertical space
+        self._empty_scan_label = ttk.Label(self._i2c_scan_window_bottom_frame, text=" ")
+        self._empty_scan_label.grid(column=0, row=100)
+
+        self._i2c_scan_window.update()
+        self._i2c_scan_window.minsize(self._i2c_scan_window.winfo_width(), self._i2c_scan_window.winfo_height())
+
+    def close_i2c_scan_window(self):
+        if not hasattr(self, "_i2c_scan_window"):
+            self._logger.info("Scan I2C window does not exist")
+            return
+
+        self._i2c_scan_window.destroy()
+        del self._i2c_scan_window
+
+    def scan_i2c_devices(self):
+        self.scan_progress(0)
+
+        found = []
+        for device_address in range(128):
+            address_hex = hex_0fill(device_address, 8)
+            if self.check_i2c_device(address_hex):
+                found.append(address_hex)
+
+        if len(found) == 0:
+            self._scan_display.configure(state='normal')
+            self._scan_display.insert('end', "Did not find any devices\n\n")
+            self._scan_display.configure(state='disabled')
+        else:
+            self._scan_display.configure(state='normal')
+            self._scan_display.insert('end', "Found devices at the following I2C addresses:\n")
+            for entry in found:
+                self._scan_display.insert('end', f" - {entry}\n")
+            self._scan_display.insert('end', "\n")
+            self._scan_display.configure(state='disabled')
+
+        self.clear_scan_progress()
+
+    def clear_i2c_scan(self):
+        self._scan_display.configure(state='normal')
+        self._scan_display.delete("1.0", tk.END)
+        self._scan_display.configure(state='disabled')
+
+    def scan_progress(self, percentage):
+        if not hasattr(self, "_scan_progress") or self._scan_progress is None:
+            self._scan_progress = ttk.Progressbar(self._i2c_scan_window_bottom_frame, mode='determinate', length='300')
+            self._scan_progress.grid(column=50, row=100, sticky=(tk.W, tk.E))
+
+        self._scan_progress['value'] = int(percentage)
+
+    def clear_scan_progress(self):
+        if hasattr(self, "_scan_progress") and self._scan_progress is not None:
+            self._scan_progress.destroy()
+            self._scan_progress = None

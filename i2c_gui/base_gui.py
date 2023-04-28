@@ -164,6 +164,9 @@ class Base_GUI(GUI_Helper):
         # Create Monitor menu
         self._monitor_menu(self._menubar)
 
+        # Create Utility menu
+        self._utility_menu(self._menubar)
+
         # Create window menu for macOS
         if __platform__ == "aqua":
             self._windowmenu = tk.Menu(self._menubar, name='window')
@@ -196,9 +199,19 @@ class Base_GUI(GUI_Helper):
 
         menubar.add_cascade(menu=self._monitormenu, label='Monitor')
 
+    def _utility_menu(self, menubar: tk.Menu):
+        self._utilitymenu = tk.Menu(menubar, name='utility')
+
+        self._create_utility_menu_entries(self._utilitymenu)
+
+        menubar.add_cascade(menu=self._utilitymenu, label='Utilities')
+
     def _create_monitor_menu_entries(self, monitormenu: tk.Menu):
         monitormenu.add_command(label='Open I2C Monitor', command=self._open_i2c_monitor)#, state='disabled')
         monitormenu.add_command(label='Open Logging Monitor', command=self._open_logging_monitor)#, state='disabled')
+
+    def _create_utility_menu_entries(self, utilitymenu: tk.Menu):
+        utilitymenu.add_command(label='Scan I2C Devices', command=self._open_i2c_scan)#, state='disabled')
 
     def _open_i2c_monitor(self):
         if hasattr(self, '_i2c_controller') and self._i2c_controller is not None:
@@ -207,6 +220,10 @@ class Base_GUI(GUI_Helper):
     def _open_logging_monitor(self):
         if hasattr(self, '_logging_helper') and self._logging_helper is not None:
             self._logging_helper.display_logging()
+
+    def _open_i2c_scan(self):
+        if hasattr(self, '_i2c_controller') and self._i2c_controller is not None:
+            self._i2c_controller.display_i2c_scan_window()
 
     def display_progress(self, message, percentage):
         if hasattr(self, '_status_display'):
