@@ -58,6 +58,8 @@ class Connection_Controller(GUI_Helper):
             super().__init__(parent, None, override_logger)
         self._is_connected = False
 
+        self._time_last_i2c_command = time.time_ns()
+
         self._usb_iss_max_seq_byte = usb_iss_max_seq_byte
 
         #  The i2c connection is instantiated as a helper class, the helper class will manage
@@ -126,6 +128,12 @@ class Connection_Controller(GUI_Helper):
                 self._i2c_connection.display_in_frame(self._i2c_connection_frame)
 
     def check_i2c_device(self, address: str):
+        this_time = time.time_ns()
+        if this_time - self._time_last_i2c_command < self._successive_i2c_delay_us * 1000:
+            time.sleep(self._successive_i2c_delay_us/10E6)
+            this_time = time.time_ns()
+        self._time_last_i2c_command = this_time
+
         from . import __no_connect__
         if __no_connect__:
             return True
@@ -215,6 +223,12 @@ class Connection_Controller(GUI_Helper):
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
+        this_time = time.time_ns()
+        if this_time - self._time_last_i2c_command < self._successive_i2c_delay_us * 1000:
+            time.sleep(self._successive_i2c_delay_us/10E6)
+            this_time = time.time_ns()
+        self._time_last_i2c_command = this_time
+
         from . import __no_connect__
         from . import __no_connect_type__
         if __no_connect__:
@@ -238,6 +252,12 @@ class Connection_Controller(GUI_Helper):
         from .functions import validate_i2c_address
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
+
+        this_time = time.time_ns()
+        if this_time - self._time_last_i2c_command < self._successive_i2c_delay_us * 1000:
+            time.sleep(self._successive_i2c_delay_us/10E6)
+            this_time = time.time_ns()
+        self._time_last_i2c_command = this_time
 
         from . import __no_connect__
         from . import __no_connect_type__
@@ -587,9 +607,6 @@ class Connection_Controller(GUI_Helper):
             address_hex = hex_0fill(device_address, 8)
             if self.check_i2c_device(address_hex):
                 found.append(address_hex)
-
-            # Delay for some time between successive calls so I2C bus has time
-            time.sleep(self._successive_i2c_delay_us/10E6)  # because sleep accepts seconds
 
             curr_time = time.time_ns()
             if curr_time - last_update > 0.3 * 10**9:

@@ -412,7 +412,7 @@ class Address_Space_Controller(GUI_Helper):
         self._i2c_controller.write_device_memory(self._i2c_address, address, [self._memory[address]], self._register_bits)
 
         if write_check:
-            time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
+            #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
 
             tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1, self._register_bits)
             if self._memory[address] != tmp[0]:
@@ -491,7 +491,7 @@ class Address_Space_Controller(GUI_Helper):
         self._i2c_controller.write_device_memory(self._i2c_address, address, self._memory[address:address+data_size], self._register_bits)
 
         if write_check:
-            time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
+            #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
 
             tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size, self._register_bits)
             failed = []
