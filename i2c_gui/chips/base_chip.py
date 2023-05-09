@@ -178,6 +178,11 @@ class Base_Chip(GUI_Helper):
             }
             self._indexer_vars[variable]["variable"].set(value)
 
+    def get_indexer(self, name):
+        if name not in self._indexer_vars:
+            return None, None, None
+        return self._indexer_vars[name]['variable'], self._indexer_vars[name]['min'], self._indexer_vars[name]['max']
+
     def _validate_indexers(self):
         for indexer in self._indexer_vars:
             init_val = self._indexer_vars[indexer]['variable'].get()
