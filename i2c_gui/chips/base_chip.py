@@ -469,11 +469,13 @@ class Base_Chip(GUI_Helper):
         return self._address_space[address_space].get_display_var(block_name + "/" + var_name)
 
     def get_indexed_var(self, address_space, block_name, var_name):
+        self._logger.detailed_trace(f'Base_Chip::get_indexed_var("{address_space}", "{block_name}", "{var_name}")')
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space,
             block_name=block_name,
             full_array=False,
         )
+        self._logger.detailed_trace(f'   Got block_ref={block_ref}')
 
         return self._address_space[address_space].get_display_var(block_ref + "/" + var_name)
 
