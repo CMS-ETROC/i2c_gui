@@ -64,6 +64,8 @@ class Logging_Helper(GUI_Helper):
         self._log_level_var.set(self._default_log_level)
 
     def _update_log_level(self, var=None, index=None, mode=None):
+        self._logger.detailed_trace("Logging_Helper._update_log_level: Entered")
+
         new_level = self._log_level_var.get()
         if new_level not in self._log_levels:
             self._log_level_var.set(self._default_log_level)
@@ -91,6 +93,8 @@ class Logging_Helper(GUI_Helper):
 
     @is_logging.setter
     def is_logging(self, value):
+        self._logger.detailed_trace(f"Logging_Helper.is_logging setter: Entered with value {value}")
+
         if value not in [True, False]:
             raise TypeError("Logging can only be true or false")
 
