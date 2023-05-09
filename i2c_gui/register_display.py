@@ -40,6 +40,7 @@ class Register_Display(GUI_Helper):
         self._name = register_name
         self._enabled = False
         self._display_var = display_var
+        self._callback_update_shadow_var = self._display_var.trace_add('write', self._update_shadow_var)
         self._shadow_var = None
         self._read_only = read_only
 
@@ -165,7 +166,6 @@ class Register_Display(GUI_Helper):
             self._value_binary_bit1.bind("<Button-1>", lambda e:self._toggle_bit(1))
             self._value_binary_bit0.bind("<Button-1>", lambda e:self._toggle_bit(0))
         self._callback_update_binary_repr = self._display_var.trace_add('write', self._update_binary_repr)
-        self._callback_update_shadow_var  = self._display_var.trace_add('write', self._update_shadow_var)
 
 
         if read_function is not None:

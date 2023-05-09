@@ -45,6 +45,7 @@ class Decoded_Value_Display(GUI_Helper):
         self._name = value_name
         self._enabled = False
         self._display_var = display_var
+        self._callback_update_shadow_var = self._display_var.trace_add('write', self._update_shadow_var)
         self._shadow_var = None
         #self._metadata = metadata
         self._bits = metadata["bits"]
@@ -175,8 +176,6 @@ class Decoded_Value_Display(GUI_Helper):
 
                 self._callback_update_binary_repr = self._display_var.trace_add('write', self._update_binary_repr)
                 self._update_binary_repr()
-
-        self._callback_update_shadow_var  = self._display_var.trace_add('write', self._update_shadow_var)
 
         if hasattr(self, "_info") and self._info != "":
             self._info_button = ttk.Label(self._frame, text="ⓘ", borderwidth=1, relief="solid", padding=2)
