@@ -68,6 +68,7 @@ class Connection_Controller(GUI_Helper):
         self._i2c_connection = USB_ISS_Helper(self, usb_iss_max_seq_byte)
 
         self._i2c_connection_type_var = tk.StringVar(value=self._connection_types[0])
+        self._i2c_connection_type_var.trace_add("write", self._update_connection_type) # This should probably be moved lower
 
         self._registered_connection_callbacks = []
 
@@ -104,28 +105,27 @@ class Connection_Controller(GUI_Helper):
         self._parent.set_enable_readback(value)
 
     def _update_connection_type(self, var=None, index=None, mode=None):
-        if hasattr(self, "_i2c_connection_frame") and self._i2c_connection_frame is not None:
-            connection_type = self._i2c_connection_type_var.get()
-            update_display = False
-            if connection_type == "USB-ISS":
-                self._i2c_connection = USB_ISS_Helper(self, self._usb_iss_max_seq_byte)
-                update_display = True
-            elif connection_type == "FPGA-Eth":
-                self._i2c_connection = FPGA_ETH_Helper(self)
-                self.send_message("The FPGA-Eth connection is not fully implement yet - this will not work", "Warning")
-                update_display = True
-            else:
-                self.send_message("Unknown I2C Connection Type: {}".format(connection_type), "Error")
-                self._i2c_connection_type_var.set(self._connection_types[0])
-                self._update_connection_type()
+        connection_type = self._i2c_connection_type_var.get()
+        update_display = False
+        if connection_type == "USB-ISS":
+            self._i2c_connection = USB_ISS_Helper(self, self._usb_iss_max_seq_byte)
+            update_display = True
+        elif connection_type == "FPGA-Eth":
+            self._i2c_connection = FPGA_ETH_Helper(self)
+            self.send_message("The FPGA-Eth connection is not fully implement yet - this will not work", "Warning")
+            update_display = True
+        else:
+            self.send_message("Unknown I2C Connection Type: {}".format(connection_type), "Error")
+            self._i2c_connection_type_var.set(self._connection_types[0])
+            self._update_connection_type()
 
-            if update_display:
-                self._i2c_connection_frame.destroy()
+        if update_display and hasattr(self, "_i2c_connection_frame") and self._i2c_connection_frame is not None:
+            self._i2c_connection_frame.destroy()
 
-                self._i2c_connection_frame = ttk.Frame(self._frame)
-                self._i2c_connection_frame.grid(column=1, row=0, sticky=(tk.W, tk.E))
+            self._i2c_connection_frame = ttk.Frame(self._frame)
+            self._i2c_connection_frame.grid(column=1, row=0, sticky=(tk.W, tk.E))
 
-                self._i2c_connection.display_in_frame(self._i2c_connection_frame)
+            self._i2c_connection.display_in_frame(self._i2c_connection_frame)
 
     def check_i2c_device(self, address: str):
         this_time = time.time_ns()
@@ -154,7 +154,6 @@ class Connection_Controller(GUI_Helper):
 
         self._connection_type_option = ttk.OptionMenu(self._frame, self._i2c_connection_type_var, self._connection_types[0], *self._connection_types)
         self._connection_type_option.grid(column=0, row=0, sticky=(tk.W, tk.E), padx=(5, 20))
-        self._i2c_connection_type_var.trace_add("write", self._update_connection_type) # This should probably be moved lower
 
         self._i2c_connection_frame = ttk.Frame(self._frame)
         self._i2c_connection_frame.grid(column=1, row=0, sticky=(tk.W, tk.E))
