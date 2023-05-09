@@ -94,6 +94,19 @@ class Connection_Controller(GUI_Helper):
     def is_connected(self):
         return self._is_connected
 
+    @property
+    def connection_type(self):
+        return self._i2c_connection_type_var.get()
+
+    @connection_type.setter
+    def connection_type(self, val: str):
+        if not self.is_connected:
+            self._i2c_connection_type_var.set(val)
+
+    @property
+    def handle(self):
+        return self._i2c_connection
+
     def _set_connected(self, value):
         if value != self._is_connected:
             self._is_connected = value
