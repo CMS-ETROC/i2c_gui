@@ -535,6 +535,7 @@ class Address_Space_Controller(GUI_Helper):
         return self.write_memory_block(block["Base Address"], block["Length"], write_check)
 
     def read_register(self, block_name, register_name):
+        self._logger.detailed_trace(f'Address_Space_Controller::read_register("{block_name}", "{register_name}")')
         if self._i2c_address is None:
             self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
             return
