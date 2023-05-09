@@ -404,12 +404,14 @@ class Base_Chip(GUI_Helper):
         return block_ref, params
 
     def read_register(self, address_space_name: str, block_name: str, register: str, no_message: bool = False):
+        self._logger.detailed_trace(f'Base_Chip::read_register("{address_space_name}", "{block_name}", "{register}", {no_message})')
         self._validate_indexers()
         block_ref, _ = self._gen_block_ref_from_indexers(
             address_space_name=address_space_name,
             block_name=block_name,
             full_array=False,
         )
+        self._logger.detailed_trace(f'   Got block_ref={block_ref}')
 
         if not no_message:
             self.send_message("Reading register {} from block {} of address space {} of chip {}".format(register, block_ref, address_space_name, self._chip_name))
