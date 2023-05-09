@@ -36,7 +36,10 @@ class ScriptHelper(GUI_Helper):
         self._logger.info("Updating local status to: {}".format(value))
 
     def send_message(self, message:str, status:str = "Message"):
-        self._logger.info("GUI Message of type {}: {}".format(status, message))
+        if status != "Message":
+            self._logger.error("GUI Message of type {}: {}".format(status, message))
+        else:
+            self._logger.info("GUI Message of type {}: {}".format(status, message))
 
     def display_progress(self, message, percentage):
         self._logger.info("{}: Progress {}/100".format(message, int(percentage)))
