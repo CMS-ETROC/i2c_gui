@@ -1364,7 +1364,7 @@ register_decoding = {
                 },
                 "DAC": {
                     "bits": 10,
-                    "position": [("PixCfg4", "7-0", "7-0"), ("PixCfg5", "9-8", "1-0")],
+                    "position": [("PixCfg4", "7-0", "7-0"), ("PixCfg5", "1-0", "9-8")],
                     "info": "{0} sets the threshold when Bypass_THCal is High: TH = DAC",
                     "show_binary": False
                 },
