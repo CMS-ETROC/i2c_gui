@@ -227,9 +227,8 @@ def test_etroc2_device_memory(
             }
 
     print(address_space_errors)
-    #if len(address_space_errors) > 0:
-    #    chip_errors
     # TODO: what about testing the broadcast write?
+    return address_space_errors
 
 def slow(
     error_mask: dict[str, bool],
@@ -257,9 +256,11 @@ def slow(
 
     conn.connect()
 
+    error_summary = None
+
     try:
         chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
-        test_etroc2_device_memory(Script_Helper, conn, chip,
+        error_summary = test_etroc2_device_memory(Script_Helper, conn, chip,
             error_mask=error_mask,
             chip_address=chip_address,
             ws_address=ws_address,
@@ -273,6 +274,8 @@ def slow(
         print("An Unknown Exception occurred")
     finally:
         conn.disconnect()
+
+    return error_summary
 
 def fast(
     error_mask: dict[str, bool],
@@ -300,9 +303,11 @@ def fast(
 
     conn.connect()
 
+    error_summary = None
+
     try:
         chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
-        #fast_test_etroc2_device_memory(Script_Helper, conn, chip,
+        #error_summary = fast_test_etroc2_device_memory(Script_Helper, conn, chip,
         #    error_mask=error_mask,
         #)
     except Exception:  # as e:
@@ -315,6 +320,7 @@ def fast(
     finally:
         conn.disconnect()
 
+    return error_summary
 
 
 if __name__ == "__main__":
@@ -453,14 +459,14 @@ if __name__ == "__main__":
         ws_address = int(args.ws_address, 0) & 0x7f
 
     if args.slow:
-        slow(
+        errors = slow(
             error_mask=error_mask,
             port=args.port,
             chip_address = chip_address,
             ws_address = ws_address,
         )
     else:
-        fast(
+        errors = fast(
             error_mask=error_mask,
             port=args.port,
             chip_address = chip_address,
