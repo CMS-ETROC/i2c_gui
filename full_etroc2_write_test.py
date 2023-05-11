@@ -309,7 +309,7 @@ if __name__ == "__main__":
         '-l',
         '--log-level',
         help = 'Set the logging level. Default: WARNING',
-        choices = ["CRITICAL","ERROR","WARNING","INFO","DEBUG","NOTSET"],
+        choices = ["CRITICAL","ERROR","WARNING","INFO","DEBUG","TRACE","DETAILED_TRACE","NOTSET"],
         default = "WARNING",
         dest = 'log_level',
     )
@@ -371,25 +371,44 @@ if __name__ == "__main__":
         action = 'store_true',
         dest = 'clear',
     )
+    parser.add_argument(
+        '--chip_address',
+        help='Set the address of the ETROC chip. You can use any number that python would recognise. Default: 0x72',
+        default = "0x72",
+        dest = 'chip_address',
+        type = str,
+    )
+    parser.add_argument(
+        '--ws_address',
+        help='Set the address of the Waveform Sampler of the ETROC chip. You can use any number that python would recognise. Default: None',
+        default = None,
+        dest = 'ws_address',
+        type = str,
+    )
 
     args = parser.parse_args()
 
-    logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
     if args.log_file:
         logging.basicConfig(filename='logging.log', filemode='w', encoding='utf-8', level=logging.NOTSET)
     else:
+        log_level = 90
         if args.log_level == "CRITICAL":
-            logging.basicConfig(level=50)
+            log_level=50
         elif args.log_level == "ERROR":
-            logging.basicConfig(level=40)
+            log_level=40
         elif args.log_level == "WARNING":
-            logging.basicConfig(level=30)
+            log_level=30
         elif args.log_level == "INFO":
-            logging.basicConfig(level=20)
+            log_level=20
         elif args.log_level == "DEBUG":
-            logging.basicConfig(level=10)
+            log_level=10
+        elif args.log_level == "TRACE":
+            log_level=8
+        elif args.log_level == "DETAILED_TRACE":
+            log_level=5
         elif args.log_level == "NOTSET":
-            logging.basicConfig(level=0)
+            log_level=0
+        logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s', level=log_level)
     ### Old way, do not use anymore
     #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')  # For very detailed output, it is probably overkill
     #logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
