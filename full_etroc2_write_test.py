@@ -23,6 +23,8 @@
 import logging
 import i2c_gui
 import i2c_gui.chips
+from i2c_gui.usb_iss_helper import USB_ISS_Helper
+from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
 
 def test_etroc2_device_memory(
         helper: i2c_gui.ScriptHelper,
@@ -228,8 +230,19 @@ def slow(
     Script_Helper = i2c_gui.ScriptHelper(logger)
 
     conn = i2c_gui.Connection_Controller(Script_Helper)
-    conn.port = port
-    conn.clk = 100
+
+    ## For USB ISS connection
+    conn.connection_type = "USB-ISS"
+    conn.handle: USB_ISS_Helper
+    conn.handle.port = port
+    conn.handle.clk = 100
+
+    ## For FPGA connection (not yet fully implemented)
+    #conn.connection_type = "FPGA-Eth"
+    #conn.handle: FPGA_ETH_Helper
+    #conn.handle.hostname = "192.168.2.3"
+    #conn.handle.port = "1024"
+
     conn.connect()
 
     try:
@@ -256,8 +269,19 @@ def fast(
     Script_Helper = i2c_gui.ScriptHelper(logger)
 
     conn = i2c_gui.Connection_Controller(Script_Helper)
-    conn.port = port
-    conn.clk = 100
+
+    ## For USB ISS connection
+    conn.connection_type = "USB-ISS"
+    conn.handle: USB_ISS_Helper
+    conn.handle.port = port
+    conn.handle.clk = 100
+
+    ## For FPGA connection (not yet fully implemented)
+    #conn.connection_type = "FPGA-Eth"
+    #conn.handle: FPGA_ETH_Helper
+    #conn.handle.hostname = "192.168.2.3"
+    #conn.handle.port = "1024"
+
     conn.connect()
 
     try:
