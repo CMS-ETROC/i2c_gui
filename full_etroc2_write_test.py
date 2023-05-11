@@ -94,14 +94,26 @@ def test_etroc2_device_memory(
                 #print(chip._gen_block_ref_from_indexers(address_space, block_name, full_array=False))
                 #print()
 
-                register_errors = {}
+                block_error_summary = {}
+                if not mask_individual_read:
+                    block_error_summary['repeated_read'] = {'full_block': False, 'errors': []}
+                if not mask_bit_flip:
+                    block_error_summary['bit_flip'] = {'full_block': False, 'errors': {}}
+                if not mask_alternating_a:
+                    block_error_summary['alternating_a'] = {'full_block': False, 'errors': {}}
+                if not mask_alternating_5:
+                    block_error_summary['alternating_5'] = {'full_block': False, 'errors': {}}
+                if not mask_set:
+                    block_error_summary['set'] = {'full_block': False, 'errors': {}}
+                if not mask_clear:
+                    block_error_summary['clear'] = {'full_block': False, 'errors': {}}
+
+                # Loop through registers and do the individual tests, keep a record of found errors
                 for register_name in register_model[address_space]['Register Blocks'][block_name]['Registers']:
                     register_info = register_model[address_space]['Register Blocks'][block_name]['Registers'][register_name]
                     read_only = False
                     if 'read_only' in register_info and register_info['read_only']:
                         read_only = True
-
-                    errors = {}
 
                     var = chip.get_indexed_var(address_space, block_name, register_name)
 
@@ -111,8 +123,7 @@ def test_etroc2_device_memory(
                         chip.read_register(address_space, block_name, register_name)
                         individual_read_value = int(var.get(), 0)
                         if individual_read_value != original_value:
-                            #errors += ["Block read and individual read do not return the same value"]
-                            errors['repeated_read'] = True
+                            block_error_summary['repeated_read']['errors'] += [register_name]
 
                     if not read_only:
                         register_modified = False
@@ -125,8 +136,7 @@ def test_etroc2_device_memory(
                             chip.read_register(address_space, block_name, register_name)
                             bit_flip_value = int(var.get(), 0)
                             if bit_flip_value != bit_flipped_setting:
-                                #errors += ["Bit flip failed: Expected 0x{:02x} and got 0x{:02x}".format(bit_flipped_setting, bit_flip_value)]
-                                errors['bit_flip'] = (bit_flipped_setting, bit_flip_value)
+                                block_error_summary['bit_flip']['errors'][register_name] = (bit_flipped_setting, bit_flip_value)
 
                         if not mask_alternating_a:
                             register_modified = True
@@ -135,8 +145,7 @@ def test_etroc2_device_memory(
                             chip.read_register(address_space, block_name, register_name)
                             alternating_a_value = int(var.get(), 0)
                             if alternating_a_value != 0xaa:
-                                #errors += ["Alternating a failed: Expected 0xAA and got 0x{:02x}".format(alternating_a_value)]
-                                errors['alternating_a'] = alternating_a_value
+                                block_error_summary['alternating_a']['errors'][register_name] = alternating_a_value
 
                         if not mask_alternating_5:
                             register_modified = True
@@ -145,8 +154,7 @@ def test_etroc2_device_memory(
                             chip.read_register(address_space, block_name, register_name)
                             alternating_5_value = int(var.get(), 0)
                             if alternating_5_value != 0x55:
-                                #errors += ["Alternating 5 failed: Expected 0x55 and got 0x{:02x}".format(alternating_5_value)]
-                                errors['alternating_5'] = alternating_5_value
+                                block_error_summary['alternating_5']['errors'][register_name] = alternating_5_value
 
                         if not mask_set:
                             register_modified = True
@@ -155,8 +163,7 @@ def test_etroc2_device_memory(
                             chip.read_register(address_space, block_name, register_name)
                             set_value = int(var.get(), 0)
                             if set_value != 0xff:
-                                #errors += ["Full set failed: Expected 0xFF and got 0x{:02x}".format(set_value)]
-                                errors['set'] = set_value
+                                block_error_summary['set']['errors'][register_name] = set_value
 
                         if not mask_clear:
                             register_modified = True
@@ -165,43 +172,46 @@ def test_etroc2_device_memory(
                             chip.read_register(address_space, block_name, register_name)
                             clear_value = int(var.get(), 0)
                             if clear_value != 0x00:
-                                #errors += ["Full clear failed: Expected 0x00 and got 0x{:02x}".format(clear_value)]
-                                errors['clear'] = clear_value
+                                block_error_summary['clear']['errors'][register_name] = clear_value
 
                         if register_modified:
                             var.set(str(original_value))  # Reset back to original state once finished
                             chip.write_register(address_space, block_name, register_name, write_check=False)
 
-                    if len(errors) > 0:
-                        register_errors[register_name] = 1#errors
+                for error_type in block_error_summary:
+                    if len(block_error_summary[error_type]['errors']) == len(register_model[address_space]['Register Blocks'][block_name]['Registers']):
+                        block_error_summary[error_type]['full_block'] = True
+                    block_error_summary[error_type]['error_count'] = len(block_error_summary[error_type]['errors'])
 
-                if len(register_errors) != len(register_model[address_space]['Register Blocks'][block_name]['Registers']):
-                    full_block_error = False
-                    for register in register_errors:
-                        print("There was an issue in reading/writing register {} of block {} of {}".format(register, block_ref, address_space))
-                else:
-                    full_block_error = True
+                block_ref_errors[block_ref] = block_error_summary
 
-                if len(register_errors) > 0:
-                    block_ref_errors[block_ref] = {
-                        'full_block': full_block_error,
-                        'errors': 1#register_errors,
+            block_errors[block_name] = {}
+            for block_ref in block_ref_errors:
+                for error_type in block_ref_errors[block_ref]:
+                    if error_type not in block_errors[block_name]:
+                        block_errors[block_name][error_type] = {
+                            'error_count': 0,
+                            'full_block': True,  # Assume error in full block, then deassert if not
+                            'errors': {},
+                        }
+                    if not block_ref_errors[block_ref][error_type]['full_block']:
+                        block_errors[block_name][error_type]['full_block'] = False
+                    block_errors[block_name][error_type]['errors'][block_ref] = block_ref_errors[block_ref][error_type]
+                    block_errors[block_name][error_type]['error_count'] += block_ref_errors[block_ref][error_type]['error_count']
+
+        address_space_errors[address_space] = {}
+        for block_name in block_errors:
+            for error_type in block_errors[block_name]:
+                if error_type not in address_space_errors[address_space]:
+                    address_space_errors[address_space][error_type] = {
+                        'error_count': 0,
+                        'full_address': True,  # Assume error in full block, then deassert if not
+                        'errors': {},
                     }
-
-            if len(block_ref_errors) != len(blocks):
-                full_block_error = False
-                for block_ref in block_ref_errors:
-                    if block_ref_errors[block_ref]['full_block']:
-                        print("There was an issue in reading/writing the full block {} of {}, all registers of the block failed read/write.".format(block_ref, address_space))
-            else:
-                full_block_error = True
-
-            if len(block_ref_errors) > 0:
-                block_errors[block_name] = {
-                    'full_block': full_block_error,
-                    'errors': 1#block_ref_errors,
-                }
-
+                if not block_errors[block_name][error_type]['full_block']:
+                    address_space_errors[address_space][error_type]['full_address'] = False
+                address_space_errors[address_space][error_type]['error_count'] += block_errors[block_name][error_type]['error_count']
+                address_space_errors[address_space][error_type]['errors'][block_name] = block_errors[block_name][error_type]
         if len(block_errors) != len(register_model[address_space]['Register Blocks']):
             full_address_space_error = False
             for block_name in block_errors:
