@@ -26,6 +26,8 @@ import i2c_gui.chips
 from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
 
+from pathlib import Path
+
 def test_etroc2_device_memory(
         helper: i2c_gui.ScriptHelper,
         conn: i2c_gui.Connection_Controller,
@@ -73,6 +75,7 @@ def test_etroc2_device_memory(
     for address_space in register_model:
         block_errors = {}
         for block_name in register_model[address_space]['Register Blocks']:
+            block_errors[block_name] = {}
             if 'Indexer' in register_model[address_space]['Register Blocks'][block_name]:
                 blocks = helper.get_all_indexed_blocks(register_model[address_space]['Register Blocks'][block_name]['Indexer'], block_name)
             else:
@@ -185,7 +188,6 @@ def test_etroc2_device_memory(
 
                 block_ref_errors[block_ref] = block_error_summary
 
-            block_errors[block_name] = {}
             for block_ref in block_ref_errors:
                 for error_type in block_ref_errors[block_ref]:
                     if error_type not in block_errors[block_name]:
@@ -212,21 +214,7 @@ def test_etroc2_device_memory(
                     address_space_errors[address_space][error_type]['full_address'] = False
                 address_space_errors[address_space][error_type]['error_count'] += block_errors[block_name][error_type]['error_count']
                 address_space_errors[address_space][error_type]['errors'][block_name] = block_errors[block_name][error_type]
-        if len(block_errors) != len(register_model[address_space]['Register Blocks']):
-            full_address_space_error = False
-            for block_name in block_errors:
-                if block_errors[block_name]['full_block']:
-                    print("There was an issue in reading/writing the full block {} of {}, all registers and block refs of the block failed read/write.".format(block_name, address_space))
-        else:
-            full_address_space_error = True
 
-        if len(block_errors) > 0:
-            address_space_errors[address_space] = {
-                'full_address': full_address_space_error,
-                'errors': block_errors,
-            }
-
-    print(address_space_errors)
     # TODO: what about testing the broadcast write?
     return address_space_errors
 
@@ -407,6 +395,14 @@ if __name__ == "__main__":
         dest = 'ws_address',
         type = str,
     )
+    parser.add_argument(
+        '-o',
+        '--output_log',
+        required=True,
+        help='The output file where to store the detailed log',
+        dest = 'output_log',
+        type = Path,
+    )
 
     args = parser.parse_args()
 
@@ -476,4 +472,100 @@ if __name__ == "__main__":
     if errors is None:
         print("No errors found, but the error structure is empty... maybe something went wrong?")
     else:
-        pass
+        print("Short error report, see the output file for the detailed error report.")
+        offset = "  "
+        for address_space_name in errors:
+            print(offset + f'Summary of errors in the address space {address_space_name}:')
+            offset += "  "
+            errors_found = False
+            for error_type in errors[address_space_name]:
+                error_count = errors[address_space_name][error_type]['error_count']
+                if error_count > 0:
+                    print(offset + f'Total {error_type} errors - {error_count}')
+                    errors_found = True
+            if not errors_found:
+                print(offset + f'No errors found')
+            offset = offset[:-2]
+
+        outfile = Path(args.output_log)
+        with open(outfile, mode='w') as file_handle:
+            file_handle.write("--- Detailed log of running the full ETROC2 test ---\n\nThe following parameters were set:\n")
+            file_handle.write(f' - Chip Address: {hex(chip_address)}\n')
+            if ws_address is not None:
+                file_handle.write(f' - Waveform Sampler Address: {hex(ws_address)}\n')
+            else:
+                file_handle.write(' - No Waveform Sampler Address set\n')
+            file_handle.write(f' - Port: {args.port}\n')
+            file_handle.write('\n')
+            file_handle.write('Attempting the following tests:\n')
+            for error_type in error_mask:
+                if not error_mask[error_type]:
+                    file_handle.write(f' - {error_type}\n')
+
+            file_handle.write('\n')
+            file_handle.write('\n')
+            file_handle.write('The following errors were found:\n')
+
+            offset = "  "
+            for address_space_name in errors:
+                file_handle.write(offset + f'In the {address_space_name} address space:\n')
+                offset += "  "
+                address_space_errors_found = False
+                for error_type in errors[address_space_name]:
+                    error_count = errors[address_space_name][error_type]['error_count']
+                    full_address = errors[address_space_name][error_type]['full_address']
+                    if error_count > 0:
+                        file_handle.write(offset + f'{error_type} Error Summary - ')
+                        if full_address:
+                            file_handle.write(f'The full {address_space_name} address space had errors ({error_count}):\n')
+                        else:
+                            file_handle.write(f'Some registers in the {address_space_name} address space had errors, total {error_count}:\n')
+                        offset += "  "
+                        for block_name in errors[address_space_name][error_type]['errors']:
+                            block_errors = errors[address_space_name][error_type]['errors'][block_name]
+                            sub_blocks = len(block_errors['errors'])
+                            block_error_count = block_errors['error_count']
+                            full_block = block_errors['full_block']
+                            if block_error_count > 0:
+                                if sub_blocks != 1:
+                                    if full_block:
+                                        file_handle.write(offset + f'The full block {block_name} had errors ({block_error_count}):\n')
+                                    else:
+                                        file_handle.write(offset + f'Some of the registers of block {block_name} had errors, found {block_error_count} errors:\n')
+                                    offset += "  "
+                                for block_ref in block_errors['errors']:
+                                    block_ref_errors = block_errors['errors'][block_ref]
+                                    block_ref_error_count = block_ref_errors['error_count']
+                                    full_block_ref = block_ref_errors['full_block']
+                                    if block_ref_error_count > 0:
+                                        if full_block:
+                                            file_handle.write(offset + f'The full block {block_ref} had errors ({block_ref_error_count}):\n')
+                                        else:
+                                            file_handle.write(offset + f'Some of the registers of block {block_ref} had errors, found {block_ref_error_count} errors:\n')
+                                        offset += "  "
+                                        for register_name in block_ref_errors['errors']:
+                                            if error_type == 'repeated_read':
+                                                file_handle.write(offset + f' - Attempted to read register {register_name} in a block read and later in an individual read, but got different values\n')
+                                            elif error_type == 'bit_flip':
+                                                error_info = block_ref_errors['errors'][register_name]
+                                                file_handle.write(offset + f' - Attempted to flip the bits of the {register_name} register, but it did not work. Expected to get {hex(error_info[0])}, but got {hex(error_info[1])}\n')
+                                            elif error_type == 'alternating_a':
+                                                error_info = block_ref_errors['errors'][register_name]
+                                                file_handle.write(offset + f' - Attempted to set the register {register_name} to the value 0xAA but it did not work, got the value {hex(error_info)} instead\n')
+                                            elif error_type == 'alternating_5':
+                                                error_info = block_ref_errors['errors'][register_name]
+                                                file_handle.write(offset + f' - Attempted to set the register {register_name} to the value 0x55 but it did not work, got the value {hex(error_info)} instead\n')
+                                            elif error_type == 'set':
+                                                error_info = block_ref_errors['errors'][register_name]
+                                                file_handle.write(offset + f' - Attempted to full set the register {register_name} (value 0xFF) but it did not work, got the value {hex(error_info)} instead\n')
+                                            elif error_type == 'clear':
+                                                error_info = block_ref_errors['errors'][register_name]
+                                                file_handle.write(offset + f' - Attempted to clear the register {register_name} (value 0x00) but it did not work, got the value {hex(error_info)} instead\n')
+                                        offset = offset[:-2]
+                                if sub_blocks != 1:
+                                    offset = offset[:-2]
+                        offset = offset[:-2]
+                        address_space_errors_found = True
+                if not address_space_errors_found:
+                    file_handle.write(offset + f'No errors found\n')
+                offset = offset[:-2]
