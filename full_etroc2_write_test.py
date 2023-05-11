@@ -233,7 +233,9 @@ def test_etroc2_device_memory(
 
 def slow(
     error_mask: dict[str, bool],
-    port: str = "COM3"
+    port: str = "COM3",
+    chip_address: int = 0x72,
+    ws_address: int = None,
     ):
     logger = logging.getLogger("Script_Logger")
 
@@ -259,6 +261,8 @@ def slow(
         chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
         test_etroc2_device_memory(Script_Helper, conn, chip,
             error_mask=error_mask,
+            chip_address=chip_address,
+            ws_address=ws_address,
         )
     except Exception:  # as e:
         # print("An Exception occurred:")
@@ -272,7 +276,9 @@ def slow(
 
 def fast(
     error_mask: dict[str, bool],
-    port: str = "COM3"
+    port: str = "COM3",
+    chip_address: int = 0x72,
+    ws_address: int = None,
     ):
     logger = logging.getLogger("Script_Logger")
 
@@ -440,13 +446,28 @@ if __name__ == "__main__":
     #i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
     #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
+    chip_address = int(args.chip_address, 0) & 0x7f
+    if args.ws_address is None:
+        ws_address = None
+    else:
+        ws_address = int(args.ws_address, 0) & 0x7f
+
     if args.slow:
         slow(
             error_mask=error_mask,
             port=args.port,
+            chip_address = chip_address,
+            ws_address = ws_address,
         )
     else:
         fast(
             error_mask=error_mask,
             port=args.port,
+            chip_address = chip_address,
+            ws_address = ws_address,
         )
+
+    if errors is None:
+        print("No errors found, but the error structure is empty... maybe something went wrong?")
+    else:
+        pass
