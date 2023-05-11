@@ -133,7 +133,7 @@ def test_etroc2_device_memory(
 
                         if not mask_bit_flip:
                             register_modified = True
-                            bit_flipped_setting = original_value ^ 0xff  # Flip the bits in the register
+                            bit_flipped_setting = (original_value ^ 0xff) & 0xff  # Flip the bits in the register
                             var.set(str(bit_flipped_setting))
                             chip.write_register(address_space, block_name, register_name, write_check=False)
                             chip.read_register(address_space, block_name, register_name)
