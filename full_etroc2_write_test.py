@@ -394,14 +394,14 @@ if __name__ == "__main__":
         dest = 'clear',
     )
     parser.add_argument(
-        '--chip_address',
+        '--chip-address',
         help='Set the address of the ETROC chip. You can use any number that python would recognise. Default: 0x72',
         default = "0x72",
         dest = 'chip_address',
         type = str,
     )
     parser.add_argument(
-        '--ws_address',
+        '--ws-address',
         help='Set the address of the Waveform Sampler of the ETROC chip. You can use any number that python would recognise. Default: None',
         default = None,
         dest = 'ws_address',
