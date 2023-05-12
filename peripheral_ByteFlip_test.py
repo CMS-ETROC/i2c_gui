@@ -80,8 +80,8 @@ def byte_flip_test(
         for peripheralRegisterKey in peripheralRegisterKeys:
             
             # Fetch the register
-            handle_PeriCfgX = chip.get_display_var("ETROC2", "Peripheral Config", peripheralRegisterKey")
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey")
+            handle_PeriCfgX = chip.get_display_var("ETROC2", "Peripheral Config", peripheralRegisterKey)
+            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
             data_bin_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
             
             # Make the flipped bits, "2"
@@ -92,18 +92,18 @@ def byte_flip_test(
             
             # Set the register with the value
             handle_PeriCfgX.set(data_hex_modified_PeriCfgX)
-            chip.write_register("ETROC2", "Peripheral Config", peripheralRegisterKey")
+            chip.write_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
             
             # Perform two reads to verify the persistence of the change
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey")
+            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
             data_bin_new_1_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey")
+            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
             data_bin_new_2_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
             
             # Undo the change to recover the original register value, and check for consistency
             handle_PeriCfgX.set(hex(int(data_bin_PeriCfgX, base=2)))
-            chip.write_register("ETROC2", "Peripheral Config", peripheralRegisterKey")
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey")
+            chip.write_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
+            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
             data_bin_recover_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
             
             # Handle what we learned from the tests
