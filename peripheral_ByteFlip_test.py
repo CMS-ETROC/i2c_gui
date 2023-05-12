@@ -122,26 +122,54 @@ def byte_flip_test(
 
 if __name__ == "__main__":
 
-    if log_file:
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Run a full test of the ETROC2 registers')
+    parser.add_argument(
+        '-l',
+        '--log-level',
+        help = 'Set the logging level. Default: WARNING',
+        choices = ["CRITICAL","ERROR","WARNING","INFO","DEBUG","TRACE","DETAILED_TRACE","NOTSET"],
+        default = "WARNING",
+        dest = 'log_level',
+    )
+    parser.add_argument(
+        '--log-file',
+        help = 'If set, the full log will be saved to a file (i.e. the log level is ignored)',
+        action = 'store_true',
+        dest = 'log_file',
+    )
+    parser.add_argument(
+        '-p',
+        '--port',
+        metavar = 'device',
+        help = 'The port name the USB-ISS module is connected to. Default: COM3',
+        default = "COM3",
+        dest = 'port',
+        type = str,
+    )
+
+    args = parser.parse_args()
+
+    if args.log_file:
         logging.basicConfig(filename='logging.log', filemode='w', encoding='utf-8', level=logging.NOTSET)
-        log_level = 0
     else:
         log_level = 0
-        if log_level_text == "CRITICAL":
+        if args.log_level == "CRITICAL":
             log_level=50
-        elif log_level_text == "ERROR":
+        elif args.log_level == "ERROR":
             log_level=40
-        elif log_level_text == "WARNING":
+        elif args.log_level == "WARNING":
             log_level=30
-        elif log_level_text == "INFO":
+        elif args.log_level == "INFO":
             log_level=20
-        elif log_level_text == "DEBUG":
+        elif args.log_level == "DEBUG":
             log_level=10
-        elif log_level_text == "TRACE":
+        elif args.log_level == "TRACE":
             log_level=8
-        elif log_level_text == "DETAILED_TRACE":
+        elif args.log_level == "DETAILED_TRACE":
             log_level=5
-        elif log_level_text == "NOTSET":
+        elif args.log_level == "NOTSET":
             log_level=0
         logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
 
