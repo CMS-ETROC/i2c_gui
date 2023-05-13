@@ -50,8 +50,6 @@ def byte_flip_test(
     # Set defaults
     # 'If set, the full log will be saved to a file (i.e. the log level is ignored)'
     log_file = False
-    # 'Set the logging level. Default: WARNING',
-    #  ["CRITICAL","ERROR","WARNING","INFO","DEBUG","TRACE","DETAILED_TRACE","NOTSET"]
 
     ## USB ISS connection
     conn = i2c_gui.Connection_Controller(Script_Helper)
@@ -67,6 +65,9 @@ def byte_flip_test(
     #conn.handle.port = "1024"
 
     conn.connect()
+
+    # counter for failure peripheral register testing
+    failure_counter = 0
 
     try:
         chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
@@ -107,10 +108,18 @@ def byte_flip_test(
             data_bin_recover_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
             
             # Handle what we learned from the tests
-            print(peripheralRegisterKey, data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX)
+            logger.error(peripheralRegisterKey, data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX)
             
             if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX): 
-                print(peripheralRegisterKey, "FAILURE")
+                logger.error("\033[1;33m", peripheralRegisterKey, "\033[1;31m FAILURE \n")
+                failure_counter += 1
+        
+        if(failure_counter != 0):
+            print("\033[1;31m Peripheral byte flip testing is failed")
+        else:
+            print("\033[1;32m Peripheral byte flip testing is a success")
+            
+
     
     except Exception:
         import traceback
@@ -138,6 +147,7 @@ if __name__ == "__main__":
         help = 'If set, the full log will be saved to a file (i.e. the log level is ignored)',
         action = 'store_true',
         dest = 'log_file',
+        default=False,
     )
     parser.add_argument(
         '-p',
@@ -152,7 +162,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.log_file:
-        logging.basicConfig(filename='logging.log', filemode='w', encoding='utf-8', level=logging.NOTSET)
+        logging.basicConfig(filename='result_peripheral_byte_flip_test.log', filemode='w', encoding='utf-8', level=logging.NOTSET)
     else:
         log_level = 0
         if args.log_level == "CRITICAL":
