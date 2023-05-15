@@ -34,13 +34,11 @@ from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
 from i2c_gui.chips.etroc2_chip import register_model
 
-default_log_level = 40
-
 def byte_flip_test(
     port = "COM3", # 'The port name the USB-ISS module is connected to. Default: COM3'
     chip_address: int = 0x60, # I2C addresses for the ETROC2 chip
     ws_address: int = None, # I2C addresses for the Waveform Sampler
-    log_level = default_log_level,
+    log_level: int = 0,
     ):
 
     # Start logger and connect
@@ -108,19 +106,21 @@ def byte_flip_test(
             data_bin_recover_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
             
             # Handle what we learned from the tests
-            logger.error(peripheralRegisterKey, data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX)
+            # outputs = [peripheralRegisterKey, data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX]
+            # message = ' '.join(outputs)
+            # logger.trace(message)
             
             if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX): 
-                logger.error("\033[1;33m", peripheralRegisterKey, "\033[1;31m FAILURE \n")
+                # outputs = ["\033[1;33m", peripheralRegisterKey, "\033[1;31m FAILURE \033[0m \n"]
+                # message = ' '.join(outputs)
+                # logger.trace(message)
                 failure_counter += 1
         
         if(failure_counter != 0):
-            print("\033[1;31m Peripheral byte flip testing is failed")
+            print("\033[1;31m Peripheral byte flip testing is failed \033[0m")
         else:
-            print("\033[1;32m Peripheral byte flip testing is a success")
+            print("\033[1;32m Peripheral byte flip testing is a success \033[0m")
             
-
-    
     except Exception:
         import traceback
         traceback.print_exc()
@@ -163,6 +163,7 @@ if __name__ == "__main__":
 
     if args.log_file:
         logging.basicConfig(filename='result_peripheral_byte_flip_test.log', filemode='w', encoding='utf-8', level=logging.NOTSET)
+        
     else:
         log_level = 0
         if args.log_level == "CRITICAL":
