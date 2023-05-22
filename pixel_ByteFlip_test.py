@@ -75,51 +75,51 @@ def byte_flip_test(
         logger.setLevel(log_level)
 
         # Single byte flip peripheral
-        peripheralRegisterKeys = register_model["ETROC2"]["Register Blocks"]["Peripheral Config"]["Registers"].keys()
-        for peripheralRegisterKey in peripheralRegisterKeys:
-            
-            # Fetch the register
-            handle_PeriCfgX = chip.get_display_var("ETROC2", "Peripheral Config", peripheralRegisterKey)
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
-            data_bin_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
-            
-            # Make the flipped bits, "2"
-            data_bin_modified_PeriCfgX = data_bin_PeriCfgX.replace('1', '2').replace('0', '1').replace('2', '0')
-            
-            # data_bin_modified_PeriCfgX = ''.join(data_bin_modified_PeriCfgX)
-            data_hex_modified_PeriCfgX = hex(int(data_bin_modified_PeriCfgX, base=2))
-            
-            # Set the register with the value
-            handle_PeriCfgX.set(data_hex_modified_PeriCfgX)
-            chip.write_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
-            
-            # Perform two reads to verify the persistence of the change
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
-            data_bin_new_1_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
-            data_bin_new_2_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
-            
-            # Undo the change to recover the original register value, and check for consistency
-            handle_PeriCfgX.set(hex(int(data_bin_PeriCfgX, base=2)))
-            chip.write_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
-            chip.read_register("ETROC2", "Peripheral Config", peripheralRegisterKey)
-            data_bin_recover_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
-            
-            # Handle what we learned from the tests
-            # outputs = [peripheralRegisterKey, data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX]
-            # message = ' '.join(outputs)
-            # logger.trace(message)
-            
-            if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX): 
-                # outputs = ["\033[1;33m", peripheralRegisterKey, "\033[1;31m FAILURE \033[0m \n"]
-                # message = ' '.join(outputs)
-                # logger.trace(message)
-                failure_counter += 1
+        pixelRegisterKeys = register_model["ETROC2"]["Register Blocks"]["Pixel Config"]["Registers"].keys()
+        row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        for row in range(16):
+            for col in range(16):
+                # print("Pixel", row, col)
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+                
+                for pixelRegisterKey in pixelRegisterKeys:
+                    
+                    # Fetch the register
+                    handle_PixCfgX = chip.get_indexed_var("ETROC2", "Pixel Config", pixelRegisterKey)
+                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                    data_bin_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                    
+                    # Make the flipped byte
+                    data_bin_modified_PixCfgX = data_bin_PixCfgX.replace('1', '2').replace('0', '1').replace('2', '0')
+                    data_hex_modified_PixCfgX = hex(int(data_bin_modified_PixCfgX, base=2))
+                    
+                    # Set the register with the value
+                    handle_PixCfgX.set(data_hex_modified_PixCfgX)
+                    chip.write_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                    
+                    # Perform two reads to verify the persistence of the change
+                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                    data_bin_new_1_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                    data_bin_new_2_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                    
+                    # Undo the change to recover the original register value, and check for consistency
+                    handle_PixCfgX.set(hex(int(data_bin_PixCfgX, base=2)))
+                    chip.write_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                    data_bin_recover_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                    
+                    # Handle what we learned from the tests
+                    if(data_bin_new_1_PixCfgX!=data_bin_new_2_PixCfgX or data_bin_new_2_PixCfgX!=data_bin_modified_PixCfgX or data_bin_recover_PixCfgX!=data_bin_PixCfgX): 
+                        failure_counter += 1
+                        #print(row, col, pixelRegisterKey,"FAILURE", data_bin_PixCfgX, "To", data_bin_new_1_PixCfgX,  "To", data_bin_new_2_PixCfgX, "To", data_bin_recover_PixCfgX)
         
         if(failure_counter != 0):
-            print("\033[1;31m Peripheral byte flip testing is failed \033[0m")
+            print("\033[1;31m Pixel byte flip testing is failed \033[0m")
         else:
-            print("\033[1;32m Peripheral byte flip testing is a success \033[0m")
+            print("\033[1;32m Pixel byte flip testing is a success \033[0m")
             
     except Exception:
         import traceback
