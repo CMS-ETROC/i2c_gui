@@ -36,7 +36,16 @@ from .base_interface import Base_Interface
 
 class Register_Block_Decoded_Interface(Base_Interface):
     _parent: Base_Chip
-    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, decoding_info, read_only: bool = False):
+    def __init__(self,
+                 parent: Base_Chip,
+                 address_space: str,
+                 block_name: str,
+                 block_title: str,
+                 button_title: str,
+                 decoding_info,
+                 read_only: bool = False,
+                 use_groups: bool = False,
+                 ):
         super().__init__(parent, False, False)
 
         self._address_space = address_space
@@ -45,6 +54,7 @@ class Register_Block_Decoded_Interface(Base_Interface):
         self._button_title = button_title
         self._decoding_info = decoding_info
         self._read_only = read_only
+        self._use_groups = use_groups
 
     def update_whether_modified(self):
         self._parent.update_whether_modified()
