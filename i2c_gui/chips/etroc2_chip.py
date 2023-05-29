@@ -661,31 +661,32 @@ register_decoding = {
     "ETROC2": {  # Address Space (i.e. separate I2C memory spaces)
         "Register Blocks":{
             "Peripheral Config": {  # Register Block (i.e. group of registers to be handled as one unit)
-                "PLL_ClkGen_disCLK": {
+                "PLLclkgen_disCLK": {
                     "bits": 1,
                     "position": [("PeriCfg0", "0", "0")],  # The tuple should be 1st position is the register, 2nd position the bits in the register, 3rd position the bits in the value
                     "info": "{0} disables the internal clock buffers and ½ clock divider in prescaler, active high. Debugging use only.\nWhen {0} is high, all output clocks are disabled.",
-                    "show_binary": False
+                    "show_binary": False,
+                    "group": "test",
                 },
-                "PLL_ClkGen_disDES": {
+                "PLLclkgen_disDES": {
                     "bits": 1,
                     "position": [("PeriCfg0", "1", "0")],
                     "info": "{0} disables output clocks for deserializer, active high. Debugging use only.\nWhen {0} is high, the following clocks are disabled:\n - clk2g56Qp\n - clk2g56Qn\n - clk2g56Ip\n - clk2g56In\n(clk2g56Q is the 2.56 GHz clock for test in ETROC_PLL. clk2g56Q is used as Waveform Sampler clock in ETROC2)",
                     "show_binary": False
                 },
-                "PLL_ClkGen_disEOM": {
+                "PLLclkgen_disEOM": {
                     "bits": 1,
                     "position": [("PeriCfg0", "2", "0")],
                     "info": "{0} disables output clocks for EOM. Debugging use only.\nWhen {0} is high, the following clocks are disabled:\n - clk5g12EOMp\n - clk5g12EOMn",
                     "show_binary": False
                 },
-                "PLL_ClkGen_disSER": {
+                "PLLclkgen_disSER": {
                     "bits": 1,
                     "position": [("PeriCfg0", "3", "0")],
                     "info": "{0} disables output clocks for serializer, active high. Debugging use only.\nWhen {0} is high, the following clocks are disabled:\n - clk2g56S\n - clk2g56SN\n - clk5g12S\n - clk5g12SN",
                     "show_binary": False
                 },
-                "PLL_ClkGen_disVCO": {
+                "PLLclkgen_disVCO": {
                     "bits": 1,
                     "position": [("PeriCfg0", "4", "0")],
                     "info": "{0} disables VCO output buffer (associated with clk5g12lshp, clk5g12lshn), active high. clk5g12lsh is the output clock of the first input buffer in prescaler, and the source clock for all output clocks. Once disabled, all output clocks are disabled. Debugging use only.",
