@@ -32,12 +32,20 @@ import time
 
 class I2C_Connection_Helper(GUI_Helper):
     _parent: Base_GUI
-    def __init__(self, parent: Base_GUI, max_seq_byte: int, swap_endian: bool):
+    def __init__(
+        self,
+        parent: Base_GUI,
+        max_seq_byte: int,
+        swap_endian: bool,
+        successive_i2c_delay_us : int = 10000,
+        ):
         super().__init__(parent, None, parent._logger)
         self._max_seq_byte = max_seq_byte
         self._swap_endian = swap_endian
 
         self._no_connect = None
+
+        self.successive_i2c_delay_us = successive_i2c_delay_us
 
     def _check_i2c_device(self, address: int):
         raise RuntimeError("Derived classes must implement the individual device access functions: check_device")
@@ -131,7 +139,7 @@ class I2C_Connection_Helper(GUI_Helper):
                 self._parent.send_i2c_logging_message("         {}".format(repr(this_data)))
 
                 data += this_data
-                sleep(0.00001)
+                sleep(self.successive_i2c_delay_us*10**-6)
 
             self.clear_progress()
             self._parent.send_i2c_logging_message("   Full data:\n      {}\n".format(repr(data)))
@@ -186,6 +194,6 @@ class I2C_Connection_Helper(GUI_Helper):
                     this_block_address = self.swap_endian_16bit(this_block_address)
                 self._write_i2c_device_memory(device_address, this_block_address, this_data, register_bits)
 
-                sleep(0.00001)
+                sleep(self.successive_i2c_delay_us*10**-6)
             self._parent.send_i2c_logging_message("")
             self.clear_progress()

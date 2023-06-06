@@ -36,7 +36,16 @@ from .base_interface import Base_Interface
 
 class Register_Block_Array_Decoded_Interface(Base_Interface):
     _parent: Base_Chip
-    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, decoding_info, read_only: bool = False):
+    def __init__(self,
+                 parent: Base_Chip,
+                 address_space: str,
+                 block_name: str,
+                 block_title: str,
+                 button_title: str,
+                 decoding_info,
+                 read_only: bool = False,
+                 use_groups: bool = False,
+                 ):
         super().__init__(parent, False, False)
 
         self._address_space = address_space
@@ -45,6 +54,7 @@ class Register_Block_Array_Decoded_Interface(Base_Interface):
         self._button_title = button_title
         self._decoding_info = decoding_info
         self._read_only = read_only
+        self._use_groups = use_groups
 
     def update_whether_modified(self):
         self._parent.update_whether_modified()
@@ -111,32 +121,34 @@ class Register_Block_Array_Decoded_Interface(Base_Interface):
         for col in range(value_columns):
             self._value_frame.columnconfigure((col + 1)*100, weight=1)
 
-        for value in values:
-            if 'display' in self._decoding_info[value] and not self._decoding_info[value]['display']:
-                continue
-            if index == 0:
-                first_value = value
-            column = int(index % value_columns)
-            row    = int(index / value_columns)
-            tk_column = (column + 1) * 100
-            tk_row = (row + 1) * 100
-            display_var = self._parent.get_decoded_display_var(self._address_space, self._block_name, value)
-            handle = Decoded_Value_Display(
-                self,
-                value_name=value,
-                display_var=display_var,
-                metadata=self._decoding_info[value]
-            )
-            handle.prepare_display(
-                self._value_frame,
-                tk_column,
-                tk_row
-            )
-            self._value_handle[value] = handle
-            index += 1
+        if not self._use_groups:
+            for value in values:
+                if 'display' in self._decoding_info[value] and not self._decoding_info[value]['display']:
+                    continue
+                if index == 0:
+                    first_value = value
+                column = int(index % value_columns)
+                row    = int(index / value_columns)
+                tk_column = (column + 1) * 100
+                tk_row = (row + 1) * 100
+                display_var = self._parent.get_decoded_display_var(self._address_space, self._block_name, value)
+                handle = Decoded_Value_Display(
+                    self,
+                    value_name=value,
+                    display_var=display_var,
+                    metadata=self._decoding_info[value]
+                )
+                handle.prepare_display(
+                    self._value_frame,
+                    tk_column,
+                    tk_row
+                )
+                self._value_handle[value] = handle
+                index += 1
 
         self.update_array_display_vars()
 
+        # Not currently working
         if first_value is not None:
             self._frame.update_idletasks()
             self._value_orig_size = self._value_handle[first_value].get_size()

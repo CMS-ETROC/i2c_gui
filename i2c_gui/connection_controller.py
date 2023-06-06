@@ -50,7 +50,7 @@ class Connection_Controller(GUI_Helper):
         parent: Base_GUI,
         usb_iss_max_seq_byte = 8,
         override_logger = None,
-        successive_i2c_delay_us : int = 1000,
+        successive_i2c_delay_us : int = 10000,
     ):
         if override_logger is None:
             super().__init__(parent, None, parent._logger)
