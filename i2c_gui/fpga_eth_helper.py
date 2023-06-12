@@ -69,6 +69,7 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
         self._write_fpga_config_register(5, 0xffff & (val>>16))
         time.sleep(0.01)
         self._pulse_fpga_register(0x0001)  # Send a pulse to IIC module
+        time.sleep(0.01)
 
         ack_error = self._read_fpga_status_register(0) & 0x0100  # the 9th bit of status register is ACK_ERROR
         return (ack_error == 0)  # if no error, return true
@@ -127,6 +128,7 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
             self._write_fpga_config_register(5, 0xffff & (val>>16))
             time.sleep(0.01)
             self._pulse_fpga_register(0x0001)
+            time.sleep(0.01)
 
             #read 8 bit data
             wr = 1  # Operation is a read
@@ -147,6 +149,7 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
             self._write_fpga_config_register(5, 0xffff & (val>>16))
             time.sleep(0.01)
             self._pulse_fpga_register(0x0001)
+            time.sleep(0.01)
 
             #read 8 bit data
             mode = 0  # Send an I2C message where 1 byte is acted on
