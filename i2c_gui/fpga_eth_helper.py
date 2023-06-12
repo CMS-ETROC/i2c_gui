@@ -31,6 +31,7 @@ import logging
 import time
 
 import socket
+import struct
 from .functions import validate_hostname
 
 class FPGA_ETH_Helper(I2C_Connection_Helper):
@@ -60,13 +61,131 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
         self._port_var.set(value)
 
     def _check_i2c_device(self, address: int):
-        return False  # TODO: implement this for the FPGA
+        mode = 0
+        wr = 1
+        val = mode << 24 | address << 17 | wr << 16  # write device addr and read one byte, ignore read address
+
+        self._write_fpga_config_register(4, 0xffff & val)
+        self._write_fpga_config_register(5, 0xffff & (val>>16))
+        time.sleep(0.01)
+        self._pulse_fpga_register(0x0001)  # Send a pulse to IIC module
+
+        ack_error = self._read_fpga_status_register(0) & 0x0100  # the 9th bit of status register is ACK_ERROR
+        return (ack_error == 0)  # if no error, return true
 
     def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16):
-        return  # TODO: implement this for the FPGA
+        for index in range(len(data)):
+            self._write_i2c_device_register(
+                i2c_address = address,
+                memory_address = memory_address + index,
+                data = data[index],
+                addressing_mode = register_bits,
+            )
+        return
+
+    def _write_i2c_device_register(self, i2c_address: int, memory_address: int, data: int, addressing_mode: int = 16):
+        mode = 1  # Send an I2C message where 2 bytes are acted on
+        wr = 0  # Operation is a write
+        if addressing_mode == 8 :
+            val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address) << 8 | (0xff & data)
+            self._write_fpga_config_register(4, 0xffff & val)
+            self._write_fpga_config_register(5, 0xffff & (val>>16))
+            time.sleep(0.01)
+            self._pulse_fpga_register(0x0001)
+            time.sleep(0.01)
+        elif addressing_mode == 16:
+            memory_address_lsb = 0x00ff & memory_address
+            memory_address_msb = 0xff00 & memory_address
+            val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address_lsb) << 8 | (0xff & data)
+            self._write_fpga_config_register(4, 0xffff & val)
+            self._write_fpga_config_register(5, 0xffff & (val>>16))
+            self._write_fpga_config_register(6, 0xfff & memory_address_msb)
+            time.sleep(0.01)
+            self._pulse_fpga_register(0x0001)
+            time.sleep(0.01)
+        else:
+            self.send_message("Unknown adressing mode for writing an i2c device register", "Error")
+        return
 
     def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16) -> list[int]:
-        return []  # TODO: implement this for the FPGA
+        retVal = []
+        for index in range(byte_count):
+            retVal += [self._read_i2c_device_register(
+                i2c_address = address,
+                memory_address = memory_address + index,
+                addressing_mode = register_bits,
+            )]
+        return retVal
+
+    def _read_i2c_device_register(self, i2c_address: int, memory_address: int, addressing_mode: int = 16) -> int:
+        if addressing_mode == 8 :
+            mode = 0  # Send an I2C message where 1 byte is acted on
+            wr = 0  # Operation is a write
+            val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address) << 8 | 0x00
+            #write 8 bit address first
+            self._write_fpga_config_register(4, 0xffff & val)
+            self._write_fpga_config_register(5, 0xffff & (val>>16))
+            time.sleep(0.01)
+            self._pulse_fpga_register(0x0001)
+
+            #read 8 bit data
+            wr = 1  # Operation is a read
+            val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address) << 8 | 0x00
+            self._write_fpga_config_register(4, 0xffff & val)
+            self._write_fpga_config_register(5, 0xffff & (val>>16))
+            time.sleep(0.01)
+            self._pulse_fpga_register(0x0001)
+            time.sleep(0.01)
+        elif addressing_mode == 16:
+            memory_address_lsb = 0x00ff & memory_address
+            memory_address_msb = 0xff00 & memory_address
+            #write 16 bit address first
+            mode = 1  # Send an I2C message where 2 bytes are acted on
+            wr = 0  # Operation is a write
+            val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address_lsb) << 8 | (0xff & (memory_address_msb >> 8))
+            self._write_fpga_config_register(4, 0xffff & val)
+            self._write_fpga_config_register(5, 0xffff & (val>>16))
+            time.sleep(0.01)
+            self._pulse_fpga_register(0x0001)
+
+            #read 8 bit data
+            mode = 0  # Send an I2C message where 1 byte is acted on
+            wr = 1  # Operation is a read
+            val = mode << 24 | (0x7f & i2c_address) << 17 | 1 << 16 | (0xff & memory_address_lsb) << 8 | 0x00
+            self._write_fpga_config_register(4, 0xffff & val)
+            self._write_fpga_config_register(5, 0xffff & (val>>16))
+            time.sleep(0.01)
+            self._pulse_fpga_register(0x0001)
+            time.sleep(0.01)
+        else:
+            self.send_message("Unknown adressing mode for reading an i2c device register", "Error")
+        return self._read_fpga_status_register(0) & 0x00ff
+
+    def _read_fpga_config_register(self, register_address: int):
+        package_data = 0x80200000 + (register_address << 16)
+        self._socket.sendall(struct.pack('I', package_data)[::-1])
+        return struct.unpack('I', self._socket.recv(4)[::-1])[0]
+
+    def _write_fpga_config_register(self, register_address: int, data: int):
+        package_data = 0x00200000 + (register_address << 16) + data
+        self._socket.sendall(struct.pack('I',package_data)[::-1])
+
+    def _read_fpga_status_register(self, register_address: int):
+        package_data = 0x80000000 + (register_address << 16)
+        self._socket.sendall(struct.pack('I',package_data)[::-1])
+        return struct.unpack('I', self._socket.recv(4)[::-1])[0]
+
+    def _pulse_fpga_register(self, register_address: int):
+        package_data = 0x000b0000 + register_address
+        self._socket.sendall(struct.pack('I',package_data)[::-1])
+
+    def _read_fpga_data_fifo(self, count: int):
+        package_data = 0x00190000 + (count -1)
+        self._socket.sendall(struct.pack('I', package_data)[::-1])
+        fifo_data = []
+        for i in range(count):
+            fifo_data += [struct.unpack('I', self._socket.recv(4)[::-1])[0]]
+        return fifo_data
 
     def display_in_frame(self, frame: ttk.Frame):
         if hasattr(self, '_frame') and self._frame is not None:
