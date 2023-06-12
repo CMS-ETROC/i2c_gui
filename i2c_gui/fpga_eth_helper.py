@@ -251,6 +251,8 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
     def disconnect(self):
         if not self._no_connect:
             self._socket.close()
+            del self._socket
+            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         if hasattr(self, "_hostname_entry"):
             self._hostname_entry.config(state="normal")
