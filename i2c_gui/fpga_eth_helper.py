@@ -99,7 +99,7 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
             val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address_lsb) << 8 | (0xff & data)
             self._write_fpga_config_register(4, 0xffff & val)
             self._write_fpga_config_register(5, 0xffff & (val>>16))
-            self._write_fpga_config_register(6, 0xfff & memory_address_msb)
+            self._write_fpga_config_register(6, 0xffff & (0xff &(memory_address_msb >> 8)))
             time.sleep(0.01)
             self._pulse_fpga_register(0x0001)
             time.sleep(0.01)
