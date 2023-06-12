@@ -85,9 +85,9 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
         return
 
     def _write_i2c_device_register(self, i2c_address: int, memory_address: int, data: int, addressing_mode: int = 16):
-        mode = 1  # Send an I2C message where 2 bytes are acted on
         wr = 0  # Operation is a write
         if addressing_mode == 8 :
+            mode = 1  # Send an I2C message where 2 bytes are acted on
             val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address) << 8 | (0xff & data)
             self._write_fpga_config_register(4, 0xffff & val)
             self._write_fpga_config_register(5, 0xffff & (val>>16))
@@ -97,6 +97,7 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
         elif addressing_mode == 16:
             memory_address_lsb = 0x00ff & memory_address
             memory_address_msb = 0xff00 & memory_address
+            mode = 2  # Send an I2C message where 3 bytes are acted on
             val = mode << 24 | (0x7f & i2c_address) << 17 | wr << 16 | (0xff & memory_address_lsb) << 8 | (0xff & data)
             self._write_fpga_config_register(4, 0xffff & val)
             self._write_fpga_config_register(5, 0xffff & (val>>16))
