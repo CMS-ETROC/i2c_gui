@@ -404,15 +404,30 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
         self._df = pandas.DataFrame(base_data)
 
-        pointer_idx = self._df["pointer"].loc[self._df["pointer"] != 0].index
-        if len(pointer_idx) != 0:
-            pointer_idx = pointer_idx[0]
-            new_idx = list(set(range(len(self._df))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
-            self._df = self._df.iloc[new_idx].reset_index(drop = True)
-            self._df["Time Index"] = self._df.index
+        df_length = len(self._df)
+        channels = 8
 
+        df_per_ch : list[pandas.DataFrame] = []
+        for ch in range(channels):
+            df_per_ch += [self._df.iloc[int(ch * df_length/channels):int((ch + 1) * df_length/channels)].copy()]
+            df_per_ch[ch].reset_index(inplace = True, drop = True)
+
+        pointer_idx = df_per_ch[-1]["pointer"].loc[df_per_ch[-1]["pointer"] != 0].index  # TODO: Maybe add a search of the pointer in any channel, not just the last one
+        if len(pointer_idx) != 0:  # If pointer found, reorder the data
+            pointer_idx = pointer_idx[0]
+            new_idx = list(set(range(len(df_per_ch[-1]))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
+            for ch in range(channels):
+                df_per_ch[ch] = df_per_ch[ch].iloc[new_idx].reset_index(drop = True)  # Fix indexes after reordering
+
+        # interleave the channels
+        for ch in range(channels):
+            df_per_ch[ch]["Time Index"] = df_per_ch[ch].index * channels + (channels - 1 - ch)  # Flip the order of the channels in the interleave...
+            df_per_ch[ch]["Channel"] = ch + 1
+
+        self._df = pandas.concat(df_per_ch)
         self._df["Time [ns]"] = self._df["Time Index"] * time_coeff
         self._df.set_index('Time Index', inplace=True)
+        self._df.sort_index(inplace=True)
 
         # Disable reading data from WS:
         self._ws_read_en.set(0)
