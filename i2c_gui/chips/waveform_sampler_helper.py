@@ -387,7 +387,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
                     "pointer": int(binary_data[0]),
                     "Dout_S1": Dout_S1,
                     "Dout_S2": Dout_S2,
-                    "Dout": Dout_S1*coeff + Dout_S2,
+                    "Dout": Dout_S1 - coeff * Dout_S2,
                 }
             )
 
