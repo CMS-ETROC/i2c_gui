@@ -354,13 +354,13 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C", no_message=True)
 
         # For loop to read data from WS
-        max_steps = 1024
+        max_steps = 1024  # Size of the data buffer inside the WS
         lastUpdateTime = time.time_ns()
         base_data = []
         coeff=0.04/5*8.5  # This number comes from the example script in the manual
         time_coeff = 1/2.56  # 2.56 GHz WS frequency
-        for time_idx in range(max_steps):
-            self._ws_read_address.set(hex_0fill(time_idx, 10))
+        for address in range(max_steps):
+            self._ws_read_address.set(hex_0fill(address, 10))
             self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_addr", no_message=True)
 
             self._parent.read_decoded_value("Waveform Sampler", "Status", "dout", no_message=True)
@@ -381,7 +381,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
             base_data.append(
                 {
-                    "Time Index": time_idx,
+                    "Data Address": address,
                     "Data": int(data, 0),
                     "Raw Data": bin(int(data, 0))[2:].zfill(14),
                     "pointer": int(binary_data[0]),
@@ -395,7 +395,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
             if thisTime - lastUpdateTime > 0.3 * 10**9:
                 lastUpdateTime = thisTime
                 if hasattr(self, "_dialog_progress"):
-                    self._dialog_progress['value'] = int(time_idx*100.0/max_steps)
+                    self._dialog_progress['value'] = int(address*100.0/max_steps)
                 if hasattr(self, "_window"):
                     self._window.update()
 
