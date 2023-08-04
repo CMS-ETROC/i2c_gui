@@ -424,6 +424,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
             df_per_ch[ch]["Time Index"] = df_per_ch[ch].index * channels + (channels - 1 - ch)  # Flip the order of the channels in the interleave...
             df_per_ch[ch]["Channel"] = ch + 1
 
+        # Actually put it all together in one dataframe and sort the data correctly
         self._df = pandas.concat(df_per_ch)
         self._df["Time [ns]"] = self._df["Time Index"] * time_coeff
         self._df.set_index('Time Index', inplace=True)
