@@ -250,7 +250,7 @@ rd_addr_handle = chip.get_decoded_display_var("Waveform Sampler", "Config", "rd_
 dout_handle = chip.get_decoded_display_var("Waveform Sampler", "Status", "dout")
 
 ### Run DAQ to send ws fc
-time_per_pixel = 30
+time_per_pixel = 5
 dead_time_per_pixel = 5
 total_scan_time = time_per_pixel + dead_time_per_pixel
 outname = 'ws_test'
@@ -270,8 +270,8 @@ IPC_queue.put('start onetime ws')
 while not IPC_queue.empty():
     pass
 
-time.sleep(time_per_pixel)
-IPC_queue.put('stop ws')
+# time.sleep(time_per_pixel)
+# IPC_queue.put('stop ws')
 
 time.sleep(1)
 IPC_queue.put('stop DAQ')
@@ -284,15 +284,14 @@ process.join()
 ### Read from WS memory
 ws_decoded_register_write("rd_en_I2C", "1")
 
-# For loop to read data from WS
-max_steps = 1024
+max_steps = 1024  # Size of the data buffer inside the WS
 lastUpdateTime = time.time_ns()
 base_data = []
-coeff = 0.04/5*8.5  # This number comes from the example script in the manual
+coeff=0.04/5*8.5  # This number comes from the example script in the manual
 time_coeff = 1/2.56  # 2.56 GHz WS frequency
 
-for time_idx in tqdm(range(max_steps)):
-    rd_addr_handle.set(hex(time_idx))
+for address in tqdm(range(max_steps)):
+    rd_addr_handle.set(hex(address))
     chip.write_decoded_value("Waveform Sampler", "Config", "rd_addr")
     chip.read_decoded_value("Waveform Sampler", "Status", "dout")
     data = dout_handle.get()
@@ -312,37 +311,51 @@ for time_idx in tqdm(range(max_steps)):
 
     base_data.append(
         {
-            "Time Index": time_idx,
+            "Data Address": address,
             "Data": int(data, 0),
             "Raw Data": bin(int(data, 0))[2:].zfill(14),
             "pointer": int(binary_data[0]),
             "Dout_S1": Dout_S1,
             "Dout_S2": Dout_S2,
-            "Dout": Dout_S1*coeff + Dout_S2,
+            "Dout": Dout_S1 - coeff * Dout_S2,
         }
     )
 
 df = pd.DataFrame(base_data)
 
-pointer_idx = df["pointer"].loc[df["pointer"] != 0].index
-if len(pointer_idx) != 0:
-    pointer_idx = pointer_idx[0]
-    new_idx = list(set(range(len(df))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
-    df = df.iloc[new_idx].reset_index(drop = True)
-    df["Time Index"] = df.index
+df_length = len(df)
+channels = 8
 
+df_per_ch : list[pd.DataFrame] = []
+for ch in range(channels):
+    df_per_ch += [df.iloc[int(ch * df_length/channels):int((ch + 1) * df_length/channels)].copy()]
+    df_per_ch[ch].reset_index(inplace = True, drop = True)
+
+pointer_idx = df_per_ch[-1]["pointer"].loc[df_per_ch[-1]["pointer"] != 0].index  # TODO: Maybe add a search of the pointer in any channel, not just the last one
+if len(pointer_idx) != 0:  # If pointer found, reorder the data
+    pointer_idx = pointer_idx[0]
+    new_idx = list(set(range(len(df_per_ch[-1]))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
+    for ch in range(channels):
+        df_per_ch[ch] = df_per_ch[ch].iloc[new_idx].reset_index(drop = True)  # Fix indexes after reordering
+
+# interleave the channels
+for ch in range(channels):
+    df_per_ch[ch]["Time Index"] = df_per_ch[ch].index * channels + (channels - 1 - ch)  # Flip the order of the channels in the interleave...
+    df_per_ch[ch]["Channel"] = ch + 1
+
+# Actually put it all together in one dataframe and sort the data correctly
+df = pd.concat(df_per_ch)
 df["Time [ns]"] = df["Time Index"] * time_coeff
 df.set_index('Time Index', inplace=True)
+df.sort_index(inplace=True)
 
 # Disable reading data from WS:
 ws_decoded_register_write("rd_en_I2C", "0")
 
-outdir = Path('../ETROC-Data')
-outdir = outdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
-outdir.mkdir(exist_ok=True)
-outfile = outdir / ("rawdataWS_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv")
-df.to_csv(outfile, index=False)
+output = "rawdataWS_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv"
+df.to_csv(output)
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(20, 8))
 ax.plot(df['Time [ns]'], df['Dout'])
+ax.set_xlabel('Time [ns]', fontsize=15)
 plt.show()
