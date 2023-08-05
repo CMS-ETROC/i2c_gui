@@ -67,6 +67,9 @@ def byte_flip_test(
     # counter for failure peripheral register testing
     failure_counter = 0
 
+    row_list = [0,1]
+    col_list = [0,1]
+    scan_list = list(zip(row_list,col_list))
     try:
         chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
         chip.config_i2c_address(chip_address)  # Not needed if you do not access ETROC registers (i.e. only access WS registers)
@@ -78,43 +81,41 @@ def byte_flip_test(
         pixelRegisterKeys = register_model["ETROC2"]["Register Blocks"]["Pixel Config"]["Registers"].keys()
         row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
         column_indexer_handle,_,_ = chip.get_indexer("column")
-        for row in range(16):
-            for col in range(16):
-                # print("Pixel", row, col)
-                column_indexer_handle.set(col)
-                row_indexer_handle.set(row)
+        for row,col in scan_list:
+            print("Pixel", row, col)
+            column_indexer_handle.set(col)
+            row_indexer_handle.set(row)
+            
+            for pixelRegisterKey in pixelRegisterKeys:
+                # Fetch the register
+                handle_PixCfgX = chip.get_indexed_var("ETROC2", "Pixel Config", pixelRegisterKey)
+                chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                data_bin_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
                 
-                for pixelRegisterKey in pixelRegisterKeys:
-                    
-                    # Fetch the register
-                    handle_PixCfgX = chip.get_indexed_var("ETROC2", "Pixel Config", pixelRegisterKey)
-                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
-                    data_bin_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
-                    
-                    # Make the flipped byte
-                    data_bin_modified_PixCfgX = data_bin_PixCfgX.replace('1', '2').replace('0', '1').replace('2', '0')
-                    data_hex_modified_PixCfgX = hex(int(data_bin_modified_PixCfgX, base=2))
-                    
-                    # Set the register with the value
-                    handle_PixCfgX.set(data_hex_modified_PixCfgX)
-                    chip.write_register("ETROC2", "Pixel Config", pixelRegisterKey)
-                    
-                    # Perform two reads to verify the persistence of the change
-                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
-                    data_bin_new_1_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
-                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
-                    data_bin_new_2_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
-                    
-                    # Undo the change to recover the original register value, and check for consistency
-                    handle_PixCfgX.set(hex(int(data_bin_PixCfgX, base=2)))
-                    chip.write_register("ETROC2", "Pixel Config", pixelRegisterKey)
-                    chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
-                    data_bin_recover_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
-                    
-                    # Handle what we learned from the tests
-                    if(data_bin_new_1_PixCfgX!=data_bin_new_2_PixCfgX or data_bin_new_2_PixCfgX!=data_bin_modified_PixCfgX or data_bin_recover_PixCfgX!=data_bin_PixCfgX): 
-                        failure_counter += 1
-                        #print(row, col, pixelRegisterKey,"FAILURE", data_bin_PixCfgX, "To", data_bin_new_1_PixCfgX,  "To", data_bin_new_2_PixCfgX, "To", data_bin_recover_PixCfgX)
+                # Make the flipped byte
+                data_bin_modified_PixCfgX = data_bin_PixCfgX.replace('1', '2').replace('0', '1').replace('2', '0')
+                data_hex_modified_PixCfgX = hex(int(data_bin_modified_PixCfgX, base=2))
+                
+                # Set the register with the value
+                handle_PixCfgX.set(data_hex_modified_PixCfgX)
+                chip.write_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                
+                # Perform two reads to verify the persistence of the change
+                chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                data_bin_new_1_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                data_bin_new_2_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                
+                # Undo the change to recover the original register value, and check for consistency
+                handle_PixCfgX.set(hex(int(data_bin_PixCfgX, base=2)))
+                chip.write_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                chip.read_register("ETROC2", "Pixel Config", pixelRegisterKey)
+                data_bin_recover_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                
+                # Handle what we learned from the tests
+                if(data_bin_new_1_PixCfgX!=data_bin_new_2_PixCfgX or data_bin_new_2_PixCfgX!=data_bin_modified_PixCfgX or data_bin_recover_PixCfgX!=data_bin_PixCfgX): 
+                    failure_counter += 1
+                    #print(row, col, pixelRegisterKey,"FAILURE", data_bin_PixCfgX, "To", data_bin_new_1_PixCfgX,  "To", data_bin_new_2_PixCfgX, "To", data_bin_recover_PixCfgX)
         
         if(failure_counter != 0):
             print("\033[1;31m Pixel byte flip testing is failed \033[0m")
@@ -188,4 +189,4 @@ if __name__ == "__main__":
     i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
     #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
-    byte_flip_test(log_level=log_level)
+    byte_flip_test(port=args.port,log_level=log_level)
