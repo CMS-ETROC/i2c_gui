@@ -47,6 +47,222 @@ from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
 from i2c_gui.chips.etroc2_chip import register_decoding
 
+sys.path.insert(1, f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
+import run_script
+importlib.reload(run_script)
+
+
+def chip_pixel_decoded_register_write(
+        chip: i2c_gui.chips.ETROC2_Chip,
+        decodedRegisterName: str,
+        data_to_write: str,
+                                 ):
+    bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Pixel Config"][decodedRegisterName]["bits"]
+    handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", decodedRegisterName)
+    chip.read_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+    if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
+    data_hex_modified = hex(int(data_to_write, base=2))
+    if(bit_depth>1): handle.set(data_hex_modified)
+    elif(bit_depth==1): handle.set(data_to_write)
+    else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
+    chip.write_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+
+DAC_scan_root = '../ETROC-Data'
+DAC_scan_file_pattern = "*FPGA_Data.dat"
+def take_trigger_data_for_DAC_scan(
+        chip: i2c_gui.chips.ETROC2_Chip,
+        current_DAC: int,
+        fpga_ip: str,
+        fpga_time: int,
+        QInj: int,
+        threshold_name: str,
+                                   ):
+    # Set the DAC v, Qinj {Qinj}fCalue to the value being scanned
+    chip_pixel_decoded_register_write(chip, "DAC", format(current_DAC, '010b'))
+
+    today_str = datetime.date.today().isoformat() # If the day changes while taking data, like this we guarantee to pick up the correct data below
+    (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {threshold_name} -v --reset_till_trigger_linked -s 0x000C -p 0x000f -d 0x0800 -c 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(current_DAC)}".split())
+    IPC_queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{current_DAC}'))
+    process.start()
+    process.join()
+
+    path_pattern = f"*{today_str}_Array_Test_Results/{threshold_name}"
+
+    file_list = []
+    for path, subdirs, files in os.walk(DAC_scan_root):
+        if not fnmatch(path, path_pattern): continue
+        for name in files:
+            pass
+            if fnmatch(name, DAC_scan_file_pattern):
+                file_list.append(os.path.join(path, name))
+                print(file_list[-1])
+
+    found_DAC = False
+    for file_index, file_name in enumerate(file_list):
+        with open(file_name) as infile:
+            for line in infile:
+                text_list = line.split(',')
+                FPGA_state = text_list[0]
+                FPGA_data = int(text_list[3])
+                DAC = int(text_list[5])
+                if DAC != current_DAC:
+                    continue
+                if FPGA_data is None:
+                    continue
+                return FPGA_data
+    return None
+
+def binary_search_DAC_scan(
+        QInj: int,
+        baseline: int,
+        baseline_offset: int,
+        chip: i2c_gui.chips.ETROC2_Chip,
+        pixel_row: int,
+        pixel_col: int,
+        extra_output_name: str, # use {run_name_extra}_{TID_str} for compatibility with old code
+        fpga_ip: str,
+        fpga_time: int,
+        baseline_step: int = 1,
+    ):
+    from math import floor, abs
+
+    row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+
+    # Set the pixel to act on
+    column_indexer_handle.set(pixel_col)
+    row_indexer_handle.set(pixel_row)
+    print("Pixel:",pixel_col,pixel_row)
+
+    # Enable charge injection
+    chip_pixel_decoded_register_write(chip, "disDataReadout", "0")
+    chip_pixel_decoded_register_write(chip, "QInjEn", "1")
+    chip_pixel_decoded_register_write(chip, "disTrigPath", "0")
+    # Bypass Cal Threshold
+    chip_pixel_decoded_register_write(chip, "Bypass_THCal", "1")
+
+    # Modifying charge injected
+    chip_pixel_decoded_register_write(chip, "QSel", format(QInj, '05b'))
+    threshold_name = f'E2_testing_VRef_SCurve_{extra_output_name}_Pixel_C{pixel_col}_R{pixel_row}_QInj_{QInj}_HVoff_pf_hits'
+
+    (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {threshold_name} -v -w --reset_till_trigger_linked -s 0x000C -p 0x000f -d 0x0800 -c 0x0001 --fpga_data_time_limit 3 --fpga_data_QInj --check_trigger_link_at_end --nodaq --clear_fifo".split())
+    IPC_queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
+    process.start()
+    process.join()
+
+    min_scan = baseline - baseline_offset
+    max_scan = 1023
+    scan_range = max_scan - min_scan
+    processed_DACs = {}
+
+    while True:
+        if len(processed_DACs) == 0:
+            current_DAC = min_scan
+        elif len(processed_DACs) == 1:
+            current_DAC = max_scan
+        elif len(processed_DACs) == 2:
+            current_DAC = floor(min_scan + scan_range/2.)
+        if current_DAC in processed_DACs:
+            print(f"DAC {current_DAC} already processed, exiting")
+            break
+        if current_DAC > max_scan or current_DAC < min_scan:
+            print(f"DAC {current_DAC} is outside the range, exiting")
+            break
+        print(QInj, current_DAC)
+
+        processed_DACs[current_DAC] = take_trigger_data_for_DAC_scan(
+            chip,
+            current_DAC,
+            fpga_ip,
+            fpga_time,
+            QInj,
+            threshold_name
+        )
+        if processed_DACs[current_DAC] is None:
+            processed_DACs.pop(current_DAC)
+            continue
+
+        if len(processed_DACs) < 3:
+            continue
+
+        from bisect import bisect_right, bisect_left
+        DAC_list = list(processed_DACs.keys())
+        DAC_list.sort()
+        previous_DAC = current_DAC
+        if processed_DACs[current_DAC] > 0:  # Go right
+            next_DAC = DAC_list[bisect_right(DAC_list, current_DAC)]
+            current_DAC = current_DAC + floor((next_DAC - current_DAC)/2.)
+            pass
+        else:  # Go left
+            prev_DAC = DAC_list[bisect_left(DAC_list, current_DAC) - 1]
+            current_DAC = current_DAC - floor((current_DAC - prev_DAC)/2.)
+            pass
+
+        if abs(current_DAC - previous_DAC) == 1: # Found the end
+            break
+
+    for step in range(11):
+        offset = step - 5
+        this_DAC = current_DAC + offset
+        if this_DAC > 1023 or this_DAC < 0:
+            continue
+        if this_DAC not in processed_DACs:
+            processed_DACs[this_DAC] = take_trigger_data_for_DAC_scan(
+                chip,
+                this_DAC,
+                fpga_ip,
+                fpga_time,
+                QInj,
+                threshold_name
+            )
+
+    if baseline not in processed_DACs:
+        processed_DACs[baseline] = take_trigger_data_for_DAC_scan(
+            chip,
+            baseline,
+            fpga_ip,
+            fpga_time,
+            QInj,
+            threshold_name
+        )
+
+    for step in range(0, baseline_offset, baseline_step):
+        this_DAC = baseline + step + 1
+        if this_DAC > 1023 or this_DAC < 0:
+            continue
+        if this_DAC not in processed_DACs:
+            processed_DACs[this_DAC] = take_trigger_data_for_DAC_scan(
+                chip,
+                this_DAC,
+                fpga_ip,
+                fpga_time,
+                QInj,
+                threshold_name
+            )
+
+    for step in range(0, baseline_offset, baseline_step):
+        this_DAC = baseline - step - 1
+        if this_DAC > 1023 or this_DAC < 0:
+            continue
+        if this_DAC not in processed_DACs:
+            processed_DACs[this_DAC] = take_trigger_data_for_DAC_scan(
+                chip,
+                this_DAC,
+                fpga_ip,
+                fpga_time,
+                QInj,
+                threshold_name
+            )
+                
+    # Disable charge injection
+    chip_pixel_decoded_register_write(chip, "QInjEn", "0")
+    chip_pixel_decoded_register_write(chip, "disDataReadout", "1")
+    chip_pixel_decoded_register_write(chip, "disTrigPath", "1")
+
+    return processed_DACs
+
 def check_I2C(
     chip: i2c_gui.chips.ETROC2_Chip,
     chip_name: str,
@@ -178,10 +394,6 @@ def run_TID(
         do_detailed = True,
         run_name_extra = None,
             ):
-    sys.path.insert(1, f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
-    import run_script
-    importlib.reload(run_script)
-
     ## Specify board name
     # !!!!!!!!!!!!
     # It is very important to correctly set the chip name, this value is stored with the data
