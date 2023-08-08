@@ -199,6 +199,7 @@ def run_TID(
     i2c_log_dir = data_dir / f'{TID_str}_{chip_name}_I2C'
     if run_name_extra is not None:
         i2c_log_dir = data_dir / f'{TID_str}_{chip_name}_{run_name_extra}_I2C'
+    i2c_log_dir.mkdir(exist_ok = False)
 
     ## Set defaults
     # 'If set, the full log will be saved to a file (i.e. the log level is ignored)'
