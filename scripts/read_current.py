@@ -153,7 +153,7 @@ class DeviceMeasurements():
 
 delay_time = 5
 
-device_meas = DeviceMeasurements(outdir=Path('../ETROC-History'), interval=delay_time)
+device_meas = DeviceMeasurements(outdir=Path('.'), interval=delay_time)
 
 device_meas.find_devices()
 device_meas.turn_on()
