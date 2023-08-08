@@ -141,7 +141,7 @@ class DeviceMeasurements():
         V2 = self._power_supply_instrument.query("V2O?")
         I2 = self._power_supply_instrument.query("I2O?")
         measurement = {
-            'timestamp': [datetime.datetime.now().isoformat()],
+            'timestamp': [datetime.datetime.now().isoformat(sep=' ')],
             'V1': [V1],
             'I1': [I1],
             'V2': [V2],
