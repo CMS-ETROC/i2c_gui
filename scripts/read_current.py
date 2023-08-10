@@ -59,6 +59,8 @@ class RepeatedTimer(object):
 class DeviceMeasurements():
     _power_supply_resource = None
     _power_supply_instrument = None
+    _vref_resource = None
+    _vref_instrument = None
     _rt = None
  
     def __init__(self, outdir: Path, interval: int):
@@ -82,8 +84,11 @@ class DeviceMeasurements():
                     instrument.write_termination = '\n'
                     instrument.read_termination = '\r\n'
                     idn = instrument.query('*IDN?')
-                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn:
+                    print(idn)
+                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and "506013" in idn:
                         self._power_supply_resource = resource
+                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and "565123" in idn:
+                        self._vref_resource = resource
                 except:
                     continue
 
@@ -92,25 +97,44 @@ class DeviceMeasurements():
         
     def turn_on(self, do_log = True):
         self._power_supply_instrument = self._rm.open_resource(self._power_supply_resource)
+        self._vref_instrument = self._rm.open_resource(self._vref_resource)
 
         self._power_supply_instrument.baud_rate = 9600
         self._power_supply_instrument.timeout = 5000
         self._power_supply_instrument.write_termination = '\n'
         self._power_supply_instrument.read_termination = '\r\n'
 
+        self._vref_instrument.baud_rate = 9600
+        self._vref_instrument.timeout = 5000
+        self._vref_instrument.write_termination = '\n'
+        self._vref_instrument.read_termination = '\r\n'
+
         self._power_supply_instrument.query("IFLOCK")  # Lock the device
+        self._vref_instrument.query("IFLOCK")  # Lock the device
 
         self._power_supply_instrument.write(f"V1 {1.2 + 0.022}")  # V1 is Analog supply
         self._power_supply_instrument.write(f"V2 {1.2 + 0.05}")  # V2 is Digital supply
         self._power_supply_instrument.write("I1 0.5")
         self._power_supply_instrument.write("I2 0.4")
 
+        self._vref_instrument.write(f"V1 1.0")  # V1 is VRef
+        #self._vref_instrument.write(f"V2 {1.2 + 0.05}")  # V2 is ...
+        self._vref_instrument.write("I1 0.1")
+        #self._vref_instrument.write("I2 0.4")
+
         self._power_supply_instrument.write("IRANGE1 1")  # Set both supplies to the lower current range for better resolution
         self._power_supply_instrument.write("IRANGE2 1")
 
+        self._vref_instrument.write("IRANGE1 1")  # Set both supplies to the lower current range for better resolution
+        self._vref_instrument.write("IRANGE2 1")
+
         self._power_supply_instrument.write("*CLS")
 
+        self._vref_instrument.write("*CLS")
+
         self._power_supply_instrument.write("OPALL 1")  # Turn both supplies on
+
+        self._vref_instrument.write("OPALL 1")  # Turn both supplies on
 
         if do_log:
             time.sleep(0.5)
@@ -121,10 +145,16 @@ class DeviceMeasurements():
         if self._rt is not None:
             self._rt.stop()
             self._rt = None
+
         if self._power_supply_instrument is not None:
             self._power_supply_instrument.write("OPALL 0")  # Turn both supplies on
 
             self._power_supply_instrument.query("IFUNLOCK")  # Release the lock
+
+        if self._vref_instrument is not None:
+            self._vref_instrument.write("OPALL 0")  # Turn both supplies on
+
+            self._vref_instrument.query("IFUNLOCK")  # Release the lock
 
     def log_measurement(self):
         measurement = self.do_measurement()
@@ -140,12 +170,21 @@ class DeviceMeasurements():
         I1 = self._power_supply_instrument.query("I1O?")
         V2 = self._power_supply_instrument.query("V2O?")
         I2 = self._power_supply_instrument.query("I2O?")
+        time = datetime.datetime.now().isoformat(sep=' ')
+
+        VRef1 = self._vref_instrument.query("V1O?")
+        IRef1 = self._vref_instrument.query("I1O?")
+        VRef2 = self._vref_instrument.query("V2O?")
+        IRef2 = self._vref_instrument.query("I2O?")
+        timeRef = datetime.datetime.now().isoformat(sep=' ')
+
         measurement = {
-            'timestamp': [datetime.datetime.now().isoformat(sep=' ')],
-            'V1': [V1],
-            'I1': [I1],
-            'V2': [V2],
-            'I2': [I2],
+            'timestamp': [time, timeRef],
+            'V1': [V1, VRef1],
+            'I1': [I1, IRef1],
+            'V2': [V2, VRef2],
+            'I2': [I2, IRef2],
+            'Instrument': ['Power', 'VRef'],
         }
 
         return measurement
