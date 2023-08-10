@@ -35,54 +35,68 @@ def plot_power(
 
         data_df['timestamp'] = pandas.to_datetime(data_df['timestamp'], infer_datetime_format=True, format='mixed')
 
-        data_df['V Analog [V]']  = (data_df['V1'].str.replace('V','')).astype(float)
-        data_df['V Digital [V]'] = (data_df['V2'].str.replace('V','')).astype(float)
-        data_df['I Analog [A]']  = (data_df['I1'].str.replace('A','')).astype(float)
-        data_df['I Digital [A]'] = (data_df['I2'].str.replace('A','')).astype(float)
-
         tmp_df = data_df.loc[data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=hours)]
 
-        figure, axis = plt.subplots(
-            nrows=2,
-            ncols=2,
-            sharex='col',
-            #sharey='row',
-        )
+        instruments = data_df['Instrument'].unique()
 
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'V Analog [V]',
-            kind = 'scatter',
-            ax=axis[0, 0],
-            #kind = 'line',
-        )
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'I Analog [A]',
-            kind = 'scatter',
-            ax=axis[1, 0],
-            #kind = 'line',
-        )
+        for instrument in instruments:
+            figure, axis = plt.subplots(
+                nrows=2,
+                ncols=2,
+                sharex='col',
+                #sharey='row',
+            )
 
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'V Digital [V]',
-            kind = 'scatter',
-            ax=axis[0, 1],
-            #kind = 'line',
-        )
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'I Digital [A]',
-            kind = 'scatter',
-            ax=axis[1, 1],
-            #kind = 'line',
-        )
+            this_df = tmp_df.loc[tmp_df['Instrument'] == instrument].copy()
 
-        plt.show()
+            if instrument == "Power":
+                V1_str = 'V Analog [V]'
+                V2_str = 'V Digital [V]'
+                I1_str = 'I Analog [A]'
+                I2_str = 'I Digital [A]'
+            else:
+                V1_str = 'V1 [V]'
+                V2_str = 'V2 [V]'
+                I1_str = 'I1 [A]'
+                I2_str = 'I2 [A]'
+            this_df[V1_str]  = (this_df['V1'].str.replace('V','')).astype(float)
+            this_df[V2_str] = (this_df['V2'].str.replace('V','')).astype(float)
+            this_df[I1_str]  = (this_df['I1'].str.replace('A','')).astype(float)
+            this_df[I2_str] = (this_df['I2'].str.replace('A','')).astype(float)
 
-        print(len(data_df))
-        print(len(tmp_df))
+            figure.suptitle(f'Voltage and Current plots for instrument {instrument}')
+
+            this_df.plot(
+                x = 'timestamp',
+                y = V1_str,
+                kind = 'scatter',
+                ax=axis[0, 0],
+                #kind = 'line',
+            )
+            this_df.plot(
+                x = 'timestamp',
+                y = I1_str,
+                kind = 'scatter',
+                ax=axis[1, 0],
+                #kind = 'line',
+            )
+
+            this_df.plot(
+                x = 'timestamp',
+                y = V2_str,
+                kind = 'scatter',
+                ax=axis[0, 1],
+                #kind = 'line',
+            )
+            this_df.plot(
+                x = 'timestamp',
+                y = I2_str,
+                kind = 'scatter',
+                ax=axis[1, 1],
+                #kind = 'line',
+            )
+
+            plt.show()
 
 if __name__ == "__main__":
     import argparse
