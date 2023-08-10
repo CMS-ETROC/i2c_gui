@@ -857,43 +857,47 @@ def run_TID(
     IPC_queue.put('allow threads to exit')
     process.join()
 
+    QInjEns = [10, 15, 20]
+
     ### Actual DAQ run
-    for i in range(8):
-        # Disable pixels for clean start
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        column_indexer_handle.set(0)
-        row_indexer_handle.set(0)
+    for QInj in QInjEns:
+        print(f'Taking data for QInj: {QInj}')
+        for i in range(8):
+            # Disable pixels for clean start
+            row_indexer_handle,_,_ = chip.get_indexer("row")
+            column_indexer_handle,_,_ = chip.get_indexer("column")
+            column_indexer_handle.set(0)
+            row_indexer_handle.set(0)
 
-        broadcast_handle,_,_ = chip.get_indexer("broadcast")
-        broadcast_handle.set(True)
-        pixel_decoded_register_write("disDataReadout", "1")
-        broadcast_handle.set(True)
-        pixel_decoded_register_write("QInjEn", "0")
-        broadcast_handle.set(True)
-        pixel_decoded_register_write("disTrigPath", "1")
+            broadcast_handle,_,_ = chip.get_indexer("broadcast")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disDataReadout", "1")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("QInjEn", "0")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disTrigPath", "1")
 
-        scan_list = list(zip(np.full(16, i), np.arange(16)))
-        print(scan_list)
+            scan_list = list(zip(np.full(16, i), np.arange(16)))
+            print(scan_list)
 
-        for row, col in scan_list:
-            column_indexer_handle.set(col)
-            row_indexer_handle.set(row)
+            for row, col in scan_list:
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
 
-            print(f"Enabling Pixel ({row},{col})")
+                print(f"Enabling Pixel ({row},{col})")
 
-            pixel_decoded_register_write("Bypass_THCal", "0")               # Bypass threshold calibration -> manual DAC setting
-            pixel_decoded_register_write("QSel", format(0x0e, '05b'))       # Ensure we inject 0 fC of charge
-            pixel_decoded_register_write("TH_offset", format(0x0c, '06b'))  # Offset used to add to the auto BL for real triggering
-            pixel_decoded_register_write("disDataReadout", "0")             # ENable readout
-            pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
-            pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b')) # Change L1A delay - circular buffer in ETROC2 pixel
-            pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
+                pixel_decoded_register_write("Bypass_THCal", "0")               # Bypass threshold calibration -> manual DAC setting
+                pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject 0 fC of charge
+                pixel_decoded_register_write("TH_offset", format(0x0c, '06b'))  # Offset used to add to the auto BL for real triggering
+                pixel_decoded_register_write("disDataReadout", "0")             # ENable readout
+                pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
+                pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b')) # Change L1A delay - circular buffer in ETROC2 pixel
+                pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
 
-        run_name = f'TID_testing_candidate_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
-        if run_name_extra is not None:
-            run_name = f'TID_testing_candidate_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
-        run_daq(10, 6, run_name)
+            run_name = f'TID_testing_candidate_Q{QInj}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
+            if run_name_extra is not None:
+                run_name = f'TID_testing_candidate_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
+            run_daq(10, 6, run_name)
 
     if do_detailed:
         check_I2C(
