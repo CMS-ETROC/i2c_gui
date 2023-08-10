@@ -81,6 +81,7 @@ def take_trigger_data_for_DAC_scan(
     chip_pixel_decoded_register_write(chip, "DAC", format(current_DAC, '010b'))
 
     today_str = datetime.date.today().isoformat() # If the day changes while taking data, like this we guarantee to pick up the correct data below
+    parser = run_script.getOptionParser()
     (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {threshold_name} -v --reset_till_trigger_linked -s 0x000C -p 0x000f -d 0x0800 -c 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(current_DAC)}".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{current_DAC}'))
@@ -125,7 +126,7 @@ def binary_search_DAC_scan(
         fpga_time: int,
         baseline_step: int = 1,
     ):
-    from math import floor, abs
+    from math import floor
 
     row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
     column_indexer_handle,_,_ = chip.get_indexer("column")
@@ -146,24 +147,26 @@ def binary_search_DAC_scan(
     chip_pixel_decoded_register_write(chip, "QSel", format(QInj, '05b'))
     threshold_name = f'E2_testing_VRef_SCurve_{extra_output_name}_Pixel_C{pixel_col}_R{pixel_row}_QInj_{QInj}_HVoff_pf_hits'
 
+    parser = run_script.getOptionParser()
     (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {threshold_name} -v -w --reset_till_trigger_linked -s 0x000C -p 0x000f -d 0x0800 -c 0x0001 --fpga_data_time_limit 3 --fpga_data_QInj --check_trigger_link_at_end --nodaq --clear_fifo".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
     process.start()
     process.join()
 
-    min_scan = baseline - baseline_offset
+    min_scan = int(baseline - baseline_offset)
     max_scan = 1023
-    scan_range = max_scan - min_scan
+    scan_range = int(max_scan - min_scan)
     processed_DACs = {}
 
+    has_knee = True
     while True:
         if len(processed_DACs) == 0:
-            current_DAC = min_scan
-        elif len(processed_DACs) == 1:
             current_DAC = max_scan
+        elif len(processed_DACs) == 1:
+            current_DAC = min_scan
         elif len(processed_DACs) == 2:
-            current_DAC = floor(min_scan + scan_range/2.)
+            current_DAC = int(floor(min_scan + scan_range/2.))
         if current_DAC in processed_DACs:
             print(f"DAC {current_DAC} already processed, exiting")
             break
@@ -184,6 +187,11 @@ def binary_search_DAC_scan(
             processed_DACs.pop(current_DAC)
             continue
 
+        if len(processed_DACs) == 3:
+            if processed_DACs[1023] > 0:
+                has_knee = False
+                break;
+
         if len(processed_DACs) < 3:
             continue
 
@@ -193,35 +201,36 @@ def binary_search_DAC_scan(
         previous_DAC = current_DAC
         if processed_DACs[current_DAC] > 0:  # Go right
             next_DAC = DAC_list[bisect_right(DAC_list, current_DAC)]
-            current_DAC = current_DAC + floor((next_DAC - current_DAC)/2.)
+            current_DAC = int(current_DAC + floor((next_DAC - current_DAC)/2.))
             pass
         else:  # Go left
             prev_DAC = DAC_list[bisect_left(DAC_list, current_DAC) - 1]
-            current_DAC = current_DAC - floor((current_DAC - prev_DAC)/2.)
+            current_DAC = int(current_DAC - floor((current_DAC - prev_DAC)/2.))
             pass
 
         if abs(current_DAC - previous_DAC) == 1: # Found the end
             break
 
-    for step in range(11):
-        offset = step - 5
-        this_DAC = current_DAC + offset
-        if this_DAC > 1023 or this_DAC < 0:
-            continue
-        if this_DAC not in processed_DACs:
-            processed_DACs[this_DAC] = take_trigger_data_for_DAC_scan(
-                chip,
-                this_DAC,
-                fpga_ip,
-                fpga_time,
-                QInj,
-                threshold_name
-            )
+    if has_knee:
+        for step in range(11):
+            offset = step - 5
+            this_DAC = current_DAC + offset
+            if this_DAC > 1023 or this_DAC < 0:
+                continue
+            if this_DAC not in processed_DACs:
+                processed_DACs[this_DAC] = take_trigger_data_for_DAC_scan(
+                    chip,
+                    this_DAC,
+                    fpga_ip,
+                    fpga_time,
+                    QInj,
+                    threshold_name
+                )
 
-    if baseline not in processed_DACs:
-        processed_DACs[baseline] = take_trigger_data_for_DAC_scan(
+    if int(baseline) not in processed_DACs:
+        processed_DACs[int(baseline)] = take_trigger_data_for_DAC_scan(
             chip,
-            baseline,
+            int(baseline),
             fpga_ip,
             fpga_time,
             QInj,
@@ -229,7 +238,7 @@ def binary_search_DAC_scan(
         )
 
     for step in range(0, baseline_offset, baseline_step):
-        this_DAC = baseline + step + 1
+        this_DAC = int(baseline + step + 1)
         if this_DAC > 1023 or this_DAC < 0:
             continue
         if this_DAC not in processed_DACs:
@@ -243,7 +252,7 @@ def binary_search_DAC_scan(
             )
 
     for step in range(0, baseline_offset, baseline_step):
-        this_DAC = baseline - step - 1
+        this_DAC = int(baseline - step - 1)
         if this_DAC > 1023 or this_DAC < 0:
             continue
         if this_DAC not in processed_DACs:
@@ -1139,46 +1148,31 @@ def run_TID(
     base_dir = Path(todaystr)
     base_dir.mkdir(exist_ok=True)
 
-    data = []
+    data = {}
 
     # Loop for enable/disable charge injection per pixel (single!!!)
-    for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):  
-        column_indexer_handle.set(col)
-        row_indexer_handle.set(row)
-        print("Pixel:",col,row)
-        # Enable charge injection
-        pixel_decoded_register_write("disDataReadout", "0")
-        pixel_decoded_register_write("QInjEn", "1")
-        pixel_decoded_register_write("disTrigPath", "0")
-        # Bypass Cal Threshold
-        pixel_decoded_register_write("Bypass_THCal", "1")
+    for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):
+        if (row,col) not in data:
+            data[(row, col)] = {}
         for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
-            # Modifying charge injected
-            pixel_decoded_register_write("QSel", format(QInj, '05b'))
-            threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}_HVoff_pf_hits'
-            (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {threshold_name} -v -w --reset_till_trigger_linked -s 0x000C -p 0x000f -d 0x0800 -c 0x0001 --fpga_data_time_limit 3 --fpga_data_QInj --check_trigger_link_at_end --nodaq --clear_fifo".split())
-            IPC_queue = multiprocessing.Queue()
-            process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
-            process.start()
-            process.join()
-            
-            for DAC in tqdm(thresholds[QInj][:], desc=f'DAC Loop for Pixel {col},{row}', leave=False):
-                DAC = int(BL_map_THCal[row][col]+DAC)
-                print(QInj, DAC)
+            extra_name = f'{TID_str}'
+            if run_name_extra is not None:
+                extra_name = f"{run_name_extra}_{TID_str}"
 
-                # Set the DAC v, Qinj {Qinj}fCalue to the value being scanned
-                pixel_decoded_register_write("DAC", format(DAC, '010b'))
+            triggers = binary_search_DAC_scan(
+                QInj,
+                BL_map_THCal[row][col],
+                10,
+                chip,
+                row,
+                col,
+                extra_name,
+                fpga_ip,
+                fpga_time,
+                baseline_step=1,
+            )
 
-                (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {threshold_name} -v --reset_till_trigger_linked -s 0x000C -p 0x000f -d 0x0800 -c 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
-                IPC_queue = multiprocessing.Queue()
-                process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{DAC}'))
-                process.start()
-                process.join()
-                
-        # Disable charge injection
-        pixel_decoded_register_write("QInjEn", "0")
-        pixel_decoded_register_write("disDataReadout", "1")
-        pixel_decoded_register_write("disTrigPath", "1")
+            data[(row, col)][QInj] = triggers
 
 
     if do_detailed:
@@ -1189,96 +1183,39 @@ def run_TID(
             file_comment = "AfterQInjDACScan",
         )
 
-    sCurve_df = pandas.DataFrame(data=data)
-
-    outdir = Path('../ETROC-Data')
-    outdir = outdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
-    outdir.mkdir(exist_ok=True)
-    outfile = outdir / (scan_name + "_at_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv")
-    sCurve_df.to_csv(outfile, index=False)
-
     ### Choose Pixel To Plot Full Scan Output
 
     # DAC_row_list = [15, 0, 0, 0]
     # DAC_col_list = [7, 15, 7, 0]
     row = 0
     col = 0
-    DAC_plot_row_list = [row]
-    DAC_plot_col_list = [col]
 
-    root = '../ETROC-Data'
-    file_pattern = "*FPGA_Data.dat"
-    BL = int(BL_map_THCal[row][col])
-    hitmap_full_Scurve = {row:{col:{q:{thr+BL:0 for thr in thresholds[q]} for q in QInjEns} for col in range(16)} for row in range(16)}
-    sum_data_hitmap_full_Scurve = {row:{col:{q:{thr+BL:0 for thr in thresholds[q]} for q in QInjEns} for col in range(16)} for row in range(16)}
-    sum2_data_hitmap_full_Scurve = {row:{col:{q:{thr+BL:0 for thr in thresholds[q]} for q in QInjEns} for col in range(16)} for row in range(16)}
-    for index, row, col in zip((range(len(DAC_plot_row_list))), DAC_plot_row_list, DAC_plot_col_list):
-        for QInj in (QInjEns):
-            print(f'Pixel {col},{row} - {QInj} fC')
-            path_pattern = f"*{today.isoformat()}_Array_Test_Results/E2_testing_VRef_SCurve_{TID_str}_Pixel_C{col}_R{row}_QInj_{QInj}_HVoff_pf_hits"
-            if run_name_extra is not None:
-                path_pattern = f"*{today.isoformat()}_Array_Test_Results/E2_testing_VRef_SCurve_{run_name_extra}_{TID_str}_Pixel_C{col}_R{row}_QInj_{QInj}_HVoff_pf_hits"
-            file_list = []
-            for path, subdirs, files in os.walk(root):
-                if not fnmatch(path, path_pattern): continue
-                for name in files:
-                    pass
-                    if fnmatch(name, file_pattern):
-                        file_list.append(os.path.join(path, name))
-                        print(file_list[-1])
-            total_files = len(file_list)
-            for file_index, file_name in enumerate(file_list):
-                print(f"{file_index+1}/{total_files}")
-                with open(file_name) as infile:
-                    for line in infile:
-                        text_list = line.split(',')
-                        FPGA_state = text_list[0]
-                        FPGA_data = int(text_list[3])
-                        DAC = int(text_list[5])
-                        if DAC == -1: continue
-                        try:
-                            sum_data_hitmap_full_Scurve[row][col][QInj][DAC] += FPGA_data
-                            hitmap_full_Scurve[row][col][QInj][DAC] += 1
-                        except:
-                            print(f"Couldn't find DAC: {DAC} in file list")
-
-    data_mean = {row:{col:{q:{thr+BL:0 for thr in thresholds[q]} for q in QInjEns} for col in range(16)} for row in range(16)}
-    for index, row, col in zip((range(len(DAC_plot_row_list))), DAC_plot_row_list, DAC_plot_col_list):
-        for QInj in (QInjEns):
-            for DAC in (thresholds[QInj]):
-                DAC = int(DAC)+BL
-                if(hitmap_full_Scurve[row][col][QInj][DAC]==0): 
-                    data_mean[row][col][QInj][DAC] = 0
-                    continue
-                data_mean[row][col][QInj][DAC] = sum_data_hitmap_full_Scurve[row][col][QInj][DAC]/hitmap_full_Scurve[row][col][QInj][DAC]
+    # data[(row, col)][QInj][DAC] = triggers
 
     colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00']
 
-    fig = plt.figure(dpi=200, figsize=(8,4.5))
-    gs = fig.add_gridspec(1,1)
-    u_cl = np.sort(np.unique(DAC_plot_col_list))
-    u_rl = np.sort(np.unique(DAC_plot_row_list))
-    for ri,row in enumerate(u_rl):
-        for ci,col in enumerate(u_cl):
-            ax0 = fig.add_subplot(gs[len(u_rl)-ri-1,len(u_cl)-ci-1])
-            ax0.axvline(BL_map_THCal[row][col], color='k', label="THCal BL", lw=0.7)
-            ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label="THCal NW", lw=0.7)
-            ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
-            for i, QInj in enumerate(QInjEns[0:]):
-                ax0.plot([thr+BL for thr in thresholds[QInj]], data_mean[row][col][QInj].values(), '.-', color=colors[i], label=f"{QInj} fC",lw=0.5,markersize=2)
-            ax0.set_xlabel("DAC Value [decimal]")
-            ax0.set_ylabel("Data Counts [decimal]")
-            # ax0.text(0.7, 0.8, f"Pixel {row},{col}", transform=ax0.transAxes)
-            plt.legend(loc="upper right")
-            plt.yscale("log")
-        plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Full S-Curve")
-        plt.tight_layout()
+    fig, ax0 = plt.subplots(dpi=200, figsize=(8,4.5))
+    ax0.axvline(BL_map_THCal[row][col], color='k', label="THCal BL", lw=0.7)
+    ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label="THCal NW", lw=0.7)
+    ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
+
+    for i, qinj in enumerate(QInjEns[0:]):
+        x = list(data[(row,col)][qinj].keys())
+        y = [data[(row,col)][qinj][dac] for dac in x]
+        ax0.plot(x, y, '.-', color=colors[i], label=f"{qinj} fC",lw=0.5,markersize=2)
+
+    ax0.set_xlabel("DAC Value [decimal]")
+    ax0.set_ylabel("Trigger Counts [decimal]")
+    plt.legend(loc="upper right")
+    plt.yscale("log")
+    plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Full S-Curve")
+    plt.tight_layout()
     plt.savefig(fig_path+"/Full_S-Curve_"+chip_figname+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
 
     # Disconnect chip
     conn.disconnect()
 
-if __name__ == "__main__":
+def main():
     import argparse
     
     parser = argparse.ArgumentParser(
@@ -1338,3 +1275,7 @@ if __name__ == "__main__":
             TID_str = args.TID_str,
             do_detailed = args.do_detailed,
         )
+
+
+if __name__ == "__main__":
+    main()
