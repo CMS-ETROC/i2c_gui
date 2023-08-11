@@ -40,9 +40,12 @@ def plot_power(
         instruments = data_df['Instrument'].unique()
 
         for instrument in instruments:
+            ncols = 2
+            if instrument == 'VRef':
+                ncols = 1
             figure, axis = plt.subplots(
                 nrows=2,
-                ncols=2,
+                ncols=ncols,
                 sharex='col',
                 #sharey='row',
             )
@@ -66,35 +69,46 @@ def plot_power(
 
             figure.suptitle(f'Voltage and Current plots for instrument {instrument}')
 
+            
+            if instrument == 'VRef':
+                this_ax = axis[0]
+            else:
+                this_ax = axis[0, 0]
             this_df.plot(
                 x = 'timestamp',
                 y = V1_str,
                 kind = 'scatter',
-                ax=axis[0, 0],
+                ax=this_ax,
                 #kind = 'line',
             )
+
+            if instrument == 'VRef':
+                this_ax = axis[1]
+            else:
+                this_ax = axis[1, 0]
             this_df.plot(
                 x = 'timestamp',
                 y = I1_str,
                 kind = 'scatter',
-                ax=axis[1, 0],
+                ax=this_ax,
                 #kind = 'line',
             )
 
-            this_df.plot(
-                x = 'timestamp',
-                y = V2_str,
-                kind = 'scatter',
-                ax=axis[0, 1],
-                #kind = 'line',
-            )
-            this_df.plot(
-                x = 'timestamp',
-                y = I2_str,
-                kind = 'scatter',
-                ax=axis[1, 1],
-                #kind = 'line',
-            )
+            if instrument == "Power":
+                this_df.plot(
+                    x = 'timestamp',
+                    y = V2_str,
+                    kind = 'scatter',
+                    ax=axis[0, 1],
+                    #kind = 'line',
+                )
+                this_df.plot(
+                    x = 'timestamp',
+                    y = I2_str,
+                    kind = 'scatter',
+                    ax=axis[1, 1],
+                    #kind = 'line',
+                )
 
             plt.show()
 
