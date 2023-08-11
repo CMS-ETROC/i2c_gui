@@ -67,11 +67,15 @@ class DeviceMeasurements():
     _power_V2_set = 1.2 + 0.05
     _power_I1_limit = 0.5
     _power_I2_limit = 0.4
+    _power_1_on = False
+    _power_2_on = False
 
     _vref_V1_set = 1.0
     _vref_V2_set = 0.0
     _vref_I1_limit = 0.01
     _vref_I2_limit = 0.0
+    _vref_1_on = False
+    _vref_2_on = False
 
     def __init__(self, outdir: Path, interval: int):
         self._rm = pyvisa.ResourceManager()
@@ -80,6 +84,46 @@ class DeviceMeasurements():
 
         if self._interval < 3:
             self._interval = 3
+
+    def set_power_V1(self, voltage: float):
+        self._power_V1_set = voltage
+        if self._power_1_on:
+            self._power_supply_instrument.write(f"V1 {self._power_V1_set}")
+
+    def set_power_V2(self, voltage: float):
+        self._power_V2_set = voltage
+        if self._power_2_on:
+            self._power_supply_instrument.write(f"V2 {self._power_V2_set}")
+
+    def set_vref_V1(self, voltage: float):
+        self._vref_V1_set = voltage
+        if self._vref_1_on:
+            self._vref_instrument.write(f"V1 {self._vref_V1_set}")
+
+    def set_vref_V2(self, voltage: float):
+        self._vref_V2_set = voltage
+        if self._vref_2_on:
+            self._vref_instrument.write(f"V2 {self._vref_V2_set}")
+
+    def set_power_I1_limit(self, current: float):
+        self._power_I1_limit = current
+        if self._power_1_on:
+            self._power_supply_instrument.write(f"I1 {self._power_I1_limit}")
+
+    def set_power_I2_limit(self, current: float):
+        self._power_I2_limit = current
+        if self._power_2_on:
+            self._power_supply_instrument.write(f"I2 {self._power_I2_limit}")
+
+    def set_vref_I1_limit(self, current: float):
+        self._vref_I1_limit = current
+        if self._vref_1_on:
+            self._vref_supply_instrument.write(f"I1 {self._vref_I1_limit}")
+
+    def set_vref_I2_limit(self, current: float):
+        self._vref_I2_limit = current
+        if self._vref_2_on:
+            self._vref_supply_instrument.write(f"I2 {self._vref_I2_limit}")
 
     def find_devices(self):
         resources = self._rm.list_resources()
@@ -127,6 +171,8 @@ class DeviceMeasurements():
             self._power_supply_instrument.write("*CLS")
 
             self._power_supply_instrument.write("OPALL 1")  # Turn both supplies on
+            self._power_1_on = True
+            self._power_2_on = True
 
         if self._vref_resource is not None:
             self._vref_instrument = self._rm.open_resource(self._vref_resource)
@@ -149,6 +195,8 @@ class DeviceMeasurements():
             self._vref_instrument.write("*CLS")
 
             self._vref_instrument.write("OPALL 1")  # Turn both supplies on
+            self._vref_1_on = True
+            self._vref_2_on = True
 
         if do_log:
             time.sleep(0.5)
@@ -165,10 +213,16 @@ class DeviceMeasurements():
 
             self._power_supply_instrument.query("IFUNLOCK")  # Release the lock
 
+            self._power_1_on = False
+            self._power_2_on = False
+
         if self._vref_instrument is not None:
             self._vref_instrument.write("OPALL 0")  # Turn both supplies on
 
             self._vref_instrument.query("IFUNLOCK")  # Release the lock
+
+            self._vref_1_on = False
+            self._vref_2_on = False
 
     def log_measurement(self):
         measurement = self.do_measurement()
