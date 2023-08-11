@@ -40,6 +40,7 @@ import subprocess
 import sqlite3
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from fnmatch import fnmatch
+import signal
 
 import i2c_gui
 import i2c_gui.chips
@@ -1335,65 +1336,71 @@ def main():
 
     args = parser.parse_args()
 
-    if args.infinite_loop:
-        count = 0
-        while True:
-            run_TID(
-                chip_name = args.chip_name,
-                TID_str = args.TID_str,
-                do_detailed = args.do_detailed,
-                run_name_extra = f"Run{count}",
-                do_knee_finding = args.do_knee_finding,
-            )
-            count += 1
-    elif args.maxV is not None and args.minV is not None:
-        from read_current import DeviceMeasurements
-        delay_time = 5
-        powerDevices = DeviceMeasurements(outdir=Path('.'), interval=delay_time)
-        powerDevices.find_devices()
-        powerDevices.turn_on()
+    count = 0
+    while True:
+        run_str = f"Run{count}"
 
-        do_analog = False
-        do_digital = False
-        voltage_str = "None"
-        if args.scanTypeV == 'Digital':
-            do_digital = True
-            voltage_str = "VD"
-        elif args.scanTypeV == 'Analog':
-            do_analog = True
-            voltage_str = "VA"
-        elif args.scanTypeV == 'Both':
-            do_analog = True
-            do_digital = True
-            voltage_str = "V"
+        if args.maxV is not None and args.minV is not None:
+            from read_current import DeviceMeasurements
+            delay_time = 5
+            powerDevices = DeviceMeasurements(outdir=Path('.'), interval=delay_time)
+            powerDevices.find_devices()
+            powerDevices.turn_on()
+
+            def signal_handler(sig, frame):
+                print("Exiting gracefully")
+
+                powerDevices.turn_off()
+
+                sys.exit(0)
+
+            signal.signal(signal.SIGINT, signal_handler)
+
+            do_analog = False
+            do_digital = False
+            voltage_str = "None"
+            if args.scanTypeV == 'Digital':
+                do_digital = True
+                voltage_str = "VD"
+            elif args.scanTypeV == 'Analog':
+                do_analog = True
+                voltage_str = "VA"
+            elif args.scanTypeV == 'Both':
+                do_analog = True
+                do_digital = True
+                voltage_str = "V"
+            else:
+                raise RuntimeError("Unknown scanTypeV selected")
+
+            voltage_list = list(np.linspace(args.minV, args.maxV, (args.maxV - args.minV)/args.stepV))
+            if args.reverseVScan:
+                voltage_list.reverse()
+
+            for voltage in voltage_list:
+                if do_analog:
+                    powerDevices.set_power_V1(voltage)
+                if do_digital:
+                    powerDevices.set_power_V2(voltage)
+                run_TID(
+                    chip_name = args.chip_name,
+                    TID_str = args.TID_str,
+                    do_detailed = args.do_detailed,
+                    run_name_extra = f"{voltage_str}{voltage}_{run_str}",
+                    do_knee_finding = args.do_knee_finding,
+                )
+            powerDevices.turn_off()
         else:
-            raise RuntimeError("Unknown scanTypeV selected")
-
-        voltage_list = list(np.linspace(args.minV, args.maxV, (args.maxV - args.minV)/args.stepV))
-        if args.reverseVScan:
-            voltage_list.reverse()
-
-        for voltage in voltage_list:
-            if do_analog:
-                powerDevices.set_power_V1(voltage)
-            if do_digital:
-                powerDevices.set_power_V2(voltage)
             run_TID(
                 chip_name = args.chip_name,
                 TID_str = args.TID_str,
                 do_detailed = args.do_detailed,
-                run_name_extra = f"{voltage_str}{voltage}",
+                run_name_extra = run_str,
                 do_knee_finding = args.do_knee_finding,
             )
-        powerDevices.turn_off()
-    else:
-        run_TID(
-            chip_name = args.chip_name,
-            TID_str = args.TID_str,
-            do_detailed = args.do_detailed,
-            do_knee_finding = args.do_knee_finding,
-        )
 
+        count += 1
+        if not args.infinite_loop:
+            break
 
 if __name__ == "__main__":
     main()
