@@ -1316,6 +1316,22 @@ def main():
         default = 0.05,
         dest = 'stepV',
     )
+    parser.add_argument(
+        '--scanTypeV',
+        metavar = 'TYPE',
+        type = str,
+        help = 'Type of voltage scan to perform, must be one of Analog, Digital or Both. Default: Digital. The code assumes V1 is the Analog power supply and V2 is the Digital power supply.',
+        choices = ['Analog', 'Both', 'Digital'],
+        default = 'Digital',
+        dest = 'scanTypeV',
+    )
+    parser.add_argument(
+        '-r',
+        '--reverseVScan',
+        help = 'Do the V scan from higher voltage values to lower voltage values, instead of the default low to high.',
+        action = 'store_true',
+        dest = 'reverseVScan',
+    )
 
     args = parser.parse_args()
 
@@ -1336,14 +1352,37 @@ def main():
         powerDevices = DeviceMeasurements(outdir=Path('.'), interval=delay_time)
         powerDevices.find_devices()
         powerDevices.turn_on()
-        for voltage in np.linspace(args.minV, args.maxV, (args.maxV - args.minV)/args.stepV):
-            powerDevices.set_power_V1(voltage)
-            powerDevices.set_power_V2(voltage)
+
+        do_analog = False
+        do_digital = False
+        voltage_str = "None"
+        if args.scanTypeV == 'Digital':
+            do_digital = True
+            voltage_str = "VD"
+        elif args.scanTypeV == 'Analog':
+            do_analog = True
+            voltage_str = "VA"
+        elif args.scanTypeV == 'Both':
+            do_analog = True
+            do_digital = True
+            voltage_str = "V"
+        else:
+            raise RuntimeError("Unknown scanTypeV selected")
+
+        voltage_list = list(np.linspace(args.minV, args.maxV, (args.maxV - args.minV)/args.stepV))
+        if args.reverseVScan:
+            voltage_list.reverse()
+
+        for voltage in voltage_list:
+            if do_analog:
+                powerDevices.set_power_V1(voltage)
+            if do_digital:
+                powerDevices.set_power_V2(voltage)
             run_TID(
                 chip_name = args.chip_name,
                 TID_str = args.TID_str,
                 do_detailed = args.do_detailed,
-                run_name_extra = f"V{voltage}",
+                run_name_extra = f"{voltage_str}{voltage}",
                 do_knee_finding = args.do_knee_finding,
             )
         powerDevices.turn_off()
