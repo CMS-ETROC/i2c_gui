@@ -62,6 +62,16 @@ class DeviceMeasurements():
     _vref_resource = None
     _vref_instrument = None
     _rt = None
+
+    _power_V1_set = 1.2 + 0.022
+    _power_V2_set = 1.2 + 0.05
+    _power_I1_limit = 0.5
+    _power_I2_limit = 0.4
+
+    _vref_V1_set = 1.0
+    _vref_V2_set = 0.0
+    _vref_I1_limit = 0.01
+    _vref_I2_limit = 0.0
  
     def __init__(self, outdir: Path, interval: int):
         self._rm = pyvisa.ResourceManager()
@@ -112,15 +122,15 @@ class DeviceMeasurements():
         self._power_supply_instrument.query("IFLOCK")  # Lock the device
         self._vref_instrument.query("IFLOCK")  # Lock the device
 
-        self._power_supply_instrument.write(f"V1 {1.2 + 0.022}")  # V1 is Analog supply
-        self._power_supply_instrument.write(f"V2 {1.2 + 0.05}")  # V2 is Digital supply
-        self._power_supply_instrument.write("I1 0.5")
-        self._power_supply_instrument.write("I2 0.4")
+        self._power_supply_instrument.write(f"V1 {self._power_V1_set}")  # V1 is Analog supply
+        self._power_supply_instrument.write(f"V2 {self._power_V2_set}")  # V2 is Digital supply
+        self._power_supply_instrument.write(f"I1 {self._power_I1_limit}")
+        self._power_supply_instrument.write(f"I2 {self._power_I2_limit}")
 
-        self._vref_instrument.write(f"V1 1.0")  # V1 is VRef
-        #self._vref_instrument.write(f"V2 {1.2 + 0.05}")  # V2 is ...
-        self._vref_instrument.write("I1 0.1")
-        #self._vref_instrument.write("I2 0.4")
+        self._vref_instrument.write(f"V1 {self._vref_V1_set}")  # V1 is VRef
+        self._vref_instrument.write(f"V2 {self._vref_V2_set}")  # V2 is ...
+        self._vref_instrument.write(f"I1 {self._vref_I1_limit}")
+        self._vref_instrument.write(f"I2 {self._vref_I2_limit}")
 
         self._power_supply_instrument.write("IRANGE1 1")  # Set both supplies to the lower current range for better resolution
         self._power_supply_instrument.write("IRANGE2 1")
