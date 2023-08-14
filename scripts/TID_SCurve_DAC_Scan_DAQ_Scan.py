@@ -1247,7 +1247,7 @@ def run_TID(
 
                     pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject selected charge
 
-                    for DAC in range(pixel_baseline, pixel_max_dac + 1, 2):
+                    for DAC in range(int(pixel_baseline), int(pixel_max_dac + 1), 2):
                         print(f"Enabling Pixel ({row},{col}) with charge {QInj} fC and DAC {DAC}")
 
                         pixel_decoded_register_write("DAC", format(DAC, '010b'))
