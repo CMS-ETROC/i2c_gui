@@ -407,6 +407,7 @@ def run_TID(
         do_detailed = True,
         run_name_extra = None,
         do_knee_finding: bool = False,
+        do_full_scan: bool = False,
             ):
     ## Specify board name
     # !!!!!!!!!!!!
@@ -1213,6 +1214,67 @@ def run_TID(
                 file_comment = "AfterQInjDACScan",
             )
 
+
+        if do_full_scan:
+            overscan_DAC = 5
+            row_indexer_handle,_,_ = chip.get_indexer("row")
+            column_indexer_handle,_,_ = chip.get_indexer("column")
+            column_indexer_handle.set(0)
+            row_indexer_handle.set(0)
+            broadcast_handle,_,_ = chip.get_indexer("broadcast")
+
+            # Disable all pixels for clean start
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disDataReadout", "1")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("QInjEn", "0")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disTrigPath", "1")
+
+            for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):
+                pixel_baseline = BL_map_THCal[row][col]
+
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+                pixel_decoded_register_write("Bypass_THCal", "1")               # Bypass threshold calibration -> manual DAC setting
+                pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b')) # Change L1A delay - circular buffer in ETROC2 pixel
+
+                pixel_decoded_register_write("disDataReadout", "0")             # ENable readout
+                pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
+
+                for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
+                    pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
+
+                    pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject selected charge
+
+                    for DAC in range(pixel_baseline, pixel_max_dac + 1, 2):
+                        print(f"Enabling Pixel ({row},{col}) with charge {QInj} fC and DAC {DAC}")
+
+                        pixel_decoded_register_write("DAC", format(DAC, '010b'))
+
+                        run_name = f'TID_FullScan_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_DAC{DAC}_Q{QInj}_{chip_name.replace("_","")}_'+TID_str+f'_R{row}_C{col}'
+                        if run_name_extra is not None:
+                            run_name = f'TID_FullScan_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_DAC{DAC}_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{row}_C{col}'
+
+                        pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
+                        run_daq(10, 4, run_name)
+                        pixel_decoded_register_write("QInjEn", "0")
+
+                # Disable pixel after taking data to make sure everything is off
+                pixel_decoded_register_write("disDataReadout", "1")
+                pixel_decoded_register_write("disTrigPath", "1")
+                pixel_decoded_register_write("DAC", format(1023, '010b'))
+
+                pixel_decoded_register_write("Bypass_THCal", "0")               # Bypass threshold calibration -> manual DAC setting
+
+            if do_detailed:
+                check_I2C(
+                    chip = chip,
+                    chip_name = chip_name,
+                    i2c_log_dir = i2c_log_dir,
+                    file_comment = "AfterFullScan",
+                )
+
         ### Choose Pixel To Plot Full Scan Output
 
         # DAC_row_list = [15, 0, 0, 0]
@@ -1292,6 +1354,13 @@ def main():
         help = 'Do knee finding',
         action = 'store_true',
         dest = 'do_knee_finding',
+    )
+    parser.add_argument(
+        '-f',
+        '--doFullScan',
+        help = 'Do full scan, taking regular data, of QInj and DAC threshold using the knee position found with the knee finding. i.e. this scan is only done if knee finding is enabled',
+        action = 'store_true',
+        dest = 'do_full_scan',
     )
     parser.add_argument(
         '--minV',
@@ -1387,6 +1456,7 @@ def main():
                     do_detailed = args.do_detailed,
                     run_name_extra = f"{voltage_str}{voltage}_{run_str}",
                     do_knee_finding = args.do_knee_finding,
+                    do_full_scan = args.do_full_scan,
                 )
             powerDevices.turn_off()
         else:
@@ -1396,6 +1466,7 @@ def main():
                 do_detailed = args.do_detailed,
                 run_name_extra = run_str,
                 do_knee_finding = args.do_knee_finding,
+                do_full_scan = args.do_full_scan,
             )
 
         count += 1
