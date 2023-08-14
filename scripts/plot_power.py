@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 
 def plot_power(
         hours: int,
+        endHours: int,
         file: Path,
     ):
     with sqlite3.connect(file) as sqlite3_connection:
@@ -35,7 +36,12 @@ def plot_power(
 
         data_df['timestamp'] = pandas.to_datetime(data_df['timestamp'], infer_datetime_format=True, format='mixed')
 
-        tmp_df = data_df.loc[data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=hours)]
+        if endHours is not None:
+            tmp_sel = data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=(hours + endHours))
+            tmp_sel = tmp_sel & (data_df['timestamp'] < datetime.datetime.now() - datetime.timedelta(hours=endHours))
+            tmp_df = data_df.loc[tmp_sel]
+        else:
+            tmp_df = data_df.loc[data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=hours)]
 
         instruments = data_df['Instrument'].unique()
 
@@ -131,6 +137,15 @@ if __name__ == "__main__":
         dest = 'hours',
     )
     parser.add_argument(
+        '-e',
+        '--endHours',
+        metavar = 'HOURS',
+        type = int,
+        help = 'From when to go back and plot. Default: None',
+        default = None,
+        dest = 'endHours',
+    )
+    parser.add_argument(
         '-f',
         '--file',
         metavar = 'PATH',
@@ -142,4 +157,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    plot_power(args.hours, args.file)
+    plot_power(args.hours, args.endHours, args.file)
