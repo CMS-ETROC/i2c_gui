@@ -51,7 +51,7 @@ class RepeatedTimer(object):
             self._timer = Timer(self.interval, self._run)
             self._timer.start()
             self.is_running = True
-    
+
     def stop(self):
         self._timer.cancel()
         self.is_running = False
@@ -67,12 +67,16 @@ class DeviceMeasurements():
     _power_V2_set = 1.2 + 0.05
     _power_I1_limit = 0.5
     _power_I2_limit = 0.4
+    _power_1_on = False
+    _power_2_on = False
 
     _vref_V1_set = 1.0
     _vref_V2_set = 0.0
     _vref_I1_limit = 0.01
     _vref_I2_limit = 0.0
- 
+    _vref_1_on = False
+    _vref_2_on = False
+
     def __init__(self, outdir: Path, interval: int):
         self._rm = pyvisa.ResourceManager()
         self._interval = interval
@@ -80,6 +84,46 @@ class DeviceMeasurements():
 
         if self._interval < 3:
             self._interval = 3
+
+    def set_power_V1(self, voltage: float):
+        self._power_V1_set = voltage
+        if self._power_1_on:
+            self._power_supply_instrument.write(f"V1 {self._power_V1_set}")
+
+    def set_power_V2(self, voltage: float):
+        self._power_V2_set = voltage
+        if self._power_2_on:
+            self._power_supply_instrument.write(f"V2 {self._power_V2_set}")
+
+    def set_vref_V1(self, voltage: float):
+        self._vref_V1_set = voltage
+        if self._vref_1_on:
+            self._vref_instrument.write(f"V1 {self._vref_V1_set}")
+
+    def set_vref_V2(self, voltage: float):
+        self._vref_V2_set = voltage
+        if self._vref_2_on:
+            self._vref_instrument.write(f"V2 {self._vref_V2_set}")
+
+    def set_power_I1_limit(self, current: float):
+        self._power_I1_limit = current
+        if self._power_1_on:
+            self._power_supply_instrument.write(f"I1 {self._power_I1_limit}")
+
+    def set_power_I2_limit(self, current: float):
+        self._power_I2_limit = current
+        if self._power_2_on:
+            self._power_supply_instrument.write(f"I2 {self._power_I2_limit}")
+
+    def set_vref_I1_limit(self, current: float):
+        self._vref_I1_limit = current
+        if self._vref_1_on:
+            self._vref_supply_instrument.write(f"I1 {self._vref_I1_limit}")
+
+    def set_vref_I2_limit(self, current: float):
+        self._vref_I2_limit = current
+        if self._vref_2_on:
+            self._vref_supply_instrument.write(f"I2 {self._vref_I2_limit}")
 
     def find_devices(self):
         resources = self._rm.list_resources()
@@ -104,47 +148,55 @@ class DeviceMeasurements():
 
         if self._power_supply_resource is None:
             raise RuntimeError("Unable to find the power supply")
-        
+
     def turn_on(self, do_log = True):
-        self._power_supply_instrument = self._rm.open_resource(self._power_supply_resource)
-        self._vref_instrument = self._rm.open_resource(self._vref_resource)
+        if self._power_supply_resource is not None:
+            self._power_supply_instrument = self._rm.open_resource(self._power_supply_resource)
 
-        self._power_supply_instrument.baud_rate = 9600
-        self._power_supply_instrument.timeout = 5000
-        self._power_supply_instrument.write_termination = '\n'
-        self._power_supply_instrument.read_termination = '\r\n'
+            self._power_supply_instrument.baud_rate = 9600
+            self._power_supply_instrument.timeout = 5000
+            self._power_supply_instrument.write_termination = '\n'
+            self._power_supply_instrument.read_termination = '\r\n'
 
-        self._vref_instrument.baud_rate = 9600
-        self._vref_instrument.timeout = 5000
-        self._vref_instrument.write_termination = '\n'
-        self._vref_instrument.read_termination = '\r\n'
+            self._power_supply_instrument.query("IFLOCK")  # Lock the device
 
-        self._power_supply_instrument.query("IFLOCK")  # Lock the device
-        self._vref_instrument.query("IFLOCK")  # Lock the device
+            self._power_supply_instrument.write(f"V1 {self._power_V1_set}")  # V1 is Analog supply
+            self._power_supply_instrument.write(f"V2 {self._power_V2_set}")  # V2 is Digital supply
+            self._power_supply_instrument.write(f"I1 {self._power_I1_limit}")
+            self._power_supply_instrument.write(f"I2 {self._power_I2_limit}")
 
-        self._power_supply_instrument.write(f"V1 {self._power_V1_set}")  # V1 is Analog supply
-        self._power_supply_instrument.write(f"V2 {self._power_V2_set}")  # V2 is Digital supply
-        self._power_supply_instrument.write(f"I1 {self._power_I1_limit}")
-        self._power_supply_instrument.write(f"I2 {self._power_I2_limit}")
+            self._power_supply_instrument.write("IRANGE1 1")  # Set both supplies to the lower current range for better resolution
+            self._power_supply_instrument.write("IRANGE2 1")
 
-        self._vref_instrument.write(f"V1 {self._vref_V1_set}")  # V1 is VRef
-        self._vref_instrument.write(f"V2 {self._vref_V2_set}")  # V2 is ...
-        self._vref_instrument.write(f"I1 {self._vref_I1_limit}")
-        self._vref_instrument.write(f"I2 {self._vref_I2_limit}")
+            self._power_supply_instrument.write("*CLS")
 
-        self._power_supply_instrument.write("IRANGE1 1")  # Set both supplies to the lower current range for better resolution
-        self._power_supply_instrument.write("IRANGE2 1")
+            self._power_supply_instrument.write("OPALL 1")  # Turn both supplies on
+            self._power_1_on = True
+            self._power_2_on = True
 
-        self._vref_instrument.write("IRANGE1 1")  # Set both supplies to the lower current range for better resolution
-        self._vref_instrument.write("IRANGE2 1")
+        if self._vref_resource is not None:
+            self._vref_instrument = self._rm.open_resource(self._vref_resource)
 
-        self._power_supply_instrument.write("*CLS")
+            self._vref_instrument.baud_rate = 9600
+            self._vref_instrument.timeout = 5000
+            self._vref_instrument.write_termination = '\n'
+            self._vref_instrument.read_termination = '\r\n'
 
-        self._vref_instrument.write("*CLS")
+            self._vref_instrument.query("IFLOCK")  # Lock the device
 
-        self._power_supply_instrument.write("OPALL 1")  # Turn both supplies on
+            self._vref_instrument.write(f"V1 {self._vref_V1_set}")  # V1 is VRef
+            self._vref_instrument.write(f"V2 {self._vref_V2_set}")  # V2 is ...
+            self._vref_instrument.write(f"I1 {self._vref_I1_limit}")
+            self._vref_instrument.write(f"I2 {self._vref_I2_limit}")
 
-        self._vref_instrument.write("OPALL 1")  # Turn both supplies on
+            self._vref_instrument.write("IRANGE1 1")  # Set both supplies to the lower current range for better resolution
+            self._vref_instrument.write("IRANGE2 1")
+
+            self._vref_instrument.write("*CLS")
+
+            self._vref_instrument.write("OPALL 1")  # Turn both supplies on
+            self._vref_1_on = True
+            self._vref_2_on = True
 
         if do_log:
             time.sleep(0.5)
@@ -161,10 +213,16 @@ class DeviceMeasurements():
 
             self._power_supply_instrument.query("IFUNLOCK")  # Release the lock
 
+            self._power_1_on = False
+            self._power_2_on = False
+
         if self._vref_instrument is not None:
             self._vref_instrument.write("OPALL 0")  # Turn both supplies on
 
             self._vref_instrument.query("IFUNLOCK")  # Release the lock
+
+            self._vref_1_on = False
+            self._vref_2_on = False
 
     def log_measurement(self):
         measurement = self.do_measurement()
@@ -176,26 +234,42 @@ class DeviceMeasurements():
             df.to_sql('power', sqlconn, if_exists='append', index=False)
 
     def do_measurement(self):
-        V1 = self._power_supply_instrument.query("V1O?")
-        I1 = self._power_supply_instrument.query("I1O?")
-        V2 = self._power_supply_instrument.query("V2O?")
-        I2 = self._power_supply_instrument.query("I2O?")
-        time = datetime.datetime.now().isoformat(sep=' ')
-
-        VRef1 = self._vref_instrument.query("V1O?")
-        IRef1 = self._vref_instrument.query("I1O?")
-        VRef2 = self._vref_instrument.query("V2O?")
-        IRef2 = self._vref_instrument.query("I2O?")
-        timeRef = datetime.datetime.now().isoformat(sep=' ')
-
         measurement = {
-            'timestamp': [time, timeRef],
-            'V1': [V1, VRef1],
-            'I1': [I1, IRef1],
-            'V2': [V2, VRef2],
-            'I2': [I2, IRef2],
-            'Instrument': ['Power', 'VRef'],
+            'timestamp': [],
+            'V1': [],
+            'I1': [],
+            'V2': [],
+            'I2': [],
+            'Instrument': [],
         }
+
+        if self._power_supply_instrument is not None:
+            V1 = self._power_supply_instrument.query("V1O?")
+            I1 = self._power_supply_instrument.query("I1O?")
+            V2 = self._power_supply_instrument.query("V2O?")
+            I2 = self._power_supply_instrument.query("I2O?")
+            time = datetime.datetime.now().isoformat(sep=' ')
+
+            measurement["timestamp"] += [time]
+            measurement["V1"] += [V1]
+            measurement["I1"] += [I1]
+            measurement["V2"] += [V2]
+            measurement["I2"] += [I2]
+            measurement["Instrument"] += ['Power']
+
+        if self._vref_instrument is not None:
+            VRef1 = self._vref_instrument.query("V1O?")
+            IRef1 = self._vref_instrument.query("I1O?")
+            VRef2 = self._vref_instrument.query("V2O?")
+            IRef2 = self._vref_instrument.query("I2O?")
+            timeRef = datetime.datetime.now().isoformat(sep=' ')
+
+            measurement["timestamp"] += [time]
+            measurement["V1"] += [V1]
+            measurement["I1"] += [I1]
+            measurement["V2"] += [V2]
+            measurement["I2"] += [I2]
+            measurement["Instrument"] += ['VRef']
 
         return measurement
 
