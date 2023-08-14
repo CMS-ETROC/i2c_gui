@@ -53,6 +53,34 @@ import run_script
 importlib.reload(run_script)
 
 
+def chip_broadcast_decoded_register_write(
+        chip: i2c_gui.chips.ETROC2_Chip,
+        decodedRegisterName: str,
+        data_to_write: str,
+                                          ):
+    row_indexer_handle,_,_ = chip.get_indexer("row")
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+
+    bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Pixel Config"][decodedRegisterName]["bits"]
+    handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", decodedRegisterName)
+
+    if len(data_to_write)!=bit_depth:
+        print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
+    data_hex_modified = hex(int(data_to_write, base=2))
+
+    for row in range(16):
+        for col in range(16):
+            row_indexer_handle.set(row)
+            column_indexer_handle.set(col)
+
+            chip.read_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+
+            if(bit_depth>1): handle.set(data_hex_modified)
+            elif(bit_depth==1): handle.set(data_to_write)
+            else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
+
+            chip.write_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+
 def chip_pixel_decoded_register_write(
         chip: i2c_gui.chips.ETROC2_Chip,
         decodedRegisterName: str,
@@ -785,37 +813,22 @@ def run_TID(
     column_indexer_handle.set(0)
     row_indexer_handle.set(0)
 
-    broadcast_handle,_,_ = chip.get_indexer("broadcast")
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("disDataReadout", "1")
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("QInjEn", "0")
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("disTrigPath", "1")
+    chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+    chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+    chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
     # Release the maximum and minimum range for trigger and data
-    pixel_decoded_register_write("upperTOATrig", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperTOTTrig", format(0x1ff, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperCalTrig", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperTOA", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOA", format(0x000, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperTOT", format(0x1ff, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOT", format(0x000, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperCal", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerCal", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOATrig", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOATrig", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOTTrig", format(0x1ff, '09b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOTTrig", format(0x000, '09b'))
+    chip_broadcast_decoded_register_write(chip, "upperCalTrig", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerCalTrig", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOA", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOA", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOT", format(0x1ff, '09b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOT", format(0x000, '09b'))
+    chip_broadcast_decoded_register_write(chip, "upperCal", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerCal", format(0x000, '010b'))
 
 
     # Run DAQ scanning by row to study multiple pixels TOT and TOA
@@ -884,13 +897,9 @@ def run_TID(
             column_indexer_handle.set(0)
             row_indexer_handle.set(0)
 
-            broadcast_handle,_,_ = chip.get_indexer("broadcast")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disDataReadout", "1")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("QInjEn", "0")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disTrigPath", "1")
+            chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+            chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+            chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
             scan_list = list(zip(np.full(16, i), np.arange(16)))
             print(scan_list)
@@ -914,13 +923,9 @@ def run_TID(
                 run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
             run_daq(10, 6, run_name)
 
-            broadcast_handle,_,_ = chip.get_indexer("broadcast")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disDataReadout", "1")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("QInjEn", "0")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disTrigPath", "1")
+            chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+            chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+            chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
     if do_detailed:
         check_I2C(
@@ -1221,15 +1226,11 @@ def run_TID(
             column_indexer_handle,_,_ = chip.get_indexer("column")
             column_indexer_handle.set(0)
             row_indexer_handle.set(0)
-            broadcast_handle,_,_ = chip.get_indexer("broadcast")
 
             # Disable all pixels for clean start
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disDataReadout", "1")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("QInjEn", "0")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disTrigPath", "1")
+            chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+            chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+            chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
             for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):
                 pixel_baseline = BL_map_THCal[row][col]
