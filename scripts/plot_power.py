@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 
 def plot_power(
         hours: int,
+        endHours: int,
         file: Path,
     ):
     with sqlite3.connect(file) as sqlite3_connection:
@@ -35,54 +36,87 @@ def plot_power(
 
         data_df['timestamp'] = pandas.to_datetime(data_df['timestamp'], infer_datetime_format=True, format='mixed')
 
-        data_df['V Analog [V]']  = (data_df['V1'].str.replace('V','')).astype(float)
-        data_df['V Digital [V]'] = (data_df['V2'].str.replace('V','')).astype(float)
-        data_df['I Analog [A]']  = (data_df['I1'].str.replace('A','')).astype(float)
-        data_df['I Digital [A]'] = (data_df['I2'].str.replace('A','')).astype(float)
+        if endHours is not None:
+            tmp_sel = data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=(hours + endHours))
+            tmp_sel = tmp_sel & (data_df['timestamp'] < datetime.datetime.now() - datetime.timedelta(hours=endHours))
+            tmp_df = data_df.loc[tmp_sel]
+        else:
+            tmp_df = data_df.loc[data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=hours)]
 
-        tmp_df = data_df.loc[data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=hours)]
+        instruments = data_df['Instrument'].unique()
 
-        figure, axis = plt.subplots(
-            nrows=2,
-            ncols=2,
-            sharex='col',
-            #sharey='row',
-        )
+        for instrument in instruments:
+            ncols = 2
+            if instrument == 'VRef':
+                ncols = 1
+            figure, axis = plt.subplots(
+                nrows=2,
+                ncols=ncols,
+                sharex='col',
+                #sharey='row',
+            )
 
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'V Analog [V]',
-            kind = 'scatter',
-            ax=axis[0, 0],
-            #kind = 'line',
-        )
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'I Analog [A]',
-            kind = 'scatter',
-            ax=axis[1, 0],
-            #kind = 'line',
-        )
+            this_df = tmp_df.loc[tmp_df['Instrument'] == instrument].copy()
 
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'V Digital [V]',
-            kind = 'scatter',
-            ax=axis[0, 1],
-            #kind = 'line',
-        )
-        tmp_df.plot(
-            x = 'timestamp',
-            y = 'I Digital [A]',
-            kind = 'scatter',
-            ax=axis[1, 1],
-            #kind = 'line',
-        )
+            if instrument == "Power":
+                V1_str = 'V Analog [V]'
+                V2_str = 'V Digital [V]'
+                I1_str = 'I Analog [A]'
+                I2_str = 'I Digital [A]'
+            else:
+                V1_str = 'V1 [V]'
+                V2_str = 'V2 [V]'
+                I1_str = 'I1 [A]'
+                I2_str = 'I2 [A]'
+            this_df[V1_str]  = (this_df['V1'].str.replace('V','')).astype(float)
+            this_df[V2_str] = (this_df['V2'].str.replace('V','')).astype(float)
+            this_df[I1_str]  = (this_df['I1'].str.replace('A','')).astype(float)
+            this_df[I2_str] = (this_df['I2'].str.replace('A','')).astype(float)
 
-        plt.show()
+            figure.suptitle(f'Voltage and Current plots for instrument {instrument}')
 
-        print(len(data_df))
-        print(len(tmp_df))
+            
+            if instrument == 'VRef':
+                this_ax = axis[0]
+            else:
+                this_ax = axis[0, 0]
+            this_df.plot(
+                x = 'timestamp',
+                y = V1_str,
+                kind = 'scatter',
+                ax=this_ax,
+                #kind = 'line',
+            )
+
+            if instrument == 'VRef':
+                this_ax = axis[1]
+            else:
+                this_ax = axis[1, 0]
+            this_df.plot(
+                x = 'timestamp',
+                y = I1_str,
+                kind = 'scatter',
+                ax=this_ax,
+                #kind = 'line',
+            )
+
+            if instrument == "Power":
+                this_df.plot(
+                    x = 'timestamp',
+                    y = V2_str,
+                    kind = 'scatter',
+                    ax=axis[0, 1],
+                    #kind = 'line',
+                )
+                this_df.plot(
+                    x = 'timestamp',
+                    y = I2_str,
+                    kind = 'scatter',
+                    ax=axis[1, 1],
+                    #kind = 'line',
+                )
+
+            plt.show()
 
 if __name__ == "__main__":
     import argparse
@@ -103,6 +137,15 @@ if __name__ == "__main__":
         dest = 'hours',
     )
     parser.add_argument(
+        '-e',
+        '--endHours',
+        metavar = 'HOURS',
+        type = int,
+        help = 'From when to go back and plot. Default: None',
+        default = None,
+        dest = 'endHours',
+    )
+    parser.add_argument(
         '-f',
         '--file',
         metavar = 'PATH',
@@ -114,4 +157,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    plot_power(args.hours, args.file)
+    plot_power(args.hours, args.endHours, args.file)

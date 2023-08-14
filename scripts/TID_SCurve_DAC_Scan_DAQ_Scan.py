@@ -40,6 +40,7 @@ import subprocess
 import sqlite3
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from fnmatch import fnmatch
+import signal
 
 import i2c_gui
 import i2c_gui.chips
@@ -106,12 +107,13 @@ def take_trigger_data_for_DAC_scan(
                 text_list = line.split(',')
                 FPGA_state = text_list[0]
                 FPGA_data = int(text_list[3])
-                DAC = int(text_list[5])
+                triggerbit_data = int(text_list[5])
+                DAC = int(text_list[6])
                 if DAC != current_DAC:
                     continue
-                if FPGA_data is None:
+                if triggerbit_data is None:
                     continue
-                return FPGA_data
+                return triggerbit_data
     return None
 
 def binary_search_DAC_scan(
@@ -160,6 +162,7 @@ def binary_search_DAC_scan(
     processed_DACs = {}
 
     has_knee = True
+    knee_DAC = None
     while True:
         if len(processed_DACs) == 0:
             current_DAC = max_scan
@@ -190,7 +193,7 @@ def binary_search_DAC_scan(
         if len(processed_DACs) == 3:
             if processed_DACs[1023] > 0:
                 has_knee = False
-                break;
+                break
 
         if len(processed_DACs) < 3:
             continue
@@ -209,6 +212,7 @@ def binary_search_DAC_scan(
             pass
 
         if abs(current_DAC - previous_DAC) == 1: # Found the end
+            knee_DAC = current_DAC
             break
 
     if has_knee:
@@ -264,13 +268,13 @@ def binary_search_DAC_scan(
                 QInj,
                 threshold_name
             )
-                
+
     # Disable charge injection
     chip_pixel_decoded_register_write(chip, "QInjEn", "0")
     chip_pixel_decoded_register_write(chip, "disDataReadout", "1")
     chip_pixel_decoded_register_write(chip, "disTrigPath", "1")
 
-    return processed_DACs
+    return processed_DACs, knee_DAC
 
 def check_I2C(
     chip: i2c_gui.chips.ETROC2_Chip,
@@ -278,7 +282,7 @@ def check_I2C(
     i2c_log_dir: Path,
     file_comment: str = None,
     do_peripheral: bool = True,
-    do_pixel: bool = True,    
+    do_pixel: bool = True,
     ):
     if do_peripheral:
         ## Check basic I2C functionatity and consistency
@@ -324,7 +328,7 @@ def check_I2C(
                 'chip_name': chip_name,
             }]
             # print(f"PeriCfg{peripheralRegisterKey:2}", data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX)
-            if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX): 
+            if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX):
                 print(f"PeriCfg{peripheralRegisterKey:2}", "FAILURE")
 
         this_df = pandas.DataFrame(data = data)
@@ -385,7 +389,7 @@ def check_I2C(
                     'timestamp': timestamp,
                     'chip_name': chip_name,
                 }]
-                if(data_bin_new_1_PixCfgX!=data_bin_new_2_PixCfgX or data_bin_new_2_PixCfgX!=data_bin_modified_PixCfgX or data_bin_recover_PixCfgX!=data_bin_PixCfgX): 
+                if(data_bin_new_1_PixCfgX!=data_bin_new_2_PixCfgX or data_bin_new_2_PixCfgX!=data_bin_modified_PixCfgX or data_bin_recover_PixCfgX!=data_bin_PixCfgX):
                     print(row,col,f"PixCfg{pixelRegisterKey:2}","FAILURE", data_bin_PixCfgX, "To", data_bin_new_1_PixCfgX,  "To", data_bin_new_2_PixCfgX, "To", data_bin_recover_PixCfgX)
 
         this_df = pandas.DataFrame(data = data)
@@ -402,6 +406,8 @@ def run_TID(
         ws_address = None,
         do_detailed = True,
         run_name_extra = None,
+        do_knee_finding: bool = False,
+        do_full_scan: bool = False,
             ):
     ## Specify board name
     # !!!!!!!!!!!!
@@ -431,7 +437,7 @@ def run_TID(
     #  ["CRITICAL","ERROR","WARNING","INFO","DEBUG","TRACE","DETAILED_TRACE","NOTSET"]
     log_level_text = "WARNING"
     # 'The port name the USB-ISS module is connected to. Default: COM3'
-    
+
 
     if log_file:
         #logging.basicConfig(filename=log_file, filemode='w', encoding='utf-8', level=logging.NOTSET, format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
@@ -627,7 +633,7 @@ def run_TID(
             pixel_decoded_register_write("CLKEn_THCal", "1")
             pixel_decoded_register_write("BufEn_THCal", "1")
             pixel_decoded_register_write("Bypass_THCal", "0")
-            pixel_decoded_register_write("TH_offset", format(0x04, '06b'))
+            pixel_decoded_register_write("TH_offset", format(0x0c, '06b'))
             # Reset the calibration block (active low)
             pixel_decoded_register_write("RSTn_THCal", "0")
             pixel_decoded_register_write("RSTn_THCal", "1")
@@ -646,12 +652,12 @@ def run_TID(
                 'timestamp': datetime.datetime.now(),
                 'chip_name': chip_name,
             }]
-            # Disable clock and buffer before charge injection 
-            pixel_decoded_register_write("CLKEn_THCal", "0") 
+            # Disable clock and buffer before charge injection
+            pixel_decoded_register_write("CLKEn_THCal", "0")
             pixel_decoded_register_write("BufEn_THCal", "0")
-            
+
             pixel_decoded_register_write("Bypass_THCal", "1")
-            pixel_decoded_register_write("DAC", format(0, '010b'))
+            pixel_decoded_register_write("DAC", format(1023, '010b'))
             # Set Charge Inj Q to 15 fC
             pixel_decoded_register_write("QSel", format(0x0e, '05b'))
 
@@ -815,7 +821,7 @@ def run_TID(
     # Run DAQ scanning by row to study multiple pixels TOT and TOA
     ### Define DAQ function
     def run_daq(timePerPixel, deadTime, dirname):
-        
+
         time_per_pixel = timePerPixel
         dead_time_per_pixel = deadTime
         total_scan_time = time_per_pixel + dead_time_per_pixel
@@ -826,7 +832,7 @@ def run_TID(
         base_dir = Path(todaystr)
         base_dir.mkdir(exist_ok=True)
 
-        parser = run_script.getOptionParser() 
+        parser = run_script.getOptionParser()
         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation -d 0x0800 --clear_fifo".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
@@ -871,7 +877,7 @@ def run_TID(
     ### Actual DAQ run
     for QInj in QInjEns:
         print(f'Taking data for QInj: {QInj}')
-        for i in range(8):
+        for i in range(16):
             # Disable pixels for clean start
             row_indexer_handle,_,_ = chip.get_indexer("row")
             column_indexer_handle,_,_ = chip.get_indexer("column")
@@ -903,10 +909,18 @@ def run_TID(
                 pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b')) # Change L1A delay - circular buffer in ETROC2 pixel
                 pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
 
-            run_name = f'TID_testing_candidate_Q{QInj}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
+            run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
             if run_name_extra is not None:
-                run_name = f'TID_testing_candidate_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
+                run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
             run_daq(10, 6, run_name)
+
+            broadcast_handle,_,_ = chip.get_indexer("broadcast")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disDataReadout", "1")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("QInjEn", "0")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disTrigPath", "1")
 
     if do_detailed:
         check_I2C(
@@ -924,7 +938,7 @@ def run_TID(
     print(DAC_scan_list)
 
     ## Simple Scan To Measure The Noise
-    thresholds = np.arange(-5,5,1) # relative to BL
+    thresholds = np.arange(-10,10,1) # relative to BL
     # thresholds = np.arange(0,1,1) # BL only
     scan_name = "E2_testing_VRef_SCurve_Noise_"+TID_str
     if run_name_extra is not None:
@@ -942,9 +956,17 @@ def run_TID(
 
     data = []
 
+    # Add dummy data taking for the FPGA to have time to align
+    DAC_row_list_with_dummy = [-1] + DAC_row_list
+    DAC_col_list_with_dummy = [-1] + DAC_col_list
+
     # Loop for enable/disable charge injection per pixel (single!!!)
-    for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):  
+    for index, row, col in zip(tqdm(range(len(DAC_row_list_with_dummy)), desc=f'Pixel Loop', leave=True), DAC_row_list_with_dummy, DAC_col_list_with_dummy):
         print("Pixel:",col,row)
+        if col == -1 and row == -1:
+            row = DAC_row_list_with_dummy[1]
+            col = DAC_col_list_with_dummy[1]
+
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
         # Ensure charge injection is disabled
@@ -962,7 +984,7 @@ def run_TID(
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
         process.start()
         process.join()
-        
+
         for DAC in tqdm(thresholds[:], desc=f'DAC Loop for Pixel {col},{row}', leave=False):
             DAC = int(DAC+BL_map_THCal[row][col])
             print("DAC", DAC)
@@ -975,11 +997,15 @@ def run_TID(
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_Noise_{QInj}_{DAC}'))
             process.start()
             process.join()
-            
+
         # Disable charge injection
         pixel_decoded_register_write("QInjEn", "0")
         pixel_decoded_register_write("disDataReadout", "1")
         pixel_decoded_register_write("disTrigPath", "1")
+        pixel_decoded_register_write("DAC", format(1023, '010b'))
+
+        if index == 0:
+            time.sleep(5)
 
     if do_detailed:
         check_I2C(
@@ -1029,10 +1055,11 @@ def run_TID(
                     text_list = line.split(',')
                     FPGA_state = text_list[0]
                     FPGA_data = int(text_list[3])
-                    DAC = int(text_list[5])
+                    triggerbit_data = int(text_list[5])
+                    DAC = int(text_list[6])
                     if DAC == -1: continue
                     print(DAC)
-                    sum_data_hitmap_full_Scurve[row][col][DAC] += FPGA_data
+                    sum_data_hitmap_full_Scurve[row][col][DAC] += triggerbit_data
                     hitmap_full_Scurve[row][col][DAC] += 1
                     print(sum_data_hitmap_full_Scurve[row][col][DAC])
                     print(hitmap_full_Scurve[row][col][DAC])
@@ -1044,7 +1071,7 @@ def run_TID(
             print(DAC)
             print(sum_data_hitmap_full_Scurve[row][col][DAC])
             print(hitmap_full_Scurve[row][col][DAC])
-            if(hitmap_full_Scurve[row][col][DAC]==0): 
+            if(hitmap_full_Scurve[row][col][DAC]==0):
                 data_mean[row][col][DAC] = 0
                 continue
             data_mean[row][col][DAC] = sum_data_hitmap_full_Scurve[row][col][DAC]/hitmap_full_Scurve[row][col][DAC]
@@ -1069,161 +1096,226 @@ def run_TID(
         plt.tight_layout()
     plt.savefig(fig_path+"/Full_S-Curve_"+chip_figname+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
 
-    ## DAC scan using counter
-    ### Define DACs for scanning near BL
-    # relative to BL
-    min_threshold = -10
-    BL_scan_max = 10
-    BL_scan_step = 2
+    if do_knee_finding:
+        ## DAC scan using counter
+        ### Define DACs for scanning near BL
+        # relative to BL
+        min_threshold = -10
+        BL_scan_max = 10
+        BL_scan_step = 2
 
-    BL_thresholds = {
-        1: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
-        5: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
-        6: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
-        8: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
-        10: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        12: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        15: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        17: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        20: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        22: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        25: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        27: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-        30: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
-    }
+        BL_thresholds = {
+            1: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
+            5: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
+            6: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
+            8: np.arange(min_threshold,  min_threshold + BL_scan_max, BL_scan_step),
+            10: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            12: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            15: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            17: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            20: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            22: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            25: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            27: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+            30: np.arange(min_threshold, min_threshold + BL_scan_max, BL_scan_step),
+        }
 
-    ### Define DACs for scanning Pedestal
-    # relative to BL
-    min_threshold = BL_scan_max
-    pedestal_scan_step = 2
+        ### Define DACs for scanning Pedestal
+        # relative to BL
+        min_threshold = BL_scan_max
+        pedestal_scan_step = 2
 
-    pedestal_thresholds = {
-        1: np.arange(min_threshold,  min_threshold + 10, pedestal_scan_step),
-        5: np.arange(min_threshold,  min_threshold + 10, pedestal_scan_step),
-        6: np.arange(min_threshold,  min_threshold + 10, pedestal_scan_step),
-        8: np.arange(min_threshold,  min_threshold + 40, pedestal_scan_step),
-        10: np.arange(min_threshold, min_threshold + 70, pedestal_scan_step),
-        12: np.arange(min_threshold, min_threshold + 90, pedestal_scan_step),
-        15: np.arange(min_threshold, min_threshold + 120, pedestal_scan_step),
-        17: np.arange(min_threshold, min_threshold + 130, pedestal_scan_step),
-        20: np.arange(min_threshold, min_threshold + 140, pedestal_scan_step),
-        22: np.arange(min_threshold, min_threshold + 170, pedestal_scan_step),
-        25: np.arange(min_threshold, min_threshold + 200, pedestal_scan_step),
-        27: np.arange(min_threshold, min_threshold + 250, pedestal_scan_step),
-        30: np.arange(min_threshold, min_threshold + 280, pedestal_scan_step),
-    }
+        pedestal_thresholds = {
+            1: np.arange(min_threshold,  min_threshold + 10, pedestal_scan_step),
+            5: np.arange(min_threshold,  min_threshold + 10, pedestal_scan_step),
+            6: np.arange(min_threshold,  min_threshold + 10, pedestal_scan_step),
+            8: np.arange(min_threshold,  min_threshold + 40, pedestal_scan_step),
+            10: np.arange(min_threshold, min_threshold + 70, pedestal_scan_step),
+            12: np.arange(min_threshold, min_threshold + 90, pedestal_scan_step),
+            15: np.arange(min_threshold, min_threshold + 120, pedestal_scan_step),
+            17: np.arange(min_threshold, min_threshold + 130, pedestal_scan_step),
+            20: np.arange(min_threshold, min_threshold + 140, pedestal_scan_step),
+            22: np.arange(min_threshold, min_threshold + 170, pedestal_scan_step),
+            25: np.arange(min_threshold, min_threshold + 200, pedestal_scan_step),
+            27: np.arange(min_threshold, min_threshold + 250, pedestal_scan_step),
+            30: np.arange(min_threshold, min_threshold + 280, pedestal_scan_step),
+        }
 
-    ### Combine Thresholds
-    thresholds = {}
-    for QInj in BL_thresholds:
-        thresholds[QInj] = list(BL_thresholds[QInj])
-        for DAC in pedestal_thresholds[QInj]:
-            thresholds[QInj].append(DAC)
+        ### Combine Thresholds
+        thresholds = {}
+        for QInj in BL_thresholds:
+            thresholds[QInj] = list(BL_thresholds[QInj])
+            for DAC in pedestal_thresholds[QInj]:
+                thresholds[QInj].append(DAC)
 
-    ### Define Charges
-    # Full Charges
-    # QInjEns = [5, 6, 8, 10, 12, 15, 17, 20, 22, 25, 27, 30]
-    # Recommend for TID
-    QInjEns = [8, 10, 15, 22, 27]
-    # Single
-    # QInjEns = [8]
-    num_thr = 0
-    for QInj in QInjEns:
-        num_thr += len(thresholds[QInj])
-    num_pix = len(DAC_scan_list)
-    print(f"Will scan {num_thr} thresholds and {num_pix} pixels")
-    print(f"Expected scan time is {num_thr*num_pix*5./60.} minutes")
+        ### Define Charges
+        # Full Charges
+        # QInjEns = [5, 6, 8, 10, 12, 15, 17, 20, 22, 25, 27, 30]
+        # Recommend for TID
+        QInjEns = [8, 10, 15, 22, 27]
+        # Single
+        # QInjEns = [8]
+        num_thr = 0
+        for QInj in QInjEns:
+            num_thr += len(thresholds[QInj])
+        num_pix = len(DAC_scan_list)
+        print(f"Will scan {num_thr} thresholds and {num_pix} pixels")
+        print(f"Expected scan time is {num_thr*num_pix*5./60.} minutes")
 
-    ### Run QInj+DAC Scan
-    scan_name = "E2_testing_VRef_SCurve_"+TID_str
-    if run_name_extra is not None:
-        scan_name = f"E2_testing_VRef_SCurve_{run_name_extra}_{TID_str}"
-    fpga_time = 3
+        ### Run QInj+DAC Scan
+        scan_name = "E2_testing_VRef_SCurve_"+TID_str
+        if run_name_extra is not None:
+            scan_name = f"E2_testing_VRef_SCurve_{run_name_extra}_{TID_str}"
+        fpga_time = 3
 
-    row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
-    column_indexer_handle,_,_ = chip.get_indexer("column")
+        row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
+        column_indexer_handle,_,_ = chip.get_indexer("column")
 
-    today = datetime.date.today()
-    todaystr = "../ETROC-Data/" + today.isoformat() + "_Array_Test_Results/"
-    base_dir = Path(todaystr)
-    base_dir.mkdir(exist_ok=True)
+        today = datetime.date.today()
+        todaystr = "../ETROC-Data/" + today.isoformat() + "_Array_Test_Results/"
+        base_dir = Path(todaystr)
+        base_dir.mkdir(exist_ok=True)
 
-    data = {}
+        data = {}
+        knee_DAC = {}
 
-    # Loop for enable/disable charge injection per pixel (single!!!)
-    for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):
-        if (row,col) not in data:
-            data[(row, col)] = {}
-        for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
-            extra_name = f'{TID_str}'
-            if run_name_extra is not None:
-                extra_name = f"{run_name_extra}_{TID_str}"
+        # Loop for enable/disable charge injection per pixel (single!!!)
+        for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):
+            if (row,col) not in data:
+                data[(row, col)] = {}
+                knee_DAC[(row, col)] = {}
+            for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
+                extra_name = f'{TID_str}'
+                if run_name_extra is not None:
+                    extra_name = f"{run_name_extra}_{TID_str}"
 
-            triggers = binary_search_DAC_scan(
-                QInj,
-                BL_map_THCal[row][col],
-                10,
-                chip,
-                row,
-                col,
-                extra_name,
-                fpga_ip,
-                fpga_time,
-                baseline_step=1,
+                triggers_n_knee = binary_search_DAC_scan(
+                    QInj,
+                    BL_map_THCal[row][col],
+                    10,
+                    chip,
+                    row,
+                    col,
+                    extra_name,
+                    fpga_ip,
+                    fpga_time,
+                    baseline_step=1,
+                )
+
+                data[(row, col)][QInj] = triggers_n_knee[0]
+                knee_DAC[(row, col)][QInj] = triggers_n_knee[1]
+
+
+        if do_detailed:
+            check_I2C(
+                chip = chip,
+                chip_name = chip_name,
+                i2c_log_dir = i2c_log_dir,
+                file_comment = "AfterQInjDACScan",
             )
 
-            data[(row, col)][QInj] = triggers
 
+        if do_full_scan:
+            overscan_DAC = 5
+            row_indexer_handle,_,_ = chip.get_indexer("row")
+            column_indexer_handle,_,_ = chip.get_indexer("column")
+            column_indexer_handle.set(0)
+            row_indexer_handle.set(0)
+            broadcast_handle,_,_ = chip.get_indexer("broadcast")
 
-    if do_detailed:
-        check_I2C(
-            chip = chip,
-            chip_name = chip_name,
-            i2c_log_dir = i2c_log_dir,
-            file_comment = "AfterQInjDACScan",
-        )
+            # Disable all pixels for clean start
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disDataReadout", "1")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("QInjEn", "0")
+            broadcast_handle.set(True)
+            pixel_decoded_register_write("disTrigPath", "1")
 
-    ### Choose Pixel To Plot Full Scan Output
+            for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):
+                pixel_baseline = BL_map_THCal[row][col]
 
-    # DAC_row_list = [15, 0, 0, 0]
-    # DAC_col_list = [7, 15, 7, 0]
-    row = 0
-    col = 0
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+                pixel_decoded_register_write("Bypass_THCal", "1")               # Bypass threshold calibration -> manual DAC setting
+                pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b')) # Change L1A delay - circular buffer in ETROC2 pixel
 
-    # data[(row, col)][QInj][DAC] = triggers
+                pixel_decoded_register_write("disDataReadout", "0")             # ENable readout
+                pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
 
-    colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00']
+                for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
+                    pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
 
-    fig, ax0 = plt.subplots(dpi=200, figsize=(8,4.5))
-    ax0.axvline(BL_map_THCal[row][col], color='k', label="THCal BL", lw=0.7)
-    ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label="THCal NW", lw=0.7)
-    ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
+                    pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject selected charge
 
-    for i, qinj in enumerate(QInjEns[0:]):
-        x = list(data[(row,col)][qinj].keys())
-        y = [data[(row,col)][qinj][dac] for dac in x]
-        ax0.plot(x, y, '.-', color=colors[i], label=f"{qinj} fC",lw=0.5,markersize=2)
+                    for DAC in range(int(pixel_baseline), int(pixel_max_dac + 1), 2):
+                        print(f"Enabling Pixel ({row},{col}) with charge {QInj} fC and DAC {DAC}")
 
-    ax0.set_xlabel("DAC Value [decimal]")
-    ax0.set_ylabel("Trigger Counts [decimal]")
-    plt.legend(loc="upper right")
-    plt.yscale("log")
-    plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Full S-Curve")
-    plt.tight_layout()
-    plt.savefig(fig_path+"/Full_S-Curve_"+chip_figname+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+                        pixel_decoded_register_write("DAC", format(DAC, '010b'))
+
+                        run_name = f'TID_FullScan_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_DAC{DAC}_Q{QInj}_{chip_name.replace("_","")}_'+TID_str+f'_R{row}_C{col}'
+                        if run_name_extra is not None:
+                            run_name = f'TID_FullScan_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_DAC{DAC}_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{row}_C{col}'
+
+                        pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
+                        run_daq(10, 4, run_name)
+                        pixel_decoded_register_write("QInjEn", "0")
+
+                # Disable pixel after taking data to make sure everything is off
+                pixel_decoded_register_write("disDataReadout", "1")
+                pixel_decoded_register_write("disTrigPath", "1")
+                pixel_decoded_register_write("DAC", format(1023, '010b'))
+
+                pixel_decoded_register_write("Bypass_THCal", "0")               # Bypass threshold calibration -> manual DAC setting
+
+            if do_detailed:
+                check_I2C(
+                    chip = chip,
+                    chip_name = chip_name,
+                    i2c_log_dir = i2c_log_dir,
+                    file_comment = "AfterFullScan",
+                )
+
+        ### Choose Pixel To Plot Full Scan Output
+
+        # DAC_row_list = [15, 0, 0, 0]
+        # DAC_col_list = [7, 15, 7, 0]
+        row = 0
+        col = 0
+
+        # data[(row, col)][QInj][DAC] = triggers
+
+        colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00']
+
+        fig, ax0 = plt.subplots(dpi=200, figsize=(8,4.5))
+        ax0.axvline(BL_map_THCal[row][col], color='k', label="THCal BL", lw=0.7)
+        ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label="THCal NW", lw=0.7)
+        ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
+
+        for i, qinj in enumerate(QInjEns[0:]):
+            x = list(data[(row,col)][qinj].keys())
+            y = [data[(row,col)][qinj][dac] for dac in x]
+            ax0.plot(x, y, '.-', color=colors[i], label=f"{qinj} fC",lw=0.5,markersize=2)
+
+        ax0.set_xlabel("DAC Value [decimal]")
+        ax0.set_ylabel("Trigger Counts [decimal]")
+        plt.legend(loc="upper right")
+        plt.yscale("log")
+        plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Full S-Curve")
+        plt.tight_layout()
+        plt.savefig(fig_path+"/Full_S-Curve_"+chip_figname+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
 
     # Disconnect chip
     conn.disconnect()
 
 def main():
     import argparse
-    
+
     parser = argparse.ArgumentParser(
                     prog='TID measurements',
                     description='Control them!',
                     #epilog='Text at the bottom of help'
                     )
-    
+
     parser.add_argument(
         '-c',
         '--chipName',
@@ -1256,26 +1348,130 @@ def main():
         action = 'store_true',
         dest = 'do_detailed',
     )
+    parser.add_argument(
+        '-k',
+        '--doKneeFinding',
+        help = 'Do knee finding',
+        action = 'store_true',
+        dest = 'do_knee_finding',
+    )
+    parser.add_argument(
+        '-f',
+        '--doFullScan',
+        help = 'Do full scan, taking regular data, of QInj and DAC threshold using the knee position found with the knee finding. i.e. this scan is only done if knee finding is enabled',
+        action = 'store_true',
+        dest = 'do_full_scan',
+    )
+    parser.add_argument(
+        '--minV',
+        metavar = 'VOLTAGE',
+        type = float,
+        help = 'Minimum voltage for V scan, V scan only done if both max and min are set',
+        default = None,
+        dest = 'minV',
+    )
+    parser.add_argument(
+        '--maxV',
+        metavar = 'VOLTAGE',
+        type = float,
+        help = 'Maximum voltage for V scan, V scan only done if both max and min are set',
+        default = None,
+        dest = 'maxV',
+    )
+    parser.add_argument(
+        '--stepV',
+        metavar = 'VOLTAGE',
+        type = float,
+        help = 'Step for the V scan, V scan only done if both max and min are set',
+        default = 0.05,
+        dest = 'stepV',
+    )
+    parser.add_argument(
+        '--scanTypeV',
+        metavar = 'TYPE',
+        type = str,
+        help = 'Type of voltage scan to perform, must be one of Analog, Digital or Both. Default: Digital. The code assumes V1 is the Analog power supply and V2 is the Digital power supply.',
+        choices = ['Analog', 'Both', 'Digital'],
+        default = 'Digital',
+        dest = 'scanTypeV',
+    )
+    parser.add_argument(
+        '-r',
+        '--reverseVScan',
+        help = 'Do the V scan from higher voltage values to lower voltage values, instead of the default low to high.',
+        action = 'store_true',
+        dest = 'reverseVScan',
+    )
 
     args = parser.parse_args()
 
-    if args.infinite_loop:
-        count = 0
-        while True:
+    count = 0
+    while True:
+        run_str = f"Run{count}"
+
+        if args.maxV is not None and args.minV is not None:
+            from read_current import DeviceMeasurements
+            delay_time = 5
+            powerDevices = DeviceMeasurements(outdir=Path('.'), interval=delay_time)
+            powerDevices.find_devices()
+            powerDevices.turn_on()
+
+            def signal_handler(sig, frame):
+                print("Exiting gracefully")
+
+                powerDevices.turn_off()
+
+                sys.exit(0)
+
+            signal.signal(signal.SIGINT, signal_handler)
+
+            do_analog = False
+            do_digital = False
+            voltage_str = "None"
+            if args.scanTypeV == 'Digital':
+                do_digital = True
+                voltage_str = "VD"
+            elif args.scanTypeV == 'Analog':
+                do_analog = True
+                voltage_str = "VA"
+            elif args.scanTypeV == 'Both':
+                do_analog = True
+                do_digital = True
+                voltage_str = "V"
+            else:
+                raise RuntimeError("Unknown scanTypeV selected")
+
+            voltage_list = list(np.linspace(args.minV, args.maxV, (args.maxV - args.minV)/args.stepV))
+            if args.reverseVScan:
+                voltage_list.reverse()
+
+            for voltage in voltage_list:
+                if do_analog:
+                    powerDevices.set_power_V1(voltage)
+                if do_digital:
+                    powerDevices.set_power_V2(voltage)
+                run_TID(
+                    chip_name = args.chip_name,
+                    TID_str = args.TID_str,
+                    do_detailed = args.do_detailed,
+                    run_name_extra = f"{voltage_str}{voltage}_{run_str}",
+                    do_knee_finding = args.do_knee_finding,
+                    do_full_scan = args.do_full_scan,
+                )
+            powerDevices.turn_off()
+        else:
             run_TID(
                 chip_name = args.chip_name,
                 TID_str = args.TID_str,
                 do_detailed = args.do_detailed,
-                run_name_extra = f"Run{count}"
+                run_name_extra = run_str,
+                do_knee_finding = args.do_knee_finding,
+                do_full_scan = args.do_full_scan,
             )
-            count += 1
-    else:
-        run_TID(
-            chip_name = args.chip_name,
-            TID_str = args.TID_str,
-            do_detailed = args.do_detailed,
-        )
 
+        count += 1
+        if not args.infinite_loop:
+            break
 
 if __name__ == "__main__":
     main()
