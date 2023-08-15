@@ -258,10 +258,10 @@ class DeviceMeasurements():
             measurement["Instrument"] += ['Power']
 
         if self._vref_instrument is not None:
-            VRef1 = self._vref_instrument.query("V1O?")
-            IRef1 = self._vref_instrument.query("I1O?")
-            VRef2 = self._vref_instrument.query("V2O?")
-            IRef2 = self._vref_instrument.query("I2O?")
+            V1 = self._vref_instrument.query("V1O?")
+            I1 = self._vref_instrument.query("I1O?")
+            V2 = self._vref_instrument.query("V2O?")
+            I2 = self._vref_instrument.query("I2O?")
             timeRef = datetime.datetime.now().isoformat(sep=' ')
 
             measurement["timestamp"] += [time]
