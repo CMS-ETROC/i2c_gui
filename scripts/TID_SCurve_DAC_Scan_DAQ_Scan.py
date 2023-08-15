@@ -436,6 +436,7 @@ def run_TID(
         run_name_extra = None,
         do_knee_finding: bool = False,
         do_full_scan: bool = False,
+        only_baseline: bool = False,
             ):
     ## Specify board name
     # !!!!!!!!!!!!
@@ -816,6 +817,10 @@ def run_TID(
     chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
     chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
     chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
+
+    if only_baseline:
+        return
+
     # Release the maximum and minimum range for trigger and data
     chip_broadcast_decoded_register_write(chip, "upperTOATrig", format(0x3ff, '010b'))
     chip_broadcast_decoded_register_write(chip, "lowerTOATrig", format(0x000, '010b'))
@@ -1364,6 +1369,13 @@ def main():
         dest = 'do_full_scan',
     )
     parser.add_argument(
+        '-b',
+        '--onlyBaseline',
+        help = 'Only do the baseline measurement, skip all other measurements',
+        action = 'store_true',
+        dest = 'only_baseline',
+    )
+    parser.add_argument(
         '--minV',
         metavar = 'VOLTAGE',
         type = float,
@@ -1458,6 +1470,7 @@ def main():
                     run_name_extra = f"{voltage_str}{voltage}_{run_str}",
                     do_knee_finding = args.do_knee_finding,
                     do_full_scan = args.do_full_scan,
+                    only_baseline = args.only_baseline,
                 )
             powerDevices.turn_off()
         else:
@@ -1468,6 +1481,7 @@ def main():
                 run_name_extra = run_str,
                 do_knee_finding = args.do_knee_finding,
                 do_full_scan = args.do_full_scan,
+                only_baseline = args.only_baseline,
             )
 
         count += 1
