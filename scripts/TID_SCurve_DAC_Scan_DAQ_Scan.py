@@ -939,6 +939,8 @@ def run_TID(
     ## Define Pixel for ACC and DAC scan
     DAC_row_list = [15, 0, 0, 0]
     DAC_col_list = [7, 15, 7, 0]
+    DAC_row_list = [0, 0]
+    DAC_col_list = [7, 0]
     DAC_scan_list = list(zip(DAC_col_list, DAC_row_list))
     print(DAC_scan_list)
 
@@ -1244,7 +1246,11 @@ def run_TID(
                 pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
 
                 for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
-                    pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
+                    if knee_DAC[(row, col)][QInj] is not None:
+                        pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
+                    else:
+                        print(f"There was a problem in the knee finding and no knee was found for pixel {row} {col} for QInj {QInj}, using max range instead.")
+                        pixel_max_dac = 1023
 
                     pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject selected charge
 
