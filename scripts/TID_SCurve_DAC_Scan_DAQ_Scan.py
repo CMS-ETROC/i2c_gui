@@ -892,6 +892,11 @@ def run_TID(
 
     QInjEns = [10, 15, 20]
 
+    # Make sure all pixels are in a well known initial state
+    chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+    chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+    chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
+
     ### Actual DAQ run
     for QInj in QInjEns:
         print(f'Taking data for QInj: {QInj}')
@@ -901,10 +906,6 @@ def run_TID(
             column_indexer_handle,_,_ = chip.get_indexer("column")
             column_indexer_handle.set(0)
             row_indexer_handle.set(0)
-
-            chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
-            chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
-            chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
             scan_list = list(zip(np.full(16, i), np.arange(16)))
             print(scan_list)
@@ -928,9 +929,20 @@ def run_TID(
                 run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
             run_daq(10, 6, run_name)
 
-            chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
-            chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
-            chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
+            for row, col in scan_list:
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+
+                print(f"Disabling Pixel ({row},{col})")
+
+                pixel_decoded_register_write("Bypass_THCal", "1")               # Bypass threshold calibration -> manual DAC setting
+                pixel_decoded_register_write("disDataReadout", "1")
+                pixel_decoded_register_write("QInjEn", "0")
+                pixel_decoded_register_write("disTrigPath", "1")
+
+    chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+    chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+    chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
     if do_detailed:
         check_I2C(
@@ -1249,7 +1261,11 @@ def run_TID(
                 pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
 
                 for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
-                    pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
+                    if knee_DAC[(row, col)][QInj] is not None:
+                        pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
+                    else:
+                        print(f"There was a problem in the knee finding and no knee was found for pixel {row} {col} for QInj {QInj}, using max range instead.")
+                        pixel_max_dac = 1023
 
                     pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject selected charge
 
