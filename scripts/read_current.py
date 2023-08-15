@@ -139,9 +139,9 @@ class DeviceMeasurements():
                     instrument.read_termination = '\r\n'
                     idn = instrument.query('*IDN?')
                     print(idn)
-                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and "506013" in idn:
+                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and ("506013" in idn or "425044" in idn):
                         self._power_supply_resource = resource
-                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and "565123" in idn:
+                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and ("565123" in idn or "521246" in idn):
                         self._vref_resource = resource
                 except:
                     continue
