@@ -939,8 +939,6 @@ def run_TID(
     ## Define Pixel for ACC and DAC scan
     DAC_row_list = [15, 0, 0, 0]
     DAC_col_list = [7, 15, 7, 0]
-    DAC_row_list = [0, 0]
-    DAC_col_list = [7, 0]
     DAC_scan_list = list(zip(DAC_col_list, DAC_row_list))
     print(DAC_scan_list)
 
