@@ -1242,7 +1242,7 @@ def run_TID(
         if do_full_scan:
             overscan_DAC = 5
             underscan_DAC = 30
-            step_DAC = 2
+            step_DAC = 1
             row_indexer_handle,_,_ = chip.get_indexer("row")
             column_indexer_handle,_,_ = chip.get_indexer("column")
             column_indexer_handle.set(0)
