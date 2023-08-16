@@ -1,3 +1,25 @@
+#############################################################################
+# zlib License
+#
+# (C) 2023 Zach FLowers, Murtaza Safdari <musafdar@cern.ch>
+#
+# This software is provided 'as-is', without any express or implied
+# warranty.  In no event will the authors be held liable for any damages
+# arising from the use of this software.
+#
+# Permission is granted to anyone to use this software for any purpose,
+# including commercial applications, and to alter it and redistribute it
+# freely, subject to the following restrictions:
+#
+# 1. The origin of this software must not be misrepresented; you must not
+#    claim that you wrote the original software. If you use this software
+#    in a product, an acknowledgment in the product documentation would be
+#    appreciated but is not required.
+# 2. Altered source versions must be plainly marked as such, and must not be
+#    misrepresented as being the original software.
+# 3. This notice may not be removed or altered from any source distribution.
+#############################################################################
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import time
@@ -19,7 +41,7 @@ from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
 from i2c_gui.chips.etroc2_chip import register_decoding
 #========================================================================================#
 '''
-@author: Wei Zhang, Murtaza Safdari, Zach Flowers
+@author: Zach Flowers, Murtaza Safdari
 @date: 2023-03-24
 This script is composed of all the helper functions needed for I2C comms, FPGA, etc
 '''
@@ -75,7 +97,8 @@ class i2c_connection():
 
     #--------------------------------------------------------------------------#
     ## Useful helper functions to streamline register reading and writing
-    def pixel_decoded_register_write(self, decodedRegisterName, data_to_write, chip):
+    def pixel_decoded_register_write(self, decodedRegisterName, data_to_write, chip=None):
+        if(chip==None): print("Need chip to access registers!")
         bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Pixel Config"][decodedRegisterName]["bits"]
         handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", decodedRegisterName)
         chip.read_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
@@ -87,12 +110,15 @@ class i2c_connection():
         chip.write_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
 
     def pixel_decoded_register_read(self, decodedRegisterName, key, chip, need_int=False):
+        if(chip==None): print("Need chip to access registers!")
         handle = chip.get_decoded_indexed_var("ETROC2", f"Pixel {key}", decodedRegisterName)
         chip.read_decoded_value("ETROC2", f"Pixel {key}", decodedRegisterName)
         if(need_int): return int(handle.get(), base=16)
         else: return handle.get()
 
-    def peripheral_decoded_register_write(self, decodedRegisterName, data_to_write, chip):
+    def peripheral_decoded_register_write(self, decodedRegisterName, data_to_write, chip, chip_address=None):
+        if(chip==None and chip_address!=None): chip = self.get_chip_i2c_connection(chip_address)
+        elif(chip==None and chip_address==None): print("Need either a chip or chip address to access registers!")
         bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Peripheral Config"][decodedRegisterName]["bits"]
         handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", decodedRegisterName)
         chip.read_decoded_value("ETROC2", "Peripheral Config", decodedRegisterName)
@@ -103,7 +129,9 @@ class i2c_connection():
         else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
         chip.write_decoded_value("ETROC2", "Peripheral Config", decodedRegisterName)
 
-    def peripheral_decoded_register_read(self, decodedRegisterName, key, chip, need_int=False):
+    def peripheral_decoded_register_read(self, decodedRegisterName, key, chip, need_int=False, chip_address=None):
+        if(chip==None and chip_address!=None): chip = self.get_chip_i2c_connection(chip_address)
+        elif(chip==None and chip_address==None): print("Need either a chip or chip address to access registers!")
         handle = chip.get_decoded_display_var("ETROC2", f"Peripheral {key}", decodedRegisterName)
         chip.read_decoded_value("ETROC2", f"Peripheral {key}", decodedRegisterName)
         if(need_int): return int(handle.get(), base=16)
@@ -117,8 +145,17 @@ class i2c_connection():
         # chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
         # logger.setLevel(log_level)
         return chip
+    
+    def get_pixel_chip(self, chip_address, row, col):
+        chip = self.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        row_indexer_handle.set(row)
+        column_indexer_handle.set(col)
+        return chip
     #--------------------------------------------------------------------------#
 
+    #--------------------------------------------------------------------------#
     # Function 0
     def pixel_check(self, chip_address, chip=None):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
@@ -276,8 +313,9 @@ class i2c_connection():
                 self.pixel_decoded_register_write("upperCal", format(0x3ff, '010b'), chip)
                 self.pixel_decoded_register_write("lowerCal", format(0x000, '010b'), chip)
         print(f"Disabled pixels for chip: {hex(chip_address)}")
+    #--------------------------------------------------------------------------#
 
-    # Function 5
+    #--------------------------------------------------------------------------#
     def enable_pixel(self, chip_address, row, col, chip=None):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
@@ -293,18 +331,16 @@ class i2c_connection():
         self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
         self.pixel_decoded_register_write("disTrigPath", "0", chip)                # Enable trigger path
 
-    # Function 6
     def onchipL1A(self, chip_address, chip=None, comm='00'):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         self.peripheral_decoded_register_write("onChipL1AConf", comm, chip)
         print(f"OnChipL1A action {comm} done for chip: {hex(chip_address)}")
 
-    # Function 7
     def asyAlignFastcommand(self, chip_address, chip=None):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         self.peripheral_decoded_register_write("asyAlignFastcommand", "1")
         self.peripheral_decoded_register_write("asyAlignFastcommand", "0")
         print(f"asyAlignFastcommand action done for chip: {hex(chip_address)}")
-    
+    #--------------------------------------------------------------------------#
 
     

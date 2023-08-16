@@ -139,9 +139,9 @@ class DeviceMeasurements():
                     instrument.read_termination = '\r\n'
                     idn = instrument.query('*IDN?')
                     print(idn)
-                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and "506013" in idn:
+                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and ("506013" in idn or "425044" in idn):
                         self._power_supply_resource = resource
-                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and "565123" in idn:
+                    if "THURLBY THANDAR" in idn and "PL303QMD-P" in idn and ("565123" in idn or "521246" in idn):
                         self._vref_resource = resource
                 except:
                     continue
@@ -258,10 +258,10 @@ class DeviceMeasurements():
             measurement["Instrument"] += ['Power']
 
         if self._vref_instrument is not None:
-            VRef1 = self._vref_instrument.query("V1O?")
-            IRef1 = self._vref_instrument.query("I1O?")
-            VRef2 = self._vref_instrument.query("V2O?")
-            IRef2 = self._vref_instrument.query("I2O?")
+            V1 = self._vref_instrument.query("V1O?")
+            I1 = self._vref_instrument.query("I1O?")
+            V2 = self._vref_instrument.query("V2O?")
+            I2 = self._vref_instrument.query("I2O?")
             timeRef = datetime.datetime.now().isoformat(sep=' ')
 
             measurement["timestamp"] += [time]
