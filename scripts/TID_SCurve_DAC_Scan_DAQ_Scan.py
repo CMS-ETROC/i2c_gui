@@ -1439,7 +1439,6 @@ def main():
         dest = 'scanTypeV',
     )
     parser.add_argument(
-        '-r',
         '--reverseVScan',
         help = 'Do the V scan from higher voltage values to lower voltage values, instead of the default low to high.',
         action = 'store_true',
