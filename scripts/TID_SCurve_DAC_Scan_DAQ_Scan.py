@@ -956,6 +956,8 @@ def run_TID(
     ## Define Pixel for ACC and DAC scan
     DAC_row_list = [15, 0, 0, 0]
     DAC_col_list = [7, 15, 7, 0]
+    DAC_row_list = [0,  0, 3,  3, 15, 15]
+    DAC_col_list = [2, 10, 2, 10,  2, 10]
     DAC_scan_list = list(zip(DAC_col_list, DAC_row_list))
     print(DAC_scan_list)
 
@@ -1239,6 +1241,8 @@ def run_TID(
 
         if do_full_scan:
             overscan_DAC = 5
+            underscan_DAC = 30
+            step_DAC = 2
             row_indexer_handle,_,_ = chip.get_indexer("row")
             column_indexer_handle,_,_ = chip.get_indexer("column")
             column_indexer_handle.set(0)
@@ -1267,9 +1271,11 @@ def run_TID(
                         print(f"There was a problem in the knee finding and no knee was found for pixel {row} {col} for QInj {QInj}, using max range instead.")
                         pixel_max_dac = 1023
 
+                    pixel_min_dac = int(pixel_baseline) - underscan_DAC
+
                     pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject selected charge
 
-                    for DAC in range(int(pixel_baseline), int(pixel_max_dac + 1), 2):
+                    for DAC in range(int(pixel_min_dac), int(pixel_max_dac + 1), step_DAC):
                         print(f"Enabling Pixel ({row},{col}) with charge {QInj} fC and DAC {DAC}")
 
                         pixel_decoded_register_write("DAC", format(DAC, '010b'))
