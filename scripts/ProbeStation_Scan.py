@@ -420,7 +420,7 @@ def run_ProbeStation(
     if do_detailed:
         check_I2C(
             chip = chip,
-            chip_name = chip_name,
+            chip_name = f'{wafer_name}_{chip_name}',
             i2c_log_dir = i2c_log_dir,
             file_comment = "Start",
         )
@@ -470,7 +470,7 @@ def run_ProbeStation(
         if do_detailed:
             check_I2C(
                 chip = chip,
-                chip_name = chip_name,
+                chip_name = f'{wafer_name}_{chip_name}',
                 i2c_log_dir = i2c_log_dir,
                 file_comment = "AfterPixelAddress",
             )
@@ -544,7 +544,7 @@ def run_ProbeStation(
         if do_detailed:
             check_I2C(
                 chip = chip,
-                chip_name = chip_name,
+                chip_name = f'{wafer_name}_{chip_name}',
                 i2c_log_dir = i2c_log_dir,
                 file_comment = "AfterBaseline",
             )
@@ -694,7 +694,7 @@ def run_ProbeStation(
             if do_detailed:
                 check_I2C(
                     chip = chip,
-                    chip_name = chip_name,
+                    chip_name = f'{wafer_name}_{chip_name}',
                     i2c_log_dir = i2c_log_dir,
                     file_comment = f"AfterQInj{QInj}DAQ",
                 )
