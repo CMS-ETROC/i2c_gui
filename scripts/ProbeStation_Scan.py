@@ -477,7 +477,107 @@ def run_ProbeStation(
 
     ## Simple I2C Check
     if do_i2c and not do_detailed:
-        pass
+        selected_peripheralRegisterKeys = []
+        data = []
+        this_log_file = i2c_log_dir / 'Simplei2cCheckPeripheralConsistency.sqlite'
+        for peripheralRegisterKey in selected_peripheralRegisterKeys:
+            # Fetch the register
+            handle_PeriCfgX = chip.get_display_var("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            data_bin_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
+            # Make the flipped bits
+            # data_bin_modified_PeriCfgX = list(data_bin_PeriCfgX)
+            data_bin_modified_PeriCfgX = data_bin_PeriCfgX.replace('1', '2').replace('0', '1').replace('2', '0')
+            # data_bin_modified_PeriCfgX = ''.join(data_bin_modified_PeriCfgX)
+            data_hex_modified_PeriCfgX = hex(int(data_bin_modified_PeriCfgX, base=2))
+            # Set the register with the value
+            handle_PeriCfgX.set(data_hex_modified_PeriCfgX)
+            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            # Perform two reads to verify the persistence of the change
+            # chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")  # By default, write already does a read at the end
+            data_bin_new_1_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
+            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            data_bin_new_2_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
+            # Undo the change to recover the original register value, and check for consistency
+            handle_PeriCfgX.set(hex(int(data_bin_PeriCfgX, base=2)))
+            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            # chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            data_bin_recover_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
+            timestamp = datetime.datetime.now().isoformat()
+            data += [{
+                'register': f"PeriCfg{peripheralRegisterKey}",
+                'original_value': data_bin_PeriCfgX,
+                'attempted_set_value': data_bin_modified_PeriCfgX,
+                'new_value': data_bin_new_1_PeriCfgX,
+                'repeated_read_new_value': data_bin_new_2_PeriCfgX,
+                'reset_value': data_bin_recover_PeriCfgX,
+                'timestamp': timestamp,
+                'chip_name': f'{wafer_name}_{chip_name}',
+            }]
+
+            if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX):
+                    peripheral_success = False
+
+        this_df = pandas.DataFrame(data = data)
+
+        with sqlite3.connect(this_log_file) as sqlconn:
+            this_df.to_sql('registers', sqlconn, if_exists='append', index=False)
+
+        if peripheral_success:
+            print(f"Simple I2C Check - Peripheral: Success")
+        else:
+            print(f"Simple I2C Check - Peripheral: Failure")
+
+        selected_pixelRegisterKeys = []
+        data = []
+        this_log_file = i2c_log_dir / 'Simplei2cPixelConsistency.sqlite'
+
+        for pixelRegisterKey in selected_pixelRegisterKeys:
+                # Fetch the register
+                handle_PixCfgX = chip.get_indexed_var("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
+                chip.read_register("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
+                data_bin_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                # Make the flipped byte
+                data_bin_modified_PixCfgX = data_bin_PixCfgX.replace('1', '2').replace('0', '1').replace('2', '0')
+                data_hex_modified_PixCfgX = hex(int(data_bin_modified_PixCfgX, base=2))
+                # Set the register with the value
+                handle_PixCfgX.set(data_hex_modified_PixCfgX)
+                chip.write_register("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
+                # Perform two reads to verify the persistence of the change
+                # chip.read_register("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
+                data_bin_new_1_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                chip.read_register("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
+                data_bin_new_2_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                # Undo the change to recover the original register value, and check for consistency
+                handle_PixCfgX.set(hex(int(data_bin_PixCfgX, base=2)))
+                chip.write_register("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
+                # chip.read_register("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
+                data_bin_recover_PixCfgX = format(int(handle_PixCfgX.get(), base=16), '08b')
+                data += [{
+                    'row': row,
+                    'col': col,
+                    'register': f"PixCfg{pixelRegisterKey}",
+                    'original_value': data_bin_PixCfgX,
+                    'attempted_set_value': data_bin_modified_PixCfgX,
+                    'new_value': data_bin_new_1_PixCfgX,
+                    'repeated_read_new_value': data_bin_new_2_PixCfgX,
+                    'reset_value': data_bin_recover_PixCfgX,
+                    'timestamp': timestamp,
+                    'chip_name': f'{wafer_name}_{chip_name}',
+                }]
+
+                if(data_bin_new_1_PixCfgX!=data_bin_new_2_PixCfgX or data_bin_new_2_PixCfgX!=data_bin_modified_PixCfgX or data_bin_recover_PixCfgX!=data_bin_PixCfgX):
+                    pixel_success = False
+
+        this_df = pandas.DataFrame(data = data)
+
+        with sqlite3.connect(this_log_file) as sqlconn:
+            this_df.to_sql('registers', sqlconn, if_exists='append', index=False)
+
+        if pixel_success:
+            print(f"Simple I2C Check - Pixel: Success")
+        else:
+            print(f"Simple I2C Check - Pixel: Failure")
 
     ## Set Peripheral Registers
     chip_peripheral_decoded_register_write(chip, "EFuse_Prog", format(0x00017f0f, '032b'))
