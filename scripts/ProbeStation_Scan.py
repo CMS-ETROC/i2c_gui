@@ -566,13 +566,13 @@ def run_ProbeStation(
         failOut = history_dir / 'FailedPixelHistory.sqlite'
 
         init_cmd = [
-            'cd ' + str(outdir.resolve()),
+            'cd ' + str(history_dir.resolve()),
             'git stash -u',
             'git pull',
         ]
 
         end_cmd = [
-            'cd ' + str(outdir.resolve()),
+            'cd ' + str(history_dir.resolve()),
         ]
         if do_baseline:
             end_cmd += [
