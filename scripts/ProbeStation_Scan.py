@@ -339,7 +339,7 @@ def run_ProbeStation(
         i2c_log_dir = data_dir / f'{comment_str}_{wafer_name}_{chip_name}_{run_name_extra}_R{row}_C{col}_I2C'
     i2c_log_dir.mkdir(exist_ok = False)
 
-    history_dir = Path('../ETROC-History')
+    history_dir = Path('../ETROC-History-WaferProbe')
     history_dir.mkdir(exist_ok = True)
 
     ## Set defaults
