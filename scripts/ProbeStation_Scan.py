@@ -587,20 +587,6 @@ def run_ProbeStation(
         else:
             print(f"Simple I2C Check - Pixel: Failure")
 
-    ## Set Peripheral Registers
-    chip_peripheral_decoded_register_write(chip, "EFuse_Prog", format(0x00017f0f, '032b'))
-    chip_peripheral_decoded_register_write(chip, "singlePort", '1')
-    chip_peripheral_decoded_register_write(chip, "serRateLeft", '00')
-    chip_peripheral_decoded_register_write(chip, "serRateRight", '00')
-    chip_peripheral_decoded_register_write(chip, "onChipL1AConf", '00')
-    chip_peripheral_decoded_register_write(chip, "PLL_ENABLEPLL", '1')
-    chip_peripheral_decoded_register_write(chip, "chargeInjectionDelay", format(0x0a, '05b'))
-    chip_peripheral_decoded_register_write(chip, "triggerGranularity", format(0x01, '03b')) # only for trigger bit
-
-    ## Force Re-align of the FC
-    chip_peripheral_decoded_register_write(chip, "asyAlignFastcommand", "1")
-    chip_peripheral_decoded_register_write(chip, "asyAlignFastcommand", "0")
-
     ## Automated baseline scan
     if do_baseline:
         # Enable THCal clock and buffer, disable bypass
@@ -740,6 +726,20 @@ def run_ProbeStation(
 
     ## QInj data taking check
     if do_qinj and do_baseline:
+        ## Set Peripheral Registers
+        chip_peripheral_decoded_register_write(chip, "EFuse_Prog", format(0x00017f0f, '032b'))
+        chip_peripheral_decoded_register_write(chip, "singlePort", '1')
+        chip_peripheral_decoded_register_write(chip, "serRateLeft", '00')
+        chip_peripheral_decoded_register_write(chip, "serRateRight", '00')
+        chip_peripheral_decoded_register_write(chip, "onChipL1AConf", '00')
+        chip_peripheral_decoded_register_write(chip, "PLL_ENABLEPLL", '1')
+        chip_peripheral_decoded_register_write(chip, "chargeInjectionDelay", format(0x0a, '05b'))
+        chip_peripheral_decoded_register_write(chip, "triggerGranularity", format(0x00, '03b')) # only for trigger bit
+
+        ## Force Re-align of the FC
+        chip_peripheral_decoded_register_write(chip, "asyAlignFastcommand", "1")
+        chip_peripheral_decoded_register_write(chip, "asyAlignFastcommand", "0")
+
         # Release the maximum and minimum range for trigger and data
         chip_pixel_decoded_register_write(chip, "upperTOATrig", format(0x3ff, '010b'))
         chip_pixel_decoded_register_write(chip, "lowerTOATrig", format(0x000, '010b'))
