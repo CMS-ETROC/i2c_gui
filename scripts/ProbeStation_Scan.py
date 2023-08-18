@@ -155,12 +155,14 @@ def run_daq(
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
 
-    IPC_queue.put('start L1A trigger bit')
+    #IPC_queue.put('start L1A trigger bit')
+    IPC_queue.put('start singleShot')
     while not IPC_queue.empty():
         pass
 
     time.sleep(time_per_pixel)
-    IPC_queue.put('stop L1A trigger bit')
+    #IPC_queue.put('stop L1A trigger bit')
+    IPC_queue.put('stop L1A')
 
     time.sleep(1)
     IPC_queue.put('stop DAQ')
@@ -770,19 +772,22 @@ def run_ProbeStation(
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_Start_LEDs'))
         process.start()
 
-        IPC_queue.put('start L1A trigger bit')
+        #IPC_queue.put('start L1A trigger bit')
+        IPC_queue.put('start singleShot')
         while not IPC_queue.empty():
             pass
         time.sleep(firmware_time)
         IPC_queue.put('stop DAQ')
-        IPC_queue.put('stop L1A trigger bit')
+        #IPC_queue.put('stop L1A trigger bit')
+        IPC_queue.put('stop L1A')
         while not IPC_queue.empty():
             pass
         IPC_queue.put('allow threads to exit')
         process.join()
 
 
-        SelectedQInj = [10, 15, 20, 25]
+        #SelectedQInj = [10, 15, 20, 25]
+        SelectedQInj = [15]
 
         for QInj in SelectedQInj:
             print(f"QInj data taking for QInj={QInj} check output data to check for success")
