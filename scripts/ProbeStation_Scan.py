@@ -478,9 +478,10 @@ def run_ProbeStation(
 
     ## Simple I2C Check
     if do_i2c and not do_detailed:
-        selected_peripheralRegisterKeys = []
+        selected_peripheralRegisterKeys = [0]
         data = []
         this_log_file = i2c_log_dir / 'Simplei2cCheckPeripheralConsistency.sqlite'
+        peripheral_success = None
         for peripheralRegisterKey in selected_peripheralRegisterKeys:
             # Fetch the register
             handle_PeriCfgX = chip.get_display_var("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
@@ -517,7 +518,9 @@ def run_ProbeStation(
             }]
 
             if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX):
-                    peripheral_success = False
+                peripheral_success = False
+            else:
+                peripheral_success = True
 
         this_df = pandas.DataFrame(data = data)
 
@@ -529,10 +532,10 @@ def run_ProbeStation(
         else:
             print(f"Simple I2C Check - Peripheral: Failure")
 
-        selected_pixelRegisterKeys = []
+        selected_pixelRegisterKeys = [0]
         data = []
         this_log_file = i2c_log_dir / 'Simplei2cPixelConsistency.sqlite'
-
+        pixel_success = None
         for pixelRegisterKey in selected_pixelRegisterKeys:
                 # Fetch the register
                 handle_PixCfgX = chip.get_indexed_var("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
@@ -569,6 +572,8 @@ def run_ProbeStation(
 
                 if(data_bin_new_1_PixCfgX!=data_bin_new_2_PixCfgX or data_bin_new_2_PixCfgX!=data_bin_modified_PixCfgX or data_bin_recover_PixCfgX!=data_bin_PixCfgX):
                     pixel_success = False
+                else:
+                    pixel_success = True
 
         this_df = pandas.DataFrame(data = data)
 
