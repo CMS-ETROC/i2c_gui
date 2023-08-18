@@ -318,6 +318,7 @@ def run_ProbeStation(
         do_i2c: bool = False,
         do_baseline: bool = False,
         do_qinj: bool = False,
+        do_pllcalib: bool = False,
         do_detailed: bool = False,
         row: int = 0,
         col: int = 0,
@@ -746,6 +747,16 @@ def run_ProbeStation(
         chip_pixel_decoded_register_write(chip, "upperCal", format(0x3ff, '010b'))
         chip_pixel_decoded_register_write(chip, "lowerCal", format(0x000, '010b'))
 
+        if do_pllcalib:
+            chip_peripheral_decoded_register_write(chip, "asyPLLReset", "0")
+            time.sleep(0.5)
+            chip_peripheral_decoded_register_write(chip, "asyPLLReset", "1")
+            time.sleep(0.5)
+            chip_peripheral_decoded_register_write(chip, "asyStartCalibration", "0")
+            time.sleep(0.5)
+            chip_peripheral_decoded_register_write(chip, "asyStartCalibration", "1")
+            time.sleep(0.1)
+
         ### One time run to set fpga firmware
         firmware_time = 5
         parser = run_script.getOptionParser()
@@ -874,6 +885,13 @@ def main():
         dest = 'do_qinj',
     )
     parser.add_argument(
+        '-p',
+        '--doPLLcalib',
+        help = 'Do the PLL calibration, it is required if you do not see the Qinj data',
+        action = 'store_true',
+        dest = 'do_pllcalib',
+    )
+    parser.add_argument(
         '--minV',
         metavar = 'VOLTAGE',
         type = float,
@@ -977,6 +995,7 @@ def main():
             do_i2c = args.do_i2c,
             do_baseline = args.do_baseline,
             do_qinj = args.do_qinj,
+            do_pllcalib = args.do_pllcalib,
             row = args.row,
             col = args.col,
             do_detailed = args.do_detailed,
