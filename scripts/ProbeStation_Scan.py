@@ -951,15 +951,15 @@ def main():
     if args.col > 15 or args.col < 0:
         raise RuntimeError("The pixel column must be within the range 0 to 15")
 
-    from read_current import DeviceMeasurements
-    delay_time = 5
-    powerDevices = DeviceMeasurements(outdir=Path('.'), interval=delay_time)
-    powerDevices.find_devices()
+    # from read_current import DeviceMeasurements
+    # delay_time = 5
+    # powerDevices = DeviceMeasurements(outdir=Path('.'), interval=delay_time)
+    # powerDevices.find_devices()
 
     def signal_handler(sig, frame):
         print("Exiting gracefully")
 
-        powerDevices.turn_off()
+        # powerDevices.turn_off()
 
         sys.exit(0)
     signal.signal(signal.SIGINT, signal_handler)
@@ -968,67 +968,84 @@ def main():
     while True:
         run_str = f"Run{count}"
 
-        do_analog = False
-        do_digital = False
-        voltage_str = "None"
-        if args.scanTypeV == 'Digital':
-            do_digital = True
-            voltage_str = "VD"
-        elif args.scanTypeV == 'Analog':
-            do_analog = True
-            voltage_str = "VA"
-        elif args.scanTypeV == 'Both':
-            do_analog = True
-            do_digital = True
-            voltage_str = "V"
-        else:
-            raise RuntimeError("Unknown scanTypeV selected")
+        run_ProbeStation(
+            wafer_name = args.wafer_name,
+            chip_name = args.chip_name,
+            comment_str = args.comment_str,
+            run_name_extra = f"{run_str}",
+            do_pixel_address = args.do_pixel_address,
+            do_i2c = args.do_i2c,
+            do_baseline = args.do_baseline,
+            do_qinj = args.do_qinj,
+            row = args.row,
+            col = args.col,
+            do_detailed = args.do_detailed,
+        )
 
-        voltage_steps = int((args.maxV - args.minV)/args.stepV)
-        if voltage_steps <= 0:
-            voltage_steps = 1
-        voltage_list = list(np.linspace(args.minV, args.maxV, voltage_steps))
-        if args.reverseVScan:
-            voltage_list.reverse()
-
-        powerDevices.turn_on()
-
-        time.sleep(1)
-
-        try:
-            for voltage in voltage_list:
-                if len(voltage_list) > 1:
-                    print(f"Setting voltage to {voltage} V")
-
-                if do_analog:
-                    powerDevices.set_power_V1(voltage)
-                if do_digital:
-                    powerDevices.set_power_V2(voltage)
-                if do_analog or do_digital:
-                    time.sleep(1)
-
-                run_ProbeStation(
-                    wafer_name = args.wafer_name,
-                    chip_name = args.chip_name,
-                    comment_str = args.comment_str,
-                    run_name_extra = f"{voltage_str}{voltage}_{run_str}",
-                    do_pixel_address = args.do_pixel_address,
-                    do_i2c = args.do_i2c,
-                    do_baseline = args.do_baseline,
-                    do_qinj = args.do_qinj,
-                    row = args.row,
-                    col = args.col,
-                    do_detailed = args.do_detailed,
-                )
-        except:
-            print("There was an exception!!!!!!!!!!!!!!!!!!!!!!!!")
-        finally:
-            powerDevices.turn_off()
-            time.sleep(1)
-
-        count += 1
         if not args.infinite_loop:
             break
+
+        # do_analog = False
+        # do_digital = False
+        # voltage_str = "None"
+        # if args.scanTypeV == 'Digital':
+        #     do_digital = True
+        #     voltage_str = "VD"
+        # elif args.scanTypeV == 'Analog':
+        #     do_analog = True
+        #     voltage_str = "VA"
+        # elif args.scanTypeV == 'Both':
+        #     do_analog = True
+        #     do_digital = True
+        #     voltage_str = "V"
+        # else:
+        #     raise RuntimeError("Unknown scanTypeV selected")
+
+        # voltage_steps = int((args.maxV - args.minV)/args.stepV)
+        # if voltage_steps <= 0:
+        #     voltage_steps = 1
+        # voltage_list = list(np.linspace(args.minV, args.maxV, voltage_steps))
+        # if args.reverseVScan:
+        #     voltage_list.reverse()
+
+        # powerDevices.turn_on()
+
+        # time.sleep(1)
+
+        # try:
+        #     for voltage in voltage_list:
+        #         if len(voltage_list) > 1:
+        #             print(f"Setting voltage to {voltage} V")
+
+        #         if do_analog:
+        #             powerDevices.set_power_V1(voltage)
+        #         if do_digital:
+        #             powerDevices.set_power_V2(voltage)
+        #         if do_analog or do_digital:
+        #             time.sleep(1)
+
+        #         run_ProbeStation(
+        #             wafer_name = args.wafer_name,
+        #             chip_name = args.chip_name,
+        #             comment_str = args.comment_str,
+        #             run_name_extra = f"{voltage_str}{voltage}_{run_str}",
+        #             do_pixel_address = args.do_pixel_address,
+        #             do_i2c = args.do_i2c,
+        #             do_baseline = args.do_baseline,
+        #             do_qinj = args.do_qinj,
+        #             row = args.row,
+        #             col = args.col,
+        #             do_detailed = args.do_detailed,
+        #         )
+        # except:
+        #     print("There was an exception!!!!!!!!!!!!!!!!!!!!!!!!")
+        # finally:
+        #     powerDevices.turn_off()
+        #     time.sleep(1)
+
+        # count += 1
+        # if not args.infinite_loop:
+        #     break
 
 if __name__ == "__main__":
     main()
