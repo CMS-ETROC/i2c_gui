@@ -408,10 +408,10 @@ def run_ProbeStation(
     # chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
 
     ## Disable all pixels
-    chip_broadcast_decoded_register_write(chip, "DAC", format(1023, '010b'))
+    #chip_broadcast_decoded_register_write(chip, "DAC", format(1023, '010b'))
     chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
-    chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
-    chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
+    #chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+    #chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
     row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
     column_indexer_handle,_,_ = chip.get_indexer("column")
