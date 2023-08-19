@@ -757,38 +757,37 @@ def run_ProbeStation(
 
         if do_pllcalib:
             chip_peripheral_decoded_register_write(chip, "asyPLLReset", "0")
-            time.sleep(0.5)
+            time.sleep(0.2)
             chip_peripheral_decoded_register_write(chip, "asyPLLReset", "1")
-            time.sleep(0.5)
             chip_peripheral_decoded_register_write(chip, "asyStartCalibration", "0")
-            time.sleep(0.5)
+            time.sleep(0.2)
             chip_peripheral_decoded_register_write(chip, "asyStartCalibration", "1")
-            time.sleep(0.1)
 
-        ### One time run to set fpga firmware
-        firmware_time = 5
-        parser = run_script.getOptionParser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {firmware_time + 3} -o CanBeRemoved -v -w --compressed_translation -s 0x000C -p 0x000f -d 0x0800 --clear_fifo".split())
-        IPC_queue = multiprocessing.Queue()
-        process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_Start_LEDs'))
-        process.start()
+        #### One time run to set fpga firmware
+        #firmware_time = 5
+        #parser = run_script.getOptionParser()
+        #(options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {firmware_time + 3} -o CanBeRemoved -v -w --compressed_translation -s 0x000C -p 0x000f -d 0x0800 --clear_fifo".split())
+        #IPC_queue = multiprocessing.Queue()
+        #process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_Start_LEDs'))
+        #process.start()
 
-        #IPC_queue.put('start L1A trigger bit')
-        IPC_queue.put('start singleShot')
-        while not IPC_queue.empty():
-            pass
-        time.sleep(firmware_time)
-        IPC_queue.put('stop DAQ')
-        #IPC_queue.put('stop L1A trigger bit')
-        IPC_queue.put('stop L1A')
-        while not IPC_queue.empty():
-            pass
-        IPC_queue.put('allow threads to exit')
-        process.join()
+        ##IPC_queue.put('start L1A trigger bit')
+        #IPC_queue.put('start singleShot')
+        #while not IPC_queue.empty():
+        #    pass
+        #time.sleep(firmware_time)
+        #IPC_queue.put('stop DAQ')
+        ##IPC_queue.put('stop L1A trigger bit')
+        #IPC_queue.put('stop L1A')
+        #while not IPC_queue.empty():
+        #    pass
+        #IPC_queue.put('allow threads to exit')
+        #process.join()
 
 
         #SelectedQInj = [10, 15, 20, 25]
         SelectedQInj = [15]
+        savedirname = ""
 
         for QInj in SelectedQInj:
             print(f"QInj data taking for QInj={QInj} check output data to check for success")
@@ -805,7 +804,8 @@ def run_ProbeStation(
             run_name = f'ProbeStation_testing_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{wafer_name}_{chip_name.replace("_","")}_'+comment_str+f'_R{row}_C{col}'
             if run_name_extra is not None:
                 run_name = f'ProbeStation_testing_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{run_name_extra}_{wafer_name}_{chip_name.replace("_","")}_'+comment_str+f'_R{row}_C{col}'
-            run_daq(10, 6, run_name, fpga_ip)
+            savedirname = run_name
+            run_daq(8, 5, run_name, fpga_ip)
 
             chip_pixel_decoded_register_write(chip, "Bypass_THCal", "1")   # Bypass threshold calibration -> manual DAC setting
             chip_pixel_decoded_register_write(chip, "disDataReadout", "1")
