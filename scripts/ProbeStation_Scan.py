@@ -150,7 +150,7 @@ def run_daq(
     base_dir.mkdir(exist_ok=True)
 
     parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation -d 0x0800 --clear_fifo".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation -d 0x0800 --clear_fifo".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
