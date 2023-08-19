@@ -321,6 +321,7 @@ def run_ProbeStation(
         do_baseline: bool = False,
         do_qinj: bool = False,
         do_pllcalib: bool = False,
+        do_offline: bool = False,
         do_detailed: bool = False,
         row: int = 0,
         col: int = 0,
@@ -820,6 +821,10 @@ def run_ProbeStation(
                     file_comment = f"AfterQInj{QInj}DAQ",
                 )
 
+        if do_offline:
+            os.system(f"python standalone_translate_WaferProbe_etroc2_data.py -d ../ETROC-Data/{datetime.datetime.now().strftime('%Y-%m-%d')}_Array_Test_Results/{savedirname}")
+
+
     # Disconnect chip
     conn.disconnect()
 
@@ -900,6 +905,13 @@ def main():
         help = 'Do the PLL calibration, it is required if you do not see the Qinj data',
         action = 'store_true',
         dest = 'do_pllcalib',
+    )
+    parser.add_argument(
+        '-f',
+        '--doOffline',
+        help = 'Do offline translation',
+        action = 'store_true',
+        dest = 'do_offline',
     )
     parser.add_argument(
         '--minV',
@@ -1006,6 +1018,7 @@ def main():
             do_baseline = args.do_baseline,
             do_qinj = args.do_qinj,
             do_pllcalib = args.do_pllcalib,
+            do_offline = args.do_offline,
             row = args.row,
             col = args.col,
             do_detailed = args.do_detailed,
