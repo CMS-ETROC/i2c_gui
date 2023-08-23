@@ -315,7 +315,6 @@ class i2c_connection():
         print(f"Disabled pixels for chip: {hex(chip_address)}")
     #--------------------------------------------------------------------------#
 
-<<<<<<< HEAD
     # Function 5
     def auto_calibration_and_disable(self, chip_address, chip_name, chip=None):
         # Reset the maps
@@ -391,9 +390,6 @@ class i2c_connection():
         print(f"Auto calibration and Disable Pixel operations finished for chip: {hex(chip_address)}")
 
     
-=======
-    #--------------------------------------------------------------------------#
->>>>>>> 1aaeee7d9be06c2b5629666bc2bc15a854e1927a
     def enable_pixel(self, chip_address, row, col, chip=None):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
@@ -409,19 +405,13 @@ class i2c_connection():
         self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
         self.pixel_decoded_register_write("disTrigPath", "0", chip)                # Enable trigger path
 
-<<<<<<< HEAD
     
-=======
->>>>>>> 1aaeee7d9be06c2b5629666bc2bc15a854e1927a
     def onchipL1A(self, chip_address, chip=None, comm='00'):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         self.peripheral_decoded_register_write("onChipL1AConf", comm, chip)
         print(f"OnChipL1A action {comm} done for chip: {hex(chip_address)}")
 
-<<<<<<< HEAD
     
-=======
->>>>>>> 1aaeee7d9be06c2b5629666bc2bc15a854e1927a
     def asyAlignFastcommand(self, chip_address, chip=None):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         self.peripheral_decoded_register_write("asyAlignFastcommand", "1", chip)
