@@ -53,6 +53,34 @@ import run_script
 importlib.reload(run_script)
 
 
+def chip_broadcast_decoded_register_write(
+        chip: i2c_gui.chips.ETROC2_Chip,
+        decodedRegisterName: str,
+        data_to_write: str,
+                                          ):
+    row_indexer_handle,_,_ = chip.get_indexer("row")
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+
+    bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Pixel Config"][decodedRegisterName]["bits"]
+    handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", decodedRegisterName)
+
+    if len(data_to_write)!=bit_depth:
+        print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
+    data_hex_modified = hex(int(data_to_write, base=2))
+
+    for row in range(16):
+        for col in range(16):
+            row_indexer_handle.set(row)
+            column_indexer_handle.set(col)
+
+            chip.read_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+
+            if(bit_depth>1): handle.set(data_hex_modified)
+            elif(bit_depth==1): handle.set(data_to_write)
+            else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
+
+            chip.write_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+
 def chip_pixel_decoded_register_write(
         chip: i2c_gui.chips.ETROC2_Chip,
         decodedRegisterName: str,
@@ -408,6 +436,8 @@ def run_TID(
         run_name_extra = None,
         do_knee_finding: bool = False,
         do_full_scan: bool = False,
+        do_row_scan: bool = False,
+        only_baseline: bool = False,
             ):
     ## Specify board name
     # !!!!!!!!!!!!
@@ -785,37 +815,26 @@ def run_TID(
     column_indexer_handle.set(0)
     row_indexer_handle.set(0)
 
-    broadcast_handle,_,_ = chip.get_indexer("broadcast")
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("disDataReadout", "1")
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("QInjEn", "0")
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("disTrigPath", "1")
+    chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+    chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+    chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
+
+    if only_baseline:
+        return
+
     # Release the maximum and minimum range for trigger and data
-    pixel_decoded_register_write("upperTOATrig", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperTOTTrig", format(0x1ff, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperCalTrig", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperTOA", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOA", format(0x000, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperTOT", format(0x1ff, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerTOT", format(0x000, '09b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("upperCal", format(0x3ff, '010b'))
-    broadcast_handle.set(True)
-    pixel_decoded_register_write("lowerCal", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOATrig", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOATrig", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOTTrig", format(0x1ff, '09b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOTTrig", format(0x000, '09b'))
+    chip_broadcast_decoded_register_write(chip, "upperCalTrig", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerCalTrig", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOA", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOA", format(0x000, '010b'))
+    chip_broadcast_decoded_register_write(chip, "upperTOT", format(0x1ff, '09b'))
+    chip_broadcast_decoded_register_write(chip, "lowerTOT", format(0x000, '09b'))
+    chip_broadcast_decoded_register_write(chip, "upperCal", format(0x3ff, '010b'))
+    chip_broadcast_decoded_register_write(chip, "lowerCal", format(0x000, '010b'))
 
 
     # Run DAQ scanning by row to study multiple pixels TOT and TOA
@@ -872,68 +891,74 @@ def run_TID(
     IPC_queue.put('allow threads to exit')
     process.join()
 
-    QInjEns = [10, 15, 20]
+    if do_row_scan:
+        QInjEns = [10, 15, 20]
+        # Make sure all pixels are in a well known initial state
+        chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+        chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+        chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
-    ### Actual DAQ run
-    for QInj in QInjEns:
-        print(f'Taking data for QInj: {QInj}')
-        for i in range(16):
-            # Disable pixels for clean start
-            row_indexer_handle,_,_ = chip.get_indexer("row")
-            column_indexer_handle,_,_ = chip.get_indexer("column")
-            column_indexer_handle.set(0)
-            row_indexer_handle.set(0)
+        ### Actual DAQ run
+        for QInj in QInjEns:
+            print(f'Taking data for QInj: {QInj}')
+            for i in range(16):
+                # Disable pixels for clean start
+                row_indexer_handle,_,_ = chip.get_indexer("row")
+                column_indexer_handle,_,_ = chip.get_indexer("column")
+                column_indexer_handle.set(0)
+                row_indexer_handle.set(0)
 
-            broadcast_handle,_,_ = chip.get_indexer("broadcast")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disDataReadout", "1")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("QInjEn", "0")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disTrigPath", "1")
+                scan_list = list(zip(np.full(16, i), np.arange(16)))
+                print(scan_list)
 
-            scan_list = list(zip(np.full(16, i), np.arange(16)))
-            print(scan_list)
+                for row, col in scan_list:
+                    column_indexer_handle.set(col)
+                    row_indexer_handle.set(row)
 
-            for row, col in scan_list:
-                column_indexer_handle.set(col)
-                row_indexer_handle.set(row)
+                    print(f"Enabling Pixel ({row},{col})")
 
-                print(f"Enabling Pixel ({row},{col})")
+                    pixel_decoded_register_write("Bypass_THCal", "0")               # Bypass threshold calibration -> manual DAC setting
+                    pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject 0 fC of charge
+                    pixel_decoded_register_write("TH_offset", format(0x0c, '06b'))  # Offset used to add to the auto BL for real triggering
+                    pixel_decoded_register_write("disDataReadout", "0")             # ENable readout
+                    pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
+                    pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b')) # Change L1A delay - circular buffer in ETROC2 pixel
+                    pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
 
-                pixel_decoded_register_write("Bypass_THCal", "0")               # Bypass threshold calibration -> manual DAC setting
-                pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject 0 fC of charge
-                pixel_decoded_register_write("TH_offset", format(0x0c, '06b'))  # Offset used to add to the auto BL for real triggering
-                pixel_decoded_register_write("disDataReadout", "0")             # ENable readout
-                pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
-                pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b')) # Change L1A delay - circular buffer in ETROC2 pixel
-                pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
+                run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
+                if run_name_extra is not None:
+                    run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
+                run_daq(10, 6, run_name)
 
-            run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
-            if run_name_extra is not None:
-                run_name = f'TID_testing_candidate_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_Q{QInj}_{run_name_extra}_{chip_name.replace("_","")}_'+TID_str+f'_R{str(i)}_CX'
-            run_daq(10, 6, run_name)
+                for row, col in scan_list:
+                    column_indexer_handle.set(col)
+                    row_indexer_handle.set(row)
 
-            broadcast_handle,_,_ = chip.get_indexer("broadcast")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disDataReadout", "1")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("QInjEn", "0")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disTrigPath", "1")
+                    print(f"Disabling Pixel ({row},{col})")
 
-    if do_detailed:
-        check_I2C(
-            chip = chip,
-            chip_name = chip_name,
-            i2c_log_dir = i2c_log_dir,
-            file_comment = "AfterRowDAQ",
-        )
+                    pixel_decoded_register_write("Bypass_THCal", "1")               # Bypass threshold calibration -> manual DAC setting
+                    pixel_decoded_register_write("disDataReadout", "1")
+                    pixel_decoded_register_write("QInjEn", "0")
+                    pixel_decoded_register_write("disTrigPath", "1")
+
+        chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+        chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+        chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
+
+        if do_detailed:
+            check_I2C(
+                chip = chip,
+                chip_name = chip_name,
+                i2c_log_dir = i2c_log_dir,
+                file_comment = "AfterRowDAQ",
+            )
 
     # Qinj S Curve Scan
     ## Define Pixel for ACC and DAC scan
     DAC_row_list = [15, 0, 0, 0]
     DAC_col_list = [7, 15, 7, 0]
+    DAC_row_list = [0,  0, 3,  3, 15, 15]
+    DAC_col_list = [2, 10, 2, 10,  2, 10]
     DAC_scan_list = list(zip(DAC_col_list, DAC_row_list))
     print(DAC_scan_list)
 
@@ -1217,19 +1242,17 @@ def run_TID(
 
         if do_full_scan:
             overscan_DAC = 5
+            underscan_DAC = 30
+            step_DAC = 1
             row_indexer_handle,_,_ = chip.get_indexer("row")
             column_indexer_handle,_,_ = chip.get_indexer("column")
             column_indexer_handle.set(0)
             row_indexer_handle.set(0)
-            broadcast_handle,_,_ = chip.get_indexer("broadcast")
 
             # Disable all pixels for clean start
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disDataReadout", "1")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("QInjEn", "0")
-            broadcast_handle.set(True)
-            pixel_decoded_register_write("disTrigPath", "1")
+            chip_broadcast_decoded_register_write(chip, "disDataReadout", "1")
+            chip_broadcast_decoded_register_write(chip, "QInjEn", "0")
+            chip_broadcast_decoded_register_write(chip, "disTrigPath", "1")
 
             for index, row, col in zip(tqdm(range(len(DAC_row_list)), desc=f'Pixel Loop', leave=True), DAC_row_list, DAC_col_list):
                 pixel_baseline = BL_map_THCal[row][col]
@@ -1243,11 +1266,17 @@ def run_TID(
                 pixel_decoded_register_write("disTrigPath", "0")                # Enable trigger path
 
                 for QInj in tqdm(QInjEns, desc=f'Charge Loop for Pixel {col},{row}', leave=False):
-                    pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
+                    if knee_DAC[(row, col)][QInj] is not None:
+                        pixel_max_dac = knee_DAC[(row, col)][QInj] + overscan_DAC
+                    else:
+                        print(f"There was a problem in the knee finding and no knee was found for pixel {row} {col} for QInj {QInj}, using max range instead.")
+                        pixel_max_dac = 1023
+
+                    pixel_min_dac = int(pixel_baseline) - underscan_DAC
 
                     pixel_decoded_register_write("QSel", format(QInj, '05b'))       # Ensure we inject selected charge
 
-                    for DAC in range(int(pixel_baseline), int(pixel_max_dac + 1), 2):
+                    for DAC in range(int(pixel_min_dac), int(pixel_max_dac + 1), step_DAC):
                         print(f"Enabling Pixel ({row},{col}) with charge {QInj} fC and DAC {DAC}")
 
                         pixel_decoded_register_write("DAC", format(DAC, '010b'))
@@ -1363,6 +1392,20 @@ def main():
         dest = 'do_full_scan',
     )
     parser.add_argument(
+        '-r',
+        '--doRowScan',
+        help = 'Do row scan, taking regular data for a full row at a time',
+        action = 'store_true',
+        dest = 'do_row_scan',
+    )
+    parser.add_argument(
+        '-b',
+        '--onlyBaseline',
+        help = 'Only do the baseline measurement, skip all other measurements',
+        action = 'store_true',
+        dest = 'only_baseline',
+    )
+    parser.add_argument(
         '--minV',
         metavar = 'VOLTAGE',
         type = float,
@@ -1396,7 +1439,6 @@ def main():
         dest = 'scanTypeV',
     )
     parser.add_argument(
-        '-r',
         '--reverseVScan',
         help = 'Do the V scan from higher voltage values to lower voltage values, instead of the default low to high.',
         action = 'store_true',
@@ -1457,6 +1499,8 @@ def main():
                     run_name_extra = f"{voltage_str}{voltage}_{run_str}",
                     do_knee_finding = args.do_knee_finding,
                     do_full_scan = args.do_full_scan,
+                    only_baseline = args.only_baseline,
+                    do_row_scan = args.do_row_scan,
                 )
             powerDevices.turn_off()
         else:
@@ -1467,6 +1511,8 @@ def main():
                 run_name_extra = run_str,
                 do_knee_finding = args.do_knee_finding,
                 do_full_scan = args.do_full_scan,
+                only_baseline = args.only_baseline,
+                do_row_scan = args.do_row_scan,
             )
 
         count += 1
