@@ -62,7 +62,7 @@ class i2c_connection():
             if(int(func_string[-3])): self.set_chip_peripherals(chip_address, chip_fc_delay, chip)
             if(int(func_string[-4])): self.auto_calibration(chip_address, chip_name, chip)
             if(int(func_string[-5])): self.disable_all_pixels(chip_address, chip)
-            # if(int(func_string[-6])): self.disable_all_pixels(chip_address, chip)
+            if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip)
             
     def enable_pixels_chips(self, pixel_list):
         for chip_address in self.chip_addresses:
@@ -200,7 +200,7 @@ class i2c_connection():
         column_indexer_handle,_,_ = chip.get_indexer("column")
         data = []
         # Loop for threshold calibration
-        for row in tqdm(range(16), desc=" row", position=0):
+        for row in tqdm(range(16), desc="Calibrating row", position=0):
             for col in tqdm(range(16), desc=" col", position=1, leave=False):
             # for index,row,col in zip(tqdm(range(16)), row_list, col_list):
                 column_indexer_handle.set(col)
@@ -235,9 +235,9 @@ class i2c_connection():
                 self.pixel_decoded_register_write("CLKEn_THCal", "0", chip) 
                 self.pixel_decoded_register_write("BufEn_THCal", "0", chip)
                 # Set Charge Inj Q to 15 fC
-                self.pixel_decoded_register_write("QSel", format(0x0e, '05b'), chip)
+                self.pixel_decoded_register_write("QSel", format(0x1b, '05b'), chip)
                 # Set Th Offset to 12
-                self.pixel_decoded_register_write("TH_offset", format(0x0c, '06b'), chip) 
+                self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip) 
                 # Set DAC to max
                 self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
                 self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
@@ -255,7 +255,7 @@ class i2c_connection():
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
-        for row in tqdm(range(16), desc=" row", position=0):
+        for row in tqdm(range(16), desc="Disabling row", position=0):
             for col in tqdm(range(16), desc=" col", position=1, leave=False):
                 column_indexer_handle.set(col)
                 row_indexer_handle.set(row)
@@ -278,6 +278,80 @@ class i2c_connection():
         print(f"Disabled pixels for chip: {hex(chip_address)}")
 
     # Function 5
+    def auto_calibration_and_disable(self, chip_address, chip_name, chip=None):
+        # Reset the maps
+        BL_map_THCal = np.zeros((16,16))
+        NW_map_THCal = np.zeros((16,16))
+        if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        data = []
+        # Loop for threshold calibration
+        for row in tqdm(range(16), desc="Calibrating and Disabling row", position=0):
+            for col in tqdm(range(16), desc=" col", position=1, leave=False):
+            # for index,row,col in zip(tqdm(range(16)), row_list, col_list):
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+                # Maybe required to make this work
+                # self.pixel_decoded_register_write("enable_TDC", "0", chip)
+                # self.pixel_decoded_register_write("testMode_TDC", "0", chip)
+                # Enable THCal clock and buffer, disable bypass
+                self.pixel_decoded_register_write("CLKEn_THCal", "1", chip)
+                self.pixel_decoded_register_write("BufEn_THCal", "1", chip)
+                self.pixel_decoded_register_write("Bypass_THCal", "0", chip)
+                self.pixel_decoded_register_write("TH_offset", format(0x07, '06b'), chip)
+                # Reset the calibration block (active low)
+                self.pixel_decoded_register_write("RSTn_THCal", "0", chip)
+                self.pixel_decoded_register_write("RSTn_THCal", "1", chip)
+                # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
+                self.pixel_decoded_register_write("ScanStart_THCal", "1", chip)
+                self.pixel_decoded_register_write("ScanStart_THCal", "0", chip)
+                # Check the calibration done correctly
+                if(self.pixel_decoded_register_read("ScanDone", "Status", chip)!="1"): print("!!!ERROR!!! Scan not done!!!")
+                BL_map_THCal[row, col] = self.pixel_decoded_register_read("BL", "Status", chip, need_int=True)
+                NW_map_THCal[row, col] = self.pixel_decoded_register_read("NW", "Status", chip, need_int=True)
+                data += [{
+                    'col': col,
+                    'row': row,
+                    'baseline': BL_map_THCal[row, col],
+                    'noise_width': NW_map_THCal[row, col],
+                    'timestamp': datetime.datetime.now(),
+                    'chip_name': chip_name,
+                }]
+                # Disable clock and buffer before charge injection 
+                self.pixel_decoded_register_write("CLKEn_THCal", "0", chip) 
+                self.pixel_decoded_register_write("BufEn_THCal", "0", chip)
+                # Set Charge Inj Q to 15 fC
+                self.pixel_decoded_register_write("QSel", format(0x1b, '05b'), chip)
+                # Set Th Offset to 12
+                self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip) 
+                # Set DAC to max
+                self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
+                self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
+                # Disable
+                self.pixel_decoded_register_write("disDataReadout", "1", chip)
+                self.pixel_decoded_register_write("QInjEn", "0", chip)
+                self.pixel_decoded_register_write("disTrigPath", "1", chip)
+                ## Release trigger and data range
+                self.pixel_decoded_register_write("upperTOATrig", format(0x3ff, '010b'), chip)
+                self.pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'), chip)
+                self.pixel_decoded_register_write("upperTOTTrig", format(0x1ff, '09b'), chip)
+                self.pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'), chip)
+                self.pixel_decoded_register_write("upperCalTrig", format(0x3ff, '010b'), chip)
+                self.pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'), chip)
+                self.pixel_decoded_register_write("upperTOA", format(0x3ff, '010b'), chip)
+                self.pixel_decoded_register_write("lowerTOA", format(0x000, '010b'), chip)
+                self.pixel_decoded_register_write("upperTOT", format(0x1ff, '09b'), chip)
+                self.pixel_decoded_register_write("lowerTOT", format(0x000, '09b'), chip)
+                self.pixel_decoded_register_write("upperCal", format(0x3ff, '010b'), chip)
+                self.pixel_decoded_register_write("lowerCal", format(0x000, '010b'), chip)
+        BL_df = pandas.DataFrame(data = data)
+        self.BL_map_THCal[chip_address] = BL_map_THCal
+        self.NW_map_THCal[chip_address] = NW_map_THCal
+        self.BL_df[chip_address] = BL_df
+        print(f"Auto calibration and Disable Pixel operations finished for chip: {hex(chip_address)}")
+
+    
     def enable_pixel(self, chip_address, row, col, chip=None):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
@@ -286,24 +360,24 @@ class i2c_connection():
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
         self.pixel_decoded_register_write("Bypass_THCal", "0", chip)      
-        # self.pixel_decoded_register_write("TH_offset", format(0x0c, '06b'), chip)  # Offset used to add to the auto BL for real triggering
+        self.pixel_decoded_register_write("TH_offset", format(0x0e, '06b'), chip)  # Offset used to add to the auto BL for real triggering
         # self.pixel_decoded_register_write("QSel", format(0x0e, '05b'), chip)       # Ensure we inject 15 fC of charge
         self.pixel_decoded_register_write("disDataReadout", "0", chip)             # ENable readout
         self.pixel_decoded_register_write("QInjEn", "1", chip)                     # ENable charge injection for the selected pixel
         self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
         self.pixel_decoded_register_write("disTrigPath", "0", chip)                # Enable trigger path
 
-    # Function 6
+    
     def onchipL1A(self, chip_address, chip=None, comm='00'):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
         self.peripheral_decoded_register_write("onChipL1AConf", comm, chip)
         print(f"OnChipL1A action {comm} done for chip: {hex(chip_address)}")
 
-    # Function 7
+    
     def asyAlignFastcommand(self, chip_address, chip=None):
         if(chip==None): chip = self.get_chip_i2c_connection(chip_address)
-        self.peripheral_decoded_register_write("asyAlignFastcommand", "1")
-        self.peripheral_decoded_register_write("asyAlignFastcommand", "0")
+        self.peripheral_decoded_register_write("asyAlignFastcommand", "1", chip)
+        self.peripheral_decoded_register_write("asyAlignFastcommand", "0", chip)
         print(f"asyAlignFastcommand action done for chip: {hex(chip_address)}")
     
 
