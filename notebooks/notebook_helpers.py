@@ -417,7 +417,7 @@ class i2c_connection():
         if(del_col_handle): del column_indexer_handle
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
-    def enable_pixel_noise(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
+    def enable_pixel_triggerbit(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
         del_chip = False
         if(chip==None and chip_address!=None): 
             chip = self.get_chip_i2c_connection(chip_address)
@@ -434,10 +434,9 @@ class i2c_connection():
             del_col_handle = True
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
-        self.pixel_decoded_register_write("disDataReadout", "0", chip)
+        self.pixel_decoded_register_write("disDataReadout", "1", chip)
         self.pixel_decoded_register_write("QInjEn", "0", chip)
         self.pixel_decoded_register_write("disTrigPath", "0", chip)
-        self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
         self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
         self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
         ## Open the trigger and close data windows
@@ -449,8 +448,8 @@ class i2c_connection():
         if(del_row_handle): del row_indexer_handle
         if(del_col_handle): del column_indexer_handle
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
-    
-    def enable_pixel_binarysearch_triggerbit(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
+
+    def enable_pixel_data_qinj(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
         del_chip = False
         if(chip==None and chip_address!=None): 
             chip = self.get_chip_i2c_connection(chip_address)
@@ -474,8 +473,8 @@ class i2c_connection():
         self.pixel_decoded_register_write("Bypass_THCal", "1", chip)    
         self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)  
         self.pixel_decoded_register_write("QSel", format(0x1b, '05b'), chip)       # Ensure we inject 27 fC of charge
-        ## Open the trigger and close data windows
-        self.close_TDC_pixel(chip_address, row, col, verbose=verbose, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, alreadySetPixel=True)
+        ## Open the trigger and data windows
+        self.open_TDC_pixel(chip_address, row, col, verbose=verbose, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, alreadySetPixel=True)
         # Enable TDC
         self.pixel_decoded_register_write("enable_TDC", "1", chip)
         # Delete created components
@@ -483,8 +482,8 @@ class i2c_connection():
         if(del_row_handle): del row_indexer_handle
         if(del_col_handle): del column_indexer_handle
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
-
-    def enable_pixel_binarysearch_data(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
+    
+    def enable_pixel_data(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
         del_chip = False
         if(chip==None and chip_address!=None): 
             chip = self.get_chip_i2c_connection(chip_address)
@@ -502,7 +501,7 @@ class i2c_connection():
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
         self.pixel_decoded_register_write("disDataReadout", "0", chip)
-        self.pixel_decoded_register_write("QInjEn", "1", chip)
+        self.pixel_decoded_register_write("QInjEn", "0", chip)
         self.pixel_decoded_register_write("disTrigPath", "0", chip)
         self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
         self.pixel_decoded_register_write("Bypass_THCal", "1", chip)    
