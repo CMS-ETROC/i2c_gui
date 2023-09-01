@@ -292,7 +292,7 @@ class i2c_connection():
         # Loop for threshold calibration
         for row in tqdm(range(16), desc="Calibrating row", position=0):
             for col in range(16):
-                self.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=None, chip=chip, data=data, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+                self.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=data, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         BL_df = pandas.DataFrame(data = data)
         self.BL_df[chip_address] = BL_df
         # Delete created components
@@ -302,6 +302,55 @@ class i2c_connection():
     
     def get_auto_cal_maps(self, chip_address):
         return self.BL_map_THCal[chip_address],self.NW_map_THCal[chip_address],self.BL_df[chip_address]
+
+    def save_auto_cal_BL_map(self, chip_address, chip_name, user_path=""):
+        outdir = Path('../ETROC-Data/'+(datetime.date.today().isoformat() + '_Array_Test_Results/')+user_path)
+        outdir.mkdir(parents=True,exist_ok=True)
+        outfile_BL_map = outdir / (chip_name+"_BL_map.pickle")
+        with open(outfile_BL_map,'wb') as f:
+            pickle.dump(self.BL_map_THCal[chip_address],f,pickle.HIGHEST_PROTOCOL)
+    
+    def save_auto_cal_NW_map(self, chip_address, chip_name, user_path=""):
+        outdir = Path('../ETROC-Data/'+(datetime.date.today().isoformat() + '_Array_Test_Results/')+user_path)
+        outdir.mkdir(parents=True,exist_ok=True)
+        outfile_NW_map = outdir / (chip_name+"_NW_map.pickle")
+        with open(outfile_NW_map,'wb') as f:
+            pickle.dump(self.NW_map_THCal[chip_address],f,pickle.HIGHEST_PROTOCOL)
+
+    def save_auto_cal_BL_df(self, chip_address, chip_name, user_path=""):
+        outdir = Path('../ETROC-Data/'+(datetime.date.today().isoformat() + '_Array_Test_Results')+user_path)
+        outdir.mkdir(parents=True,exist_ok=True)
+        outfile_BL_df = outdir / (chip_name+"_BL_df.pickle")
+        with open(outfile_BL_df,'wb') as f:
+            pickle.dump(self.BL_df[chip_address],f,pickle.HIGHEST_PROTOCOL)
+
+    def load_auto_cal_BL_map(self, chip_address, chip_name, user_path=""):
+        indir = Path('../ETROC-Data/'+(datetime.date.today().isoformat() + '_Array_Test_Results/')+user_path)
+        infile_BL_map = indir / (chip_name+"_BL_map.pickle")
+        with open(infile_BL_map, 'rb') as f:
+            self.BL_map_THCal[chip_address]=pickle.load(f)
+    
+    def load_auto_cal_NW_map(self, chip_address, chip_name, user_path=""):
+        indir = Path('../ETROC-Data/'+(datetime.date.today().isoformat() + '_Array_Test_Results/')+user_path)
+        infile_NW_map = indir / (chip_name+"_NW_map.pickle")
+        with open(infile_NW_map, 'rb') as f:
+            self.NW_map_THCal[chip_address]=pickle.load(f)
+    
+    def load_auto_cal_BL_df(self, chip_address, chip_name, user_path=""):
+        indir = Path('../ETROC-Data/'+(datetime.date.today().isoformat() + '_Array_Test_Results/')+user_path)
+        infile_BL_df = indir / (chip_name+"_BL_df.pickle")
+        with open(infile_BL_df, 'rb') as f:
+            self.BL_df[chip_address]=pickle.load(f)
+
+    def save_auto_cal_maps(self, chip_address, chip_name, user_path=""):
+        self.save_auto_cal_BL_map(chip_address, chip_name, user_path)
+        self.save_auto_cal_NW_map(chip_address, chip_name, user_path)
+        self.save_auto_cal_BL_df(chip_address, chip_name, user_path)
+    
+    def load_auto_cal_maps(self, chip_address, chip_name, user_path=""):
+        self.load_auto_cal_BL_map(chip_address, chip_name, user_path)
+        self.load_auto_cal_NW_map(chip_address, chip_name, user_path)
+        self.load_auto_cal_BL_df(chip_address, chip_name, user_path)
 
     # Function 5
     def auto_calibration_and_disable(self, chip_address, chip_name, chip=None):
