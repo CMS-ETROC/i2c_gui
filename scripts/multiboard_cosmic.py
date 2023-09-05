@@ -145,12 +145,34 @@ def func_daq(
 
     del IPC_queue, process, parser
 
+def func_fpga_data(
+        chip_names,
+        extra_str,
+        fpga_ip = "192.168.2.3",
+        time_limit: int = 3,
+        th_offset: int = 0x0f,
+    ):
+
+    outdir_name = f'{extra_str}_'+'_'.join(chip_names)+'_FPGA_data'
+
+    parser = run_script.getOptionParser()
+    (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {outdir_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {time_limit} --fpga_data --nodaq --DAC_Val {th_offset}".split())
+
+    IPC_queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_fpga_data'))
+    process.start()
+    process.join()
+
+    del IPC_queue, process, parser
+
 def run_daq(
         extra_str,
         i2c_port = "/dev/ttyACM0",
         fpga_ip = "192.168.2.3",
         th_offset = 0x18,
         run_time: int = 120,
+        do_TDC: bool = False,
+        do_Counter: bool = False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
     chip_names = ["ET2-W36-IP7-12", "ET2-W36-IP5-14", "ET2-W36-IP7-10"]
@@ -280,14 +302,23 @@ def run_daq(
     # hold for keyboard input
     input("Are LEDs looking okay? Press the Enter key to continue: ")
 
-    func_daq(
-        chip_names = chip_names,
-        extra_str = extra_str,
-        fpga_ip = fpga_ip,
-        delay = 485,
-        run_time = run_time,
-        extra_margin_time = 30,
-    )
+    if do_TDC:
+        func_daq(
+            chip_names = chip_names,
+            extra_str = extra_str,
+            fpga_ip = fpga_ip,
+            delay = 485,
+            run_time = run_time,
+            extra_margin_time = 30,
+        )
+    elif do_Counter:
+        func_fpga_data(
+            chip_names = chip_names,
+            extra_str = extra_str,
+            fpga_ip = fpga_ip,   
+        )
+    else:
+        print('Run mode is not specify. Exit the script and disconnect I2C.')
 
     # Disconnect I2C Device
     del i2c_conn
@@ -330,6 +361,18 @@ def main():
         dest = 'daq_run_time',
     )
     parser.add_argument(
+        '--runTDC',
+        help = 'Take TDC data while running DAQ',
+        action = 'store_true',
+        dest = 'run_TDC',
+    )
+    parser.add_argument(
+        '--runCounter',
+        help = 'Take FPGA data while running DAQ',
+        action = 'store_true',
+        dest = 'run_Counter',
+    )
+    parser.add_argument(
         '-l',
         '--infiniteLoop',
         help = 'Do infinite loop',
@@ -342,7 +385,7 @@ def main():
     while True:
         run_str = f"Run{count}"
 
-        if (args.infinite_loop) and (args.daq_run_time > 7200):
+        if (args.infinite_loop) and (args.daq_run_time > 7200) and (args.run_TDC):
             print("User set daq running time too long while enabling infinite loop option!")
             print("Maximum running time should be 7200s!")
             break
@@ -359,6 +402,8 @@ def main():
             fpga_ip = "192.168.2.3",
             th_offset = 0x0f,
             run_time = args.daq_run_time,
+            do_TDC = args.run_TDC,
+            do_Counter = args.run_Counter,
         )
 
         count += 1
