@@ -37,6 +37,75 @@ import run_script
 import importlib
 importlib.reload(run_script)
 import signal
+import pandas as pd
+
+def push_history_to_git(
+        input_df: pd.DataFrame,
+        note: str,
+        git_repo: Path,
+    ):
+    # Store BL, NW dataframe for later use
+    new_columns = {
+        'note': f'{note}',
+    }
+
+    if not git_repo.is_dir():
+        os.system(f'git clone git@github.com:CMS-ETROC/ETROC-History-Cosmic.git {str(git_repo)}')
+
+    for col in new_columns:
+        input_df[col] = new_columns[col]
+
+    outdir = git_repo
+    outfile = outdir / 'BaselineHistory.sqlite'
+
+    init_cmd = [
+        'cd ' + str(outdir.resolve()),
+        'git stash -u',
+        'git pull',
+    ]
+    end_cmd = [
+        'cd ' + str(outdir.resolve()),
+        'git add BaselineHistory.sqlite',
+        'git commit -m "Added new history entry"',
+        'git push',
+        'git stash pop',
+        'git stash clear',
+    ]
+    init_cmd = [x + '\n' for x in init_cmd]
+    end_cmd  = [x + '\n' for x in end_cmd]
+
+    p = subprocess.Popen(
+        '/bin/bash',
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        )
+
+    for cmd in init_cmd:
+        p.stdin.write(cmd + "\n")
+    p.stdin.close()
+    p.wait()
+    print(p.stdout.read())
+
+    with sqlite3.connect(outfile) as sqlconn:
+        input_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
+
+    p = subprocess.Popen(
+        '/bin/bash',
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        )
+
+    for cmd in end_cmd:
+        p.stdin.write(cmd + "\n")
+    p.stdin.close()
+    p.wait()
+
+    p.stdin.close()
+    print(p.stdout.read())
 
 def func_daq(
         chip_names,
@@ -46,6 +115,8 @@ def func_daq(
         run_time: int = 120,
         extra_margin_time: int = 100,
     ):
+
+    print('DAQ Start:', datetime.datetime.now())
     ## Making directory to save main_process.out files
     currentPath = Path('.')
     main_pro_dir = currentPath / 'main_process_cosmic'
@@ -55,7 +126,7 @@ def func_daq(
 
     trigger_bit_delay = int('100111'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --reset_all_till_trigger_linked --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s 0x0000 -p 0x000f -d {trigger_bit_delay} -a 0x00bb --counter_duration 0x0001 --skip_binary -l 100000 --compressed_translation".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --reset_all_till_trigger_linked --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s 0x0000 -p 0x000f -d {trigger_bit_delay} -a 0x00bb --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
     process.start()
@@ -70,6 +141,7 @@ def func_daq(
         pass
     IPC_queue.put('allow threads to exit')
     process.join()
+    print('DAQ End:', datetime.datetime.now())
 
     del IPC_queue, process, parser
 
@@ -110,7 +182,7 @@ def run_daq(
     # Config chips
     ### Key is (Disable Pixels, Auto Cal, Chip Peripherals, Basic Peri Reg Check, Pixel Check)
     # 0 - 0 - (disable & auto_cal all pixels) - (disable default all pixels) - (auto_TH_CAL) - (set basic peripherals) - (peripheral reg check) -  (pixel ID check)
-    i2c_conn.config_chips('00100111')
+    i2c_conn.config_chips('00001111')
 
     ## Visualize the learned Baselines (BL) and Noise Widths (NW)
     # Note that the NW represents the full width on either side of the BL
@@ -150,74 +222,16 @@ def run_daq(
         plt.savefig(fig_path+"/BL_NW_"+chip_name+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
         plt.close()
 
-        # Store BL, NW dataframe for later use
-        new_columns = {
-            'note': f'{chip_fignames}',
-        }
-
-        if not os.path.exists('../ETROC-History-Cosmic'):
-            os.system('git clone git@github.com:CMS-ETROC/ETROC-History-Cosmic.git ../ETROC-History-Cosmic')
-
-        for col in new_columns:
-            BL_df[col] = new_columns[col]
-
-        outdir = Path('../ETROC-History-Cosmic')
-        outfile = outdir / 'BaselineHistory.sqlite'
-
-        init_cmd = [
-            'cd ' + str(outdir.resolve()),
-            'git stash -u',
-            'git pull',
-        ]
-        end_cmd = [
-            'cd ' + str(outdir.resolve()),
-            'git add BaselineHistory.sqlite',
-            'git commit -m "Added new history entry"',
-            'git push',
-            'git stash pop',
-            'git stash clear',
-        ]
-        init_cmd = [x + '\n' for x in init_cmd]
-        end_cmd  = [x + '\n' for x in end_cmd]
-
-        p = subprocess.Popen(
-            '/bin/bash',
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            )
-
-        for cmd in init_cmd:
-            p.stdin.write(cmd + "\n")
-        p.stdin.close()
-        p.wait()
-        print(p.stdout.read())
-
-        with sqlite3.connect(outfile) as sqlconn:
-            BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
-
-        p = subprocess.Popen(
-            '/bin/bash',
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            )
-
-        for cmd in end_cmd:
-            p.stdin.write(cmd + "\n")
-        p.stdin.close()
-        p.wait()
-
-        p.stdin.close()
-        print(p.stdout.read())
-
+        
     # Define pixels of interest
     row_list = [14, 14, 14, 14, 15, 15, 15, 15]
     col_list = [6, 7, 8, 9, 6, 7, 8, 9]
     scan_list = list(zip(row_list, col_list))
     print(scan_list)
+
+    for chip_address, chip_name in zip(chip_addresses, chip_names):
+        for row, col in scan_list:
+            i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=None, row_indexer_handle=None, column_indexer_handle=None)
 
     ### Enable pixels of Interest
     i2c_conn.enable_select_pixels_in_chips(scan_list)
@@ -232,6 +246,7 @@ def run_daq(
             column_indexer_handle.set(col)
             row_indexer_handle.set(row)    
             i2c_conn.pixel_decoded_register_write("TH_offset", format(offset, '06b'), chip)
+            i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
         del chip, row_indexer_handle, column_indexer_handle
 
     # Calibrate PLL
@@ -261,6 +276,9 @@ def run_daq(
     IPC_queue.put('allow threads to exit')
     process.join()
     del IPC_queue, process, parser
+    
+    # hold for keyboard input
+    input("Are LEDs looking okay? Press the Enter key to continue: ")
 
     func_daq(
         chip_names = chip_names,
@@ -337,9 +355,9 @@ def main():
 
         run_daq(
             extra_str = run_str,
-            i2c_port = "/dev/ttyACM0",
+            i2c_port = "/dev/ttyACM2",
             fpga_ip = "192.168.2.3",
-            th_offset = 0x18,
+            th_offset = 0x0f,
             run_time = args.daq_run_time,
         )
 
