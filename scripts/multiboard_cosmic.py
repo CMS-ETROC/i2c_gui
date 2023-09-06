@@ -43,15 +43,15 @@ import time
 def push_history_to_git(
         input_df: pd.DataFrame,
         note: str,
-        git_repo: Path,
+        git_repo: str,
     ):
     # Store BL, NW dataframe for later use
     new_columns = {
         'note': f'{note}',
     }
 
-    if not git_repo.is_dir():
-        os.system(f'git clone git@github.com:CMS-ETROC/ETROC-History-Cosmic.git {str(git_repo)}')
+    if not os.path.exists(f'/home/{os.getlogin()}/ETROC2/{git_repo}'):
+        os.system(f'git clone git@github.com:CMS-ETROC/{git_repo}.git /home/{os.getlogin()}/ETROC2/{git_repo}')
 
     for col in new_columns:
         input_df[col] = new_columns[col]
@@ -110,7 +110,9 @@ def push_history_to_git(
 
 def func_daq(
         chip_names,
+        run_str,
         extra_str,
+        directory: Path,
         fpga_ip = "192.168.2.3",
         delay: int = 485,
         run_time: int = 120,
@@ -119,11 +121,13 @@ def func_daq(
 
     print('DAQ Start:', datetime.datetime.now())
     ## Making directory to save main_process.out files
-    currentPath = Path('.')
-    main_pro_dir = currentPath / 'main_process_cosmic'
-    main_pro_dir.mkdir(exist_ok=True)
+    # currentPath = Path('.')
+    # main_pro_dir = currentPath / 'main_process_cosmic'
+    # main_pro_dir.mkdir(exist_ok=True)
 
-    outdir_name = f'{extra_str}_'+'_'.join(chip_names)
+    outdir_name = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
+    outdir = directory / outdir_name
+    outdir.mkdir(exist_ok=False)
 
     trigger_bit_delay = int('100111'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
@@ -177,10 +181,13 @@ def func_fpga_data(
     del IPC_queue, process, parser
 
 def run_daq(
-        extra_str,
-        i2c_port = "/dev/ttyACM0",
-        fpga_ip = "192.168.2.3",
-        th_offset = 0x18,
+        chip_names: list,
+        chip_addresses: list,
+        run_str: str,
+        extra_str: str,
+        i2c_port: str = "/dev/ttyACM0",
+        fpga_ip: str = "192.168.2.3",
+        th_offset: int = 0x18,
         run_time: int = 120,
         do_infiniteLoop: bool = False,
         do_TDC: bool = False,
@@ -189,14 +196,11 @@ def run_daq(
         do_saveHistory: bool = False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
-    chip_names = ["ET2-W36-IP7-12", "ET2-W36-IP5-14", "ET2-W36-IP7-10"]
-    chip_fignames = f'{extra_str}_'+'_'.join(chip_names)
+    chip_fignames = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
 
     # 'The port name the USB-ISS module is connected to. Default: COM3'
     port = i2c_port
-    # I2C addresses for the pixel block and WS
-    chip_addresses = [0x78, 0x61, 0x74]
-    ws_addresses = [None, None, None]
+    # ws_addresses = [None, None, None]
 
     # i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
     # i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
@@ -217,8 +221,8 @@ def run_daq(
 
     # Config chips
     ### Key is (Disable Pixels, Auto Cal, Chip Peripherals, Basic Peri Reg Check, Pixel Check)
-    # 0 - 0 - (disable & auto_cal all pixels) - (disable default all pixels) - (auto_TH_CAL) - (set basic peripherals) - (peripheral reg check) -  (pixel ID check)
-    # i2c_conn.config_chips('00001111')
+    # 0 - 0 - (disable & auto_cal all pixels) - (auto_TH_CAL) - (disable default all pixels) - (set basic peripherals) - (peripheral reg check) -  (pixel ID check)
+    i2c_conn.config_chips('00001111')
 
     if do_fullAutoCal:
         i2c_conn.config_chips('00100000')
@@ -263,8 +267,11 @@ def run_daq(
 
         full_BL_df = pd.concat(frames)
         if do_saveHistory:
-            # push_history_to_git(full_BL_df, '', '')
-            pass
+            push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+
+        col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
+        scan_list = list(zip(row_list.flatten(), col_list.flatten()))
+
     else:
         # Define pixels of interest
         row_list = [14, 14, 14, 14]
@@ -278,8 +285,7 @@ def run_daq(
                 i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
         BL_df = pandas.DataFrame(data = tmp_data)
         if do_saveHistory:
-            # push_history_to_git(BL_df, '', '')
-            pass
+            push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
 
     ### Enable pixels of Interest
     i2c_conn.enable_select_pixels_in_chips(scan_list)
@@ -335,7 +341,9 @@ def run_daq(
     if do_TDC:
         func_daq(
             chip_names = chip_names,
+            run_str = run_str,
             extra_str = extra_str,
+            directory = data_outdir,
             fpga_ip = fpga_ip,
             delay = 485,
             run_time = run_time,
@@ -411,10 +419,82 @@ def main():
         action = 'store_true',
         dest = 'saveHistory',
     )
-
+    parser.add_argument(
+        '-b0',
+        '--board0_name',
+        metavar = 'NAME',
+        help = "Name of the ETROC board installed in channel 0 (FMCRX1)",
+        dest = 'board0_name',
+        required = True,
+        type = str,
+    )
+    parser.add_argument(
+        '-b1',
+        '--board1_name',
+        metavar = 'NAME',
+        help = "Name of the ETROC board installed in channel 1 (FMCRX2)",
+        dest = 'board1_name',
+        default = None,
+        type = str,
+    )
+    parser.add_argument(
+        '-b2',
+        '--board2_name',
+        metavar = 'NAME',
+        help = "Name of the ETROC board installed in channel 2 (FMCRX3)",
+        dest = 'board2_name',
+        default = None,
+        type = str,
+    )
+    parser.add_argument(
+        '-b3',
+        '--board3_name',
+        metavar = 'NAME',
+        help = "Name of the ETROC board installed in channel 3 (FMCRX4)",
+        dest = 'board3_name',
+        default = None,
+        type = str,
+    )
+    parser.add_argument(
+        '--board0_i2c',
+        metavar = 'I2C_ADDRESS',
+        help = "I2C address of the ETROC board installed in channel 0 (FMCRX1)",
+        dest = 'board0_i2c',
+        required = True,
+        type = int,
+    )
+    parser.add_argument(
+        '--board1_i2c',
+        metavar = 'I2C_ADDRESS',
+        help = "I2C address of the ETROC board installed in channel 1 (FMCRX2)",
+        dest = 'board1_i2c',
+        default = None,
+        type = int,
+    )
+    parser.add_argument(
+        '--board2_i2c',
+        metavar = 'I2C_ADDRESS',
+        help = "I2C address of the ETROC board installed in channel 2 (FMCRX3)",
+        dest = 'board2_i2c',
+        default = None,
+        type = int,
+    )
+    parser.add_argument(
+        '--board3_i2c',
+        metavar = 'I2C_ADDRESS',
+        help = "I2C address of the ETROC board installed in channel 3 (FMCRX4)",
+        dest = 'board3_i2c',
+        default = None,
+        type = int,
+    )
     args = parser.parse_args()
     start_time = time.time()
-    print(start_time)
+
+    full_chip_names = [args.board0_name, args.board1_name, args.board2_name, args.board3_name]
+    full_chip_addresses = [args.board0_i2c, args.board1_i2c, args.board2_i2c, args.board3_i2c]
+
+    chip_names = list(filter(lambda item: item is not None, full_chip_names))
+    chip_addresses = list(filter(lambda item: item is not None, full_chip_addresses))
 
     count = 0
     while True:
@@ -432,7 +512,10 @@ def main():
         signal.signal(signal.SIGINT, signal_handler)
 
         run_daq(
-            extra_str = run_str,
+            chip_names = chip_names,
+            chip_addresses = chip_addresses,
+            run_str = run_str,
+            extra_str = args.extra_str,
             i2c_port = "/dev/ttyACM2",
             fpga_ip = "192.168.2.3",
             th_offset = 0x0f,
@@ -445,8 +528,6 @@ def main():
         )
         
         end_time = time.time()
-        print(end_time)
-
         if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
             break
 
