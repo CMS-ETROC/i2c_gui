@@ -38,7 +38,7 @@ import importlib
 importlib.reload(run_script)
 import signal
 import pandas as pd
-import time 
+import time
 
 def push_history_to_git(
         input_df: pd.DataFrame,
@@ -121,22 +121,22 @@ def func_daq(
 
     print('DAQ Start:', datetime.datetime.now())
     ## Making directory to save main_process.out files
-    # currentPath = Path('.')
-    # main_pro_dir = currentPath / 'main_process_cosmic'
-    # main_pro_dir.mkdir(exist_ok=True)
+    currentPath = Path('.')
+    main_pro_dir = currentPath / 'main_process_cosmic'
+    main_pro_dir.mkdir(exist_ok=True)
 
     outdir_name = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
     outdir = directory / outdir_name
     outdir.mkdir(exist_ok=False)
 
-    trigger_bit_delay = int('100111'+format(delay, '010b'), base=2)
+    trigger_bit_delay = int('100011'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --reset_all_till_trigger_linked --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s 0x0000 -p 0x000f -d {trigger_bit_delay} -a 0x00bb --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s 0x000C -p 0x000f -d {trigger_bit_delay} -a 0x0088 --counter_duration 0x0001 --compressed_translation -l 100000 --skip_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
     process.start()
 
-    IPC_queue.put('memoFC Start Triggerbit BCR')
+    IPC_queue.put('memoFC Start Triggerbit')
     while not IPC_queue.empty():
         pass
     time.sleep(run_time)
@@ -194,6 +194,8 @@ def run_daq(
         do_Counter: bool = False,
         do_fullAutoCal: bool = False,
         do_saveHistory: bool = False,
+        do_skipConfig: bool = False,
+        do_skipCalibration: bool = False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
     chip_fignames = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
@@ -222,102 +224,109 @@ def run_daq(
     # Config chips
     ### Key is (Disable Pixels, Auto Cal, Chip Peripherals, Basic Peri Reg Check, Pixel Check)
     # 0 - 0 - (disable & auto_cal all pixels) - (auto_TH_CAL) - (disable default all pixels) - (set basic peripherals) - (peripheral reg check) -  (pixel ID check)
-    i2c_conn.config_chips('00001111')
+    if not do_skipConfig:
+        i2c_conn.config_chips('00001111')
 
-    if do_fullAutoCal:
-        i2c_conn.config_chips('00100000')
-        ## Visualize the learned Baselines (BL) and Noise Widths (NW)
-        ## Note that the NW represents the full width on either side of the BL
-        frames = []
-        for chip_address, chip_name in zip(chip_addresses,chip_names):
-            BL_map_THCal,NW_map_THCal, BL_df = i2c_conn.get_auto_cal_maps(chip_address)
-            frames.append(BL_df)
-            fig = plt.figure(dpi=200, figsize=(10,10))
-            gs = fig.add_gridspec(1,2)
+    if not do_skipConfig:
+        if do_fullAutoCal:
+            i2c_conn.config_chips('00100000')
+            ## Visualize the learned Baselines (BL) and Noise Widths (NW)
+            ## Note that the NW represents the full width on either side of the BL
+            frames = []
+            for chip_address, chip_name in zip(chip_addresses,chip_names):
+                BL_map_THCal,NW_map_THCal, BL_df = i2c_conn.get_auto_cal_maps(chip_address)
+                frames.append(BL_df)
+                fig = plt.figure(dpi=200, figsize=(10,10))
+                gs = fig.add_gridspec(1,2)
 
-            ax0 = fig.add_subplot(gs[0,0])
-            ax0.set_title(f"{chip_name}: BL (DAC LSB)")
-            img0 = ax0.imshow(BL_map_THCal, interpolation='none')
-            ax0.set_aspect("equal")
-            ax0.invert_xaxis()
-            ax0.invert_yaxis()
-            plt.xticks(range(16), range(16), rotation="vertical")
-            plt.yticks(range(16), range(16))
-            divider = make_axes_locatable(ax0)
-            cax = divider.append_axes('right', size="5%", pad=0.05)
-            fig.colorbar(img0, cax=cax, orientation="vertical")
+                ax0 = fig.add_subplot(gs[0,0])
+                ax0.set_title(f"{chip_name}: BL (DAC LSB)")
+                img0 = ax0.imshow(BL_map_THCal, interpolation='none')
+                ax0.set_aspect("equal")
+                ax0.invert_xaxis()
+                ax0.invert_yaxis()
+                plt.xticks(range(16), range(16), rotation="vertical")
+                plt.yticks(range(16), range(16))
+                divider = make_axes_locatable(ax0)
+                cax = divider.append_axes('right', size="5%", pad=0.05)
+                fig.colorbar(img0, cax=cax, orientation="vertical")
 
-            ax1 = fig.add_subplot(gs[0,1])
-            ax1.set_title(f"{chip_name}: NW (DAC LSB)")
-            img1 = ax1.imshow(NW_map_THCal, interpolation='none')
-            ax1.set_aspect("equal")
-            ax1.invert_xaxis()
-            ax1.invert_yaxis()
-            plt.xticks(range(16), range(16), rotation="vertical")
-            plt.yticks(range(16), range(16))
-            divider = make_axes_locatable(ax1)
-            cax = divider.append_axes('right', size="5%", pad=0.05)
-            fig.colorbar(img1, cax=cax, orientation="vertical")
+                ax1 = fig.add_subplot(gs[0,1])
+                ax1.set_title(f"{chip_name}: NW (DAC LSB)")
+                img1 = ax1.imshow(NW_map_THCal, interpolation='none')
+                ax1.set_aspect("equal")
+                ax1.invert_xaxis()
+                ax1.invert_yaxis()
+                plt.xticks(range(16), range(16), rotation="vertical")
+                plt.yticks(range(16), range(16))
+                divider = make_axes_locatable(ax1)
+                cax = divider.append_axes('right', size="5%", pad=0.05)
+                fig.colorbar(img1, cax=cax, orientation="vertical")
 
-            for x in range(16):
-                for y in range(16):
-                    ax0.text(x,y,f"{BL_map_THCal.T[x,y]:.0f}", c="white", size=5, rotation=45, fontweight="bold", ha="center", va="center")
-                    ax1.text(x,y,f"{NW_map_THCal.T[x,y]:.0f}", c="white", size=5, rotation=45, fontweight="bold", ha="center", va="center")
-            plt.savefig(fig_path+"/BL_NW_"+chip_name+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+                for x in range(16):
+                    for y in range(16):
+                        ax0.text(x,y,f"{BL_map_THCal.T[x,y]:.0f}", c="white", size=5, rotation=45, fontweight="bold", ha="center", va="center")
+                        ax1.text(x,y,f"{NW_map_THCal.T[x,y]:.0f}", c="white", size=5, rotation=45, fontweight="bold", ha="center", va="center")
+                plt.savefig(fig_path+"/BL_NW_"+chip_name+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
 
-        full_BL_df = pd.concat(frames)
-        if do_saveHistory:
-            push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+            full_BL_df = pd.concat(frames)
+            if do_saveHistory:
+                push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
 
-        col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
-        scan_list = list(zip(row_list.flatten(), col_list.flatten()))
+            col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
+            scan_list = list(zip(row_list.flatten(), col_list.flatten()))
 
-    else:
-        # Define pixels of interest
-        row_list = [14, 14, 14, 14]
-        col_list = [6, 7, 8, 9]
-        scan_list = list(zip(row_list, col_list))
-        print(scan_list)
-        
-        tmp_data = []
-        for chip_address, chip_name in zip(chip_addresses, chip_names):
-            for row, col in scan_list:
-                i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
-        BL_df = pandas.DataFrame(data = tmp_data)
-        if do_saveHistory:
-            push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+        else:
+            # Define pixels of interest
+            row_list = [14, 14, 14, 14]
+            col_list = [6, 7, 8, 9]
+            scan_list = list(zip(row_list, col_list))
+            print(scan_list)
+
+            tmp_data = []
+            for chip_address, chip_name in zip(chip_addresses, chip_names):
+                for row, col in scan_list:
+                    i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
+            BL_df = pandas.DataFrame(data = tmp_data)
+            if do_saveHistory:
+                push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
 
     ### Enable pixels of Interest
-    i2c_conn.enable_select_pixels_in_chips(scan_list)
+    if not do_skipConfig:
+        i2c_conn.enable_select_pixels_in_chips(scan_list)
 
     offset = th_offset
     for chip_address in chip_addresses[:]:
         chip = i2c_conn.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
+        if do_skipConfig:
+            col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
+            scan_list = list(zip(row_list.flatten(), col_list.flatten()))
         for row, col in scan_list:
             print(f"Operating on chip {hex(chip_address)} Pixel ({row},{col})")
             column_indexer_handle.set(col)
-            row_indexer_handle.set(row)    
+            row_indexer_handle.set(row)
             i2c_conn.pixel_decoded_register_write("TH_offset", format(offset, '06b'), chip)
             i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
         del chip, row_indexer_handle, column_indexer_handle
 
-    # Calibrate PLL
-    for chip_address in chip_addresses[:]:
-        i2c_conn.calibratePLL(chip_address, chip=None)
+    if not do_skipCalibration:
+        # Calibrate PLL
+        for chip_address in chip_addresses[:]:
+            i2c_conn.calibratePLL(chip_address, chip=None)
 
-    # Calibrate FC
-    for chip_address in chip_addresses[:]:
-        i2c_conn.asyResetGlobalReadout(chip_address, chip=None)
-        i2c_conn.asyAlignFastcommand(chip_address, chip=None)
+        # Calibrate FC
+        for chip_address in chip_addresses[:]:
+            i2c_conn.asyResetGlobalReadout(chip_address, chip=None)
+            i2c_conn.asyAlignFastcommand(chip_address, chip=None)
 
     plzDelDir = data_outdir / 'PlzDelete_Board013_NoLinkCheck'
     if not plzDelDir.is_dir():
         print('\nOne time DAQ run for checking LED lights')
         # Run One Time DAQ to Set FPGA Firmware
         parser = run_script.getOptionParser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x000c -p 0x000f -d 0xb800 -a 0x00bb --clear_fifo".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x000c -p 0x000f -d 0x8800 -a 0x0088 --clear_fifo".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_Start_LEDs_Board013_NoLinkCheck'))
         process.start()
@@ -333,7 +342,7 @@ def run_daq(
         IPC_queue.put('allow threads to exit')
         process.join()
         del IPC_queue, process, parser
-    
+
     if not do_infiniteLoop:
         # hold for keyboard input when infinite loop is off
         input("Are LEDs looking okay? Press the Enter key to continue: ")
@@ -347,12 +356,12 @@ def run_daq(
             fpga_ip = fpga_ip,
             delay = 485,
             run_time = run_time,
-            extra_margin_time = 30,
+            extra_margin_time = 15,
         )
     elif do_Counter:
         func_fpga_data(
             chip_names = chip_names,
-            fpga_ip = fpga_ip,   
+            fpga_ip = fpga_ip,
         )
     else:
         print('Run mode is not specify. Exit the script and disconnect I2C.')
@@ -418,6 +427,18 @@ def main():
         help = 'Save BL and NW as a history and push to git repo',
         action = 'store_true',
         dest = 'saveHistory',
+    )
+    parser.add_argument(
+        '--skipConfig',
+        help = 'Skip configure ETROC2',
+        action = 'store_true',
+        dest = 'skipConfig',
+    )
+    parser.add_argument(
+        '--skipCalibration',
+        help = 'Skip configure ETROC2',
+        action = 'store_true',
+        dest = 'skipCalibration',
     )
     parser.add_argument(
         '-b0',
@@ -516,18 +537,19 @@ def main():
             chip_addresses = chip_addresses,
             run_str = run_str,
             extra_str = args.extra_str,
-            i2c_port = "/dev/ttyACM2",
+            i2c_port = "/dev/ttyACM0",
             fpga_ip = "192.168.2.3",
-            th_offset = 0x0f,
+            th_offset = 0x0d,
             run_time = args.daq_run_time,
             do_infiniteLoop = args.infinite_loop,
             do_TDC = args.run_TDC,
             do_Counter = args.run_Counter,
             do_fullAutoCal =  args.fullAutoCal,
             do_saveHistory = args.saveHistory,
+            do_skipConfig = args.skipConfig,
+            do_skipCalibration = args.skipCalibration,
         )
-        
-        end_time = time.time()
+
         if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
             break
 
