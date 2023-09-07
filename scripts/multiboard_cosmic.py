@@ -518,6 +518,7 @@ def main():
     chip_addresses = list(filter(lambda item: item is not None, full_chip_addresses))
 
     count = 0
+    usb_iss_port = "/dev/ttyACM0"
     while True:
         run_str = f"Run{count}"
 
@@ -527,6 +528,12 @@ def main():
             break
 
         def signal_handler(sig, frame):
+            print("Softreboot the ETROC2 before ending the script")
+            tmp_i2c_conn = i2c_connection(usb_iss_port, chip_addresses, chip_names, [("1","1"), ("1","1"), ("1","1")])
+            tmp_i2c_conn.peripheral_decoded_register_write("softBoot", "1")
+            time.sleep(0.01)
+            tmp_i2c_conn.peripheral_decoded_register_write("softBoot", "0")
+
             print("Exiting gracefully")
             sys.exit(0)
 
@@ -537,7 +544,7 @@ def main():
             chip_addresses = chip_addresses,
             run_str = run_str,
             extra_str = args.extra_str,
-            i2c_port = "/dev/ttyACM0",
+            i2c_port = usb_iss_port,
             fpga_ip = "192.168.2.3",
             th_offset = 0x0d,
             run_time = args.daq_run_time,
@@ -549,6 +556,7 @@ def main():
             do_skipConfig = args.skipConfig,
             do_skipCalibration = args.skipCalibration,
         )
+        end_time = time.time()
 
         if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
             break
