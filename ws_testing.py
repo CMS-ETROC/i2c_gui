@@ -25,14 +25,12 @@
 #############################################################################
 
 ## Imports
-import matplotlib.pyplot as plt
 import plotly.express as px
 import logging
 import i2c_gui
 import i2c_gui.chips
 from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
-import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import time
 from tqdm import tqdm
@@ -357,15 +355,27 @@ def run_ws(
     # ax.set_xlabel('Time [ns]', fontsize=15)
     # plt.show()
 
-    fig = px.line(
+    fig_aout = px.line(
         df,
         x="Time [ns]",
         y="Aout",
         labels = {
             "Time [ns]": "Time [ns]",
+            "Aout": "",
+        },
+        title = "Waveform (Aout) from the board {}".format(chip_name),
+        markers=True
+    )
+
+    fig_dout = px.line(
+        df,
+        x="Time [ns]",
+        y="Dout",
+        labels = {
+            "Time [ns]": "Time [ns]",
             "Dout": "",
         },
-        title = "Waveform from the board {}".format(chip_name),
+        title = "Waveform (Dout) from the board {}".format(chip_name),
         markers=True
     )
 
@@ -373,11 +383,18 @@ def run_ws(
     base_dir = Path(todaystr)
     base_dir.mkdir(exist_ok=True)
 
-    fig.write_html(
-        base_dir / 'WS_output_{}.html'.format(chip_name),
+    fig_aout.write_html(
+        base_dir / 'WS_Aout_{}.html'.format(chip_name),
         full_html = False,
         include_plotlyjs = 'cdn',
     )
+
+    fig_dout.write_html(
+        base_dir / 'WS_Dout_{}.html'.format(chip_name),
+        full_html = False,
+        include_plotlyjs = 'cdn',
+    )
+
 
 def main():
     import argparse
