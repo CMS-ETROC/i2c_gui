@@ -26,6 +26,7 @@
 
 ## Imports
 import matplotlib.pyplot as plt
+import plotly.express as px
 import logging
 import i2c_gui
 import i2c_gui.chips
@@ -46,316 +47,363 @@ import run_script
 import importlib
 importlib.reload(run_script)
 
-# Set defaults
-### It is very important to correctly set the chip name, this value is stored with the data
-chip_name = "01E2_#48"
+def run_ws(
+        chip_name: str,
+        port: str = '/dev/ttyACM0',
+        chip_address = 0x60,
+        ws_address = 0x40,
+    ):
+    # Set defaults
+    ### It is very important to correctly set the chip name, this value is stored with the data
 
-# 'The port name the USB-ISS module is connected to. Default: COM3'
-port = "/dev/ttyACM0"
-# I2C addresses for the pixel block and WS
-chip_address = 0x60
-ws_address = 0x40
+    # 'The port name the USB-ISS module is connected to. Default: COM3'
+    # I2C addresses for the pixel block and WS
 
-i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
-i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
-#i2c_gui.__no_connect_type__ = "check"  # default behaviour
+    i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
+    i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
+    #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
-# Start logger and connect
-## Logger
-log_level=30
-logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
-logger = logging.getLogger("Script_Logger")
-Script_Helper = i2c_gui.ScriptHelper(logger)
+    # Start logger and connect
+    ## Logger
+    log_level=30
+    logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
+    logger = logging.getLogger("Script_Logger")
+    Script_Helper = i2c_gui.ScriptHelper(logger)
 
-## USB ISS connection
-conn = i2c_gui.Connection_Controller(Script_Helper)
-conn.connection_type = "USB-ISS"
-conn.handle: USB_ISS_Helper
-conn.handle.port = port
-conn.handle.clk = 100
+    ## USB ISS connection
+    conn = i2c_gui.Connection_Controller(Script_Helper)
+    conn.connection_type = "USB-ISS"
+    conn.handle: USB_ISS_Helper
+    conn.handle.port = port
+    conn.handle.clk = 100
 
-conn.connect()
+    conn.connect()
 
-chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
-chip.config_i2c_address(chip_address)
-chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
-logger.setLevel(log_level)
+    chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
+    chip.config_i2c_address(chip_address)
+    chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
+    logger.setLevel(log_level)
 
+    def pixel_decoded_register_write(decodedRegisterName, data_to_write):
+        bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Pixel Config"][decodedRegisterName]["bits"]
+        handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", decodedRegisterName)
+        chip.read_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+        if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
+        data_hex_modified = hex(int(data_to_write, base=2))
+        if(bit_depth>1): handle.set(data_hex_modified)
+        elif(bit_depth==1): handle.set(data_to_write)
+        else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
+        chip.write_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
 
-# Useful Functions to streamline register reading and writing
+    def pixel_decoded_register_read(decodedRegisterName, key, need_int=False):
+        handle = chip.get_decoded_indexed_var("ETROC2", f"Pixel {key}", decodedRegisterName)
+        chip.read_decoded_value("ETROC2", f"Pixel {key}", decodedRegisterName)
+        if(need_int): return int(handle.get(), base=16)
+        else: return handle.get()
 
-def pixel_decoded_register_write(decodedRegisterName, data_to_write):
-    bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Pixel Config"][decodedRegisterName]["bits"]
-    handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", decodedRegisterName)
-    chip.read_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
-    if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
-    data_hex_modified = hex(int(data_to_write, base=2))
-    if(bit_depth>1): handle.set(data_hex_modified)
-    elif(bit_depth==1): handle.set(data_to_write)
-    else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
-    chip.write_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
+    def peripheral_decoded_register_write(decodedRegisterName, data_to_write):
+        bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Peripheral Config"][decodedRegisterName]["bits"]
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", decodedRegisterName)
+        chip.read_decoded_value("ETROC2", "Peripheral Config", decodedRegisterName)
+        if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
+        data_hex_modified = hex(int(data_to_write, base=2))
+        if(bit_depth>1): handle.set(data_hex_modified)
+        elif(bit_depth==1): handle.set(data_to_write)
+        else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
+        chip.write_decoded_value("ETROC2", "Peripheral Config", decodedRegisterName)
 
-def pixel_decoded_register_read(decodedRegisterName, key, need_int=False):
-    handle = chip.get_decoded_indexed_var("ETROC2", f"Pixel {key}", decodedRegisterName)
-    chip.read_decoded_value("ETROC2", f"Pixel {key}", decodedRegisterName)
-    if(need_int): return int(handle.get(), base=16)
-    else: return handle.get()
+    def peripheral_decoded_register_read(decodedRegisterName, key, need_int=False):
+        handle = chip.get_decoded_display_var("ETROC2", f"Peripheral {key}", decodedRegisterName)
+        chip.read_decoded_value("ETROC2", f"Peripheral {key}", decodedRegisterName)
+        if(need_int): return int(handle.get(), base=16)
+        else: return handle.get()
 
-def peripheral_decoded_register_write(decodedRegisterName, data_to_write):
-    bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Peripheral Config"][decodedRegisterName]["bits"]
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", decodedRegisterName)
-    chip.read_decoded_value("ETROC2", "Peripheral Config", decodedRegisterName)
-    if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
-    data_hex_modified = hex(int(data_to_write, base=2))
-    if(bit_depth>1): handle.set(data_hex_modified)
-    elif(bit_depth==1): handle.set(data_to_write)
-    else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
-    chip.write_decoded_value("ETROC2", "Peripheral Config", decodedRegisterName)
+    def ws_decoded_register_write(decodedRegisterName, data_to_write):
+        bit_depth = register_decoding["Waveform Sampler"]["Register Blocks"]["Config"][decodedRegisterName]["bits"]
+        handle = chip.get_decoded_display_var("Waveform Sampler", "Config", decodedRegisterName)
+        chip.read_decoded_value("Waveform Sampler", "Config", decodedRegisterName)
+        if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
+        data_hex_modified = hex(int(data_to_write, base=2))
+        if(bit_depth>1): handle.set(data_hex_modified)
+        elif(bit_depth==1): handle.set(data_to_write)
+        else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
+        chip.write_decoded_value("Waveform Sampler", "Config", decodedRegisterName)
 
-def peripheral_decoded_register_read(decodedRegisterName, key, need_int=False):
-    handle = chip.get_decoded_display_var("ETROC2", f"Peripheral {key}", decodedRegisterName)
-    chip.read_decoded_value("ETROC2", f"Peripheral {key}", decodedRegisterName)
-    if(need_int): return int(handle.get(), base=16)
-    else: return handle.get()
+    def ws_decoded_config_read(decodedRegisterName, need_int=False):
+        handle = chip.get_decoded_display_var("Waveform Sampler", f"Config", decodedRegisterName)
+        chip.read_decoded_value("Waveform Sampler", f"Config", decodedRegisterName)
+        if(need_int): return int(handle.get(), base=16)
+        else: return handle.get()
 
-def ws_decoded_register_write(decodedRegisterName, data_to_write):
-    bit_depth = register_decoding["Waveform Sampler"]["Register Blocks"]["Config"][decodedRegisterName]["bits"]
-    handle = chip.get_decoded_display_var("Waveform Sampler", "Config", decodedRegisterName)
-    chip.read_decoded_value("Waveform Sampler", "Config", decodedRegisterName)
-    if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
-    data_hex_modified = hex(int(data_to_write, base=2))
-    if(bit_depth>1): handle.set(data_hex_modified)
-    elif(bit_depth==1): handle.set(data_to_write)
-    else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
-    chip.write_decoded_value("Waveform Sampler", "Config", decodedRegisterName)
+    def ws_decoded_status_read(decodedRegisterName, need_int=False):
+        handle = chip.get_decoded_display_var("Waveform Sampler", f"Status", decodedRegisterName)
+        chip.read_decoded_value("Waveform Sampler", f"Status", decodedRegisterName)
+        if(need_int): return int(handle.get(), base=16)
+        else: return handle.get()
 
-def ws_decoded_config_read(decodedRegisterName, need_int=False):
-    handle = chip.get_decoded_display_var("Waveform Sampler", f"Config", decodedRegisterName)
-    chip.read_decoded_value("Waveform Sampler", f"Config", decodedRegisterName)
-    if(need_int): return int(handle.get(), base=16)
-    else: return handle.get()
+    # Set the basic peripheral registers
+    peripheral_decoded_register_write("EFuse_Prog", format(0x00017f0f, '032b'))     # chip ID
+    peripheral_decoded_register_write("singlePort", '1')                            # Set data output to right port only
+    peripheral_decoded_register_write("serRateLeft", '00')                          # Set Data Rates to 320 mbps
+    peripheral_decoded_register_write("serRateRight", '00')                         # ^^
+    peripheral_decoded_register_write("onChipL1AConf", '00')                        # Switches off the onboard L1A
+    peripheral_decoded_register_write("PLL_ENABLEPLL", '1')                         # "Enable PLL mode, active high. Debugging use only."
+    peripheral_decoded_register_write("chargeInjectionDelay", format(0x0a, '05b'))  # User tunable delay of Qinj pulse
+    peripheral_decoded_register_write("triggerGranularity", format(0x00, '03b'))    # only for trigger bit
 
-def ws_decoded_status_read(decodedRegisterName, need_int=False):
-    handle = chip.get_decoded_display_var("Waveform Sampler", f"Status", decodedRegisterName)
-    chip.read_decoded_value("Waveform Sampler", f"Status", decodedRegisterName)
-    if(need_int): return int(handle.get(), base=16)
-    else: return handle.get()
+    # Perform Auto-calibration on WS pixel (Row0, Col14)
+    # Reset the maps
+    baseLine = 0
+    noiseWidth = 0
 
+    row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+    row = 0
+    col = 14
+    column_indexer_handle.set(col)
+    row_indexer_handle.set(row)
+    # Disable TDC
+    pixel_decoded_register_write("enable_TDC", "0")
+    # Enable THCal clock and buffer, disable bypass
+    pixel_decoded_register_write("CLKEn_THCal", "1")
+    pixel_decoded_register_write("BufEn_THCal", "1")
+    pixel_decoded_register_write("Bypass_THCal", "0")
+    pixel_decoded_register_write("TH_offset", format(0x07, '06b'))
+    # Reset the calibration block (active low)
+    pixel_decoded_register_write("RSTn_THCal", "0")
+    pixel_decoded_register_write("RSTn_THCal", "1")
+    # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
+    pixel_decoded_register_write("ScanStart_THCal", "1")
+    pixel_decoded_register_write("ScanStart_THCal", "0")
+    # Check the calibration done correctly
+    if(pixel_decoded_register_read("ScanDone", "Status")!="1"): print("!!!ERROR!!! Scan not done!!!")
+    baseLine = pixel_decoded_register_read("BL", "Status", need_int=True)
+    noiseWidth = pixel_decoded_register_read("NW", "Status", need_int=True)
+    # Disable clock and buffer before charge injection
+    pixel_decoded_register_write("CLKEn_THCal", "0")
+    pixel_decoded_register_write("BufEn_THCal", "0")
+    # Set Charge Inj Q to 15 fC
+    pixel_decoded_register_write("QSel", format(0x0e, '05b'))
 
-# Check if any pixels are broken
-### If a pixel returns a COL and ROW number that inconsistent with the pixel that we are addressing, then it is broken
+    ### Print BL and NW from automatic calibration
+    print(f"BL: {baseLine}, NW: {noiseWidth}")
 
-Failure_map = np.zeros((16,16))
-row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
-column_indexer_handle,_,_ = chip.get_indexer("column")
-for row in range(16):
-    for col in range(16):
-        column_indexer_handle.set(col)
-        row_indexer_handle.set(row)
-        fetched_row = pixel_decoded_register_read("PixelID-Row", "Status", need_int=True)
-        fetched_col = pixel_decoded_register_read("PixelID-Col", "Status", need_int=True)
-        if(row!=fetched_row or col!=fetched_col):
-            print("Fail!", row, col, fetched_row, fetched_col)
-            Failure_map[15-row,15-col] = 1
+    ### Disable all pixel readouts before doing anything
+    row_indexer_handle,_,_ = chip.get_indexer("row")
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+    column_indexer_handle.set(0)
+    row_indexer_handle.set(0)
 
-# Set the basic peripheral registers
-peripheral_decoded_register_write("EFuse_Prog", format(0x00017f0f, '032b'))     # chip ID
-peripheral_decoded_register_write("singlePort", '1')                            # Set data output to right port only
-peripheral_decoded_register_write("serRateLeft", '00')                          # Set Data Rates to 320 mbps
-peripheral_decoded_register_write("serRateRight", '00')                         # ^^
-peripheral_decoded_register_write("onChipL1AConf", '00')                        # Switches off the onboard L1A
-peripheral_decoded_register_write("PLL_ENABLEPLL", '1')                         # "Enable PLL mode, active high. Debugging use only."
-peripheral_decoded_register_write("chargeInjectionDelay", format(0x0a, '05b'))  # User tunable delay of Qinj pulse
-peripheral_decoded_register_write("triggerGranularity", format(0x00, '03b'))    # only for trigger bit
+    broadcast_handle,_,_ = chip.get_indexer("broadcast")
+    broadcast_handle.set(True)
+    pixel_decoded_register_write("disDataReadout", "1")
+    broadcast_handle.set(True)
+    pixel_decoded_register_write("QInjEn", "0")
+    broadcast_handle.set(True)
+    pixel_decoded_register_write("disTrigPath", "1")
 
-# Perform Auto-calibration on WS pixel (Row0, Col14)
-# Reset the maps
-baseLine = 0
-noiseWidth = 0
+    ### WS and pixel initialization
+    # If you want, you can change the pixel row and column numbers
+    row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+    row = 0
+    col = 14
+    print(f"Enabling Pixel ({row},{col})")
+    column_indexer_handle.set(col)
+    row_indexer_handle.set(row)
+    pixel_decoded_register_write("Bypass_THCal", "0")
+    pixel_decoded_register_write("TH_offset", format(0x0c, '06b'))  # Offset used to add to the auto BL for real triggering
+    pixel_decoded_register_write("QSel", format(0x1e, '05b'))       # Ensure we inject 30 fC of charge
+    pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
+    pixel_decoded_register_write("RFSel", format(0x00, '02b'))      # Set Largest feedback resistance -> maximum gain
+    pixel_decoded_register_write("enable_TDC", "1")                 # Enable TDC
 
-row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
-column_indexer_handle,_,_ = chip.get_indexer("column")
-row = 0
-col = 14
-column_indexer_handle.set(col)
-row_indexer_handle.set(row)
-# Enable THCal clock and buffer, disable bypass
-pixel_decoded_register_write("CLKEn_THCal", "1")
-pixel_decoded_register_write("BufEn_THCal", "1")
-pixel_decoded_register_write("Bypass_THCal", "0")
-pixel_decoded_register_write("TH_offset", format(0x07, '06b'))
-# Reset the calibration block (active low)
-pixel_decoded_register_write("RSTn_THCal", "0")
-pixel_decoded_register_write("RSTn_THCal", "1")
-# Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
-pixel_decoded_register_write("ScanStart_THCal", "1")
-pixel_decoded_register_write("ScanStart_THCal", "0")
-# Check the calibration done correctly
-if(pixel_decoded_register_read("ScanDone", "Status")!="1"): print("!!!ERROR!!! Scan not done!!!")
-baseLine = pixel_decoded_register_read("BL", "Status", need_int=True)
-noiseWidth = pixel_decoded_register_read("NW", "Status", need_int=True)
-# Disable clock and buffer before charge injection 
-pixel_decoded_register_write("CLKEn_THCal", "0") 
-pixel_decoded_register_write("BufEn_THCal", "0")
-# Set Charge Inj Q to 15 fC
-pixel_decoded_register_write("QSel", format(0x0e, '05b'))
+    # PLL calibration
+    peripheral_decoded_register_write("asyPLLReset", "0")
+    peripheral_decoded_register_write("asyPLLReset", "1")
+    peripheral_decoded_register_write("asyStartCalibration", "0")
+    peripheral_decoded_register_write("asyStartCalibration", "1")
 
-### Print BL and NW from automatic calibration
-print(f"BL: {baseLine}, NW: {noiseWidth}")
-
-### Disable all pixel readouts before doing anything
-row_indexer_handle,_,_ = chip.get_indexer("row")
-column_indexer_handle,_,_ = chip.get_indexer("column")
-column_indexer_handle.set(0)
-row_indexer_handle.set(0)
-
-broadcast_handle,_,_ = chip.get_indexer("broadcast")
-broadcast_handle.set(True)
-pixel_decoded_register_write("disDataReadout", "1")
-broadcast_handle.set(True)
-pixel_decoded_register_write("QInjEn", "0")
-broadcast_handle.set(True)
-pixel_decoded_register_write("disTrigPath", "1")
-
-### WS and pixel initialization
-# If you want, you can change the pixel row and column numbers
-row_indexer_handle,_,_ = chip.get_indexer("row")  # Returns 3 parameters: handle, min, max
-column_indexer_handle,_,_ = chip.get_indexer("column")
-row = 0
-col = 14
-print(f"Enabling Pixel ({row},{col})")
-column_indexer_handle.set(col)
-row_indexer_handle.set(row)
-pixel_decoded_register_write("Bypass_THCal", "0")      
-pixel_decoded_register_write("TH_offset", format(0x0c, '06b'))  # Offset used to add to the auto BL for real triggering
-pixel_decoded_register_write("QSel", format(0x1e, '05b'))       # Ensure we inject 30 fC of charge  
-pixel_decoded_register_write("QInjEn", "1")                     # ENable charge injection for the selected pixel
-pixel_decoded_register_write("RFSel", format(0x00, '02b'))      # Set Largest feedback resistance -> maximum gain 
+    # FC calibration
+    peripheral_decoded_register_write("asyAlignFastcommand", "1")
+    peripheral_decoded_register_write("asyAlignFastcommand", "0")
 
 
-regOut1F_handle = chip.get_display_var("Waveform Sampler", "Config", "regOut1F")
-regOut1F_handle.set("0x22")
-chip.write_register("Waveform Sampler", "Config", "regOut1F")
-regOut1F_handle.set("0x0b")
-chip.write_register("Waveform Sampler", "Config", "regOut1F")
+    regOut1F_handle = chip.get_display_var("Waveform Sampler", "Config", "regOut1F")
+    regOut1F_handle.set("0x22")
+    chip.write_register("Waveform Sampler", "Config", "regOut1F")
+    regOut1F_handle.set("0x0b")
+    chip.write_register("Waveform Sampler", "Config", "regOut1F")
 
-# ws_decoded_register_write("mem_rstn", "0")                      # 0: reset memory
-# ws_decoded_register_write("clk_gen_rstn", "0")                  # 0: reset clock generation
-# ws_decoded_register_write("sel1", "0")                          # 0: Bypass mode, 1: VGA mode
-ws_decoded_register_write("DDT", format(0, '016b'))             # Time Skew Calibration set to 0
-ws_decoded_register_write("CTRL", format(0x2, '02b'))           # CTRL default = 0x10 for regOut0D
+    # ws_decoded_register_write("mem_rstn", "0")                      # 0: reset memory
+    # ws_decoded_register_write("clk_gen_rstn", "0")                  # 0: reset clock generation
+    # ws_decoded_register_write("sel1", "0")                          # 0: Bypass mode, 1: VGA mode
+    ws_decoded_register_write("DDT", format(0, '016b'))             # Time Skew Calibration set to 0
+    ws_decoded_register_write("CTRL", format(0x2, '02b'))           # CTRL default = 0x10 for regOut0D
+    ws_decoded_register_write("comp_cali", format(0, '03b'))        # Comparator calibration should be off
 
-chip.read_all_address_space("Waveform Sampler") # Read all registers of WS
-rd_addr_handle = chip.get_decoded_display_var("Waveform Sampler", "Config", "rd_addr")
-dout_handle = chip.get_decoded_display_var("Waveform Sampler", "Status", "dout")
+    chip.read_all_address_space("Waveform Sampler") # Read all registers of WS
+    rd_addr_handle = chip.get_decoded_display_var("Waveform Sampler", "Config", "rd_addr")
+    dout_handle = chip.get_decoded_display_var("Waveform Sampler", "Status", "dout")
 
-### Run DAQ to send ws fc
-time_per_pixel = 5
-dead_time_per_pixel = 5
-total_scan_time = time_per_pixel + dead_time_per_pixel
-outname = 'ws_test'
+    ### Run DAQ to send ws fc
+    time_per_pixel = 5
+    dead_time_per_pixel = 5
+    total_scan_time = time_per_pixel + dead_time_per_pixel
+    outname = 'ws_test'
 
-today = datetime.date.today()
-todaystr = "../ETROC-Data/" + today.isoformat() + "_Array_Test_Results/"
-base_dir = Path(todaystr)
-base_dir.mkdir(exist_ok=True) 
+    today = datetime.date.today()
+    todaystr = "../ETROC-Data/" + today.isoformat() + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
 
-parser = run_script.getOptionParser() 
-(options, args) = parser.parse_args(args=f"-f --useIPC --hostname 192.168.2.3 -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation  --clear_fifo".split())
-IPC_queue = multiprocessing.Queue()
-process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
-process.start()
+    parser = run_script.getOptionParser()
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname 192.168.2.3 -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation  --clear_fifo".split())
+    IPC_queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
+    process.start()
 
-IPC_queue.put('start onetime ws')
-while not IPC_queue.empty():
-    pass
+    IPC_queue.put('start onetime ws')
+    while not IPC_queue.empty():
+        pass
 
-# time.sleep(time_per_pixel)
-# IPC_queue.put('stop ws')
+    time.sleep(1.5)
+    IPC_queue.put('stop DAQ')
+    while not IPC_queue.empty():
+        pass
 
-time.sleep(1)
-IPC_queue.put('stop DAQ')
-while not IPC_queue.empty():
-    pass
+    IPC_queue.put('allow threads to exit')
+    process.join()
 
-IPC_queue.put('allow threads to exit')
-process.join()
+    ### Read from WS memory
+    ws_decoded_register_write("rd_en_I2C", "1")
 
-### Read from WS memory
-ws_decoded_register_write("rd_en_I2C", "1")
+    max_steps = 1024  # Size of the data buffer inside the WS
+    lastUpdateTime = time.time_ns()
+    base_data = []
+    coeff = 0.05/5*8.5  # This number comes from the example script in the manual
+    time_coeff = 1/2.56  # 2.56 GHz WS frequency
 
-max_steps = 1024  # Size of the data buffer inside the WS
-lastUpdateTime = time.time_ns()
-base_data = []
-coeff=0.04/5*8.5  # This number comes from the example script in the manual
-time_coeff = 1/2.56  # 2.56 GHz WS frequency
+    for address in tqdm(range(max_steps)):
+        rd_addr_handle.set(hex(address))
+        chip.write_decoded_value("Waveform Sampler", "Config", "rd_addr")
+        chip.read_decoded_value("Waveform Sampler", "Status", "dout")
+        data = dout_handle.get()
 
-for address in tqdm(range(max_steps)):
-    rd_addr_handle.set(hex(address))
-    chip.write_decoded_value("Waveform Sampler", "Config", "rd_addr")
-    chip.read_decoded_value("Waveform Sampler", "Status", "dout")
-    data = dout_handle.get()
+        #if time_idx == 1:
+        #    data = hex_0fill(int(data, 0) + 8192, 14)
 
-    #if time_idx == 1:
-    #    data = hex_0fill(int(data, 0) + 8192, 14)
+        binary_data = bin(int(data, 0))[2:].zfill(14)  # because dout is 14 bits long
+        Dout_S1 = int('0b'+binary_data[1:7], 0)
+        Dout_S2 = int(binary_data[ 7]) * 24 + \
+                    int(binary_data[ 8]) * 16 + \
+                    int(binary_data[ 9]) * 10 + \
+                    int(binary_data[10]) *  6 + \
+                    int(binary_data[11]) *  4 + \
+                    int(binary_data[12]) *  2 + \
+                    int(binary_data[13])
 
-    binary_data = bin(int(data, 0))[2:].zfill(14)  # because dout is 14 bits long
-    Dout_S1 = int('0b'+binary_data[1:7], 0)
-    Dout_S2 = int(binary_data[ 7]) * 24 + \
-                int(binary_data[ 8]) * 16 + \
-                int(binary_data[ 9]) * 10 + \
-                int(binary_data[10]) *  6 + \
-                int(binary_data[11]) *  4 + \
-                int(binary_data[12]) *  2 + \
-                int(binary_data[13])
+        base_data.append(
+            {
+                "Data Address": address,
+                "Data": int(data, 0),
+                "Raw Data": bin(int(data, 0))[2:].zfill(14),
+                "pointer": int(binary_data[0]),
+                "Dout_S1": Dout_S1,
+                "Dout_S2": Dout_S2,
+                "Dout": Dout_S1 - coeff * Dout_S2,
+            }
+        )
 
-    base_data.append(
-        {
-            "Data Address": address,
-            "Data": int(data, 0),
-            "Raw Data": bin(int(data, 0))[2:].zfill(14),
-            "pointer": int(binary_data[0]),
-            "Dout_S1": Dout_S1,
-            "Dout_S2": Dout_S2,
-            "Dout": Dout_S1 - coeff * Dout_S2,
-        }
+    df = pd.DataFrame(base_data)
+
+    df_length = len(df)
+    channels = 8
+
+    df_per_ch : list[pd.DataFrame] = []
+    for ch in range(channels):
+        df_per_ch += [df.iloc[int(ch * df_length/channels):int((ch + 1) * df_length/channels)].copy()]
+        df_per_ch[ch].reset_index(inplace = True, drop = True)
+
+    pointer_idx = df_per_ch[-1]["pointer"].loc[df_per_ch[-1]["pointer"] != 0].index  # TODO: Maybe add a search of the pointer in any channel, not just the last one
+    if len(pointer_idx) != 0:  # If pointer found, reorder the data
+        pointer_idx = pointer_idx[0]
+        new_idx = list(set(range(len(df_per_ch[-1]))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
+        for ch in range(channels):
+            df_per_ch[ch] = df_per_ch[ch].iloc[new_idx].reset_index(drop = True)  # Fix indexes after reordering
+
+    # interleave the channels
+    for ch in range(channels):
+        df_per_ch[ch]["Time Index"] = df_per_ch[ch].index * channels + (channels - 1 - ch)  # Flip the order of the channels in the interleave...
+        df_per_ch[ch]["Channel"] = ch + 1
+
+    # Actually put it all together in one dataframe and sort the data correctly
+    df = pd.concat(df_per_ch)
+    df["Time [ns]"] = df["Time Index"] * time_coeff
+    df.set_index('Time Index', inplace=True)
+    df.sort_index(inplace=True)
+
+    # Disable reading data from WS:
+    ws_decoded_register_write("rd_en_I2C", "0")
+
+    output = f"rawdataWS_{chip_name}_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv"
+    outfile = base_dir / output
+    df.to_csv(outfile)
+
+    df['Aout'] = -(df['Dout']-(31.5-coeff*31.5)*1.2)/32
+
+    # fig, ax = plt.subplots(figsize=(20, 8))
+    # ax.plot(df['Time [ns]'], df['Dout'])
+    # ax.set_xlabel('Time [ns]', fontsize=15)
+    # plt.show()
+
+    fig = px.line(
+        df,
+        x="Time [ns]",
+        y="Aout",
+        labels = {
+            "Time [ns]": "Time [ns]",
+            "Dout": "",
+        },
+        title = "Waveform from the board {}".format(chip_name),
+        markers=True
     )
 
-df = pd.DataFrame(base_data)
+    todaystr = "../ETROC-figures/" + today.isoformat() + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
 
-df_length = len(df)
-channels = 8
+    fig.write_html(
+        base_dir / 'WS_output_{}.html'.format(chip_name),
+        full_html = False,
+        include_plotlyjs = 'cdn',
+    )
 
-df_per_ch : list[pd.DataFrame] = []
-for ch in range(channels):
-    df_per_ch += [df.iloc[int(ch * df_length/channels):int((ch + 1) * df_length/channels)].copy()]
-    df_per_ch[ch].reset_index(inplace = True, drop = True)
+def main():
+    import argparse
 
-pointer_idx = df_per_ch[-1]["pointer"].loc[df_per_ch[-1]["pointer"] != 0].index  # TODO: Maybe add a search of the pointer in any channel, not just the last one
-if len(pointer_idx) != 0:  # If pointer found, reorder the data
-    pointer_idx = pointer_idx[0]
-    new_idx = list(set(range(len(df_per_ch[-1]))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
-    for ch in range(channels):
-        df_per_ch[ch] = df_per_ch[ch].iloc[new_idx].reset_index(drop = True)  # Fix indexes after reordering
+    parser = argparse.ArgumentParser(
+                    prog='Waveform Sampler Testing!',
+                    description='Control them!',
+                    #epilog='Text at the bottom of help'
+                    )
+    parser.add_argument(
+        '-c',
+        '--chipname',
+        metavar = 'NAME',
+        type = str,
+        help = 'Board label',
+        required = True,
+        dest = 'chip_name',
+    )
+    args = parser.parse_args()
 
-# interleave the channels
-for ch in range(channels):
-    df_per_ch[ch]["Time Index"] = df_per_ch[ch].index * channels + (channels - 1 - ch)  # Flip the order of the channels in the interleave...
-    df_per_ch[ch]["Channel"] = ch + 1
+    run_ws(
+        chip_name = args.chip_name,
+        port = '/dev/ttyACM0',
+        chip_address = 0x60,
+        ws_address = 0x40,
+    )
 
-# Actually put it all together in one dataframe and sort the data correctly
-df = pd.concat(df_per_ch)
-df["Time [ns]"] = df["Time Index"] * time_coeff
-df.set_index('Time Index', inplace=True)
-df.sort_index(inplace=True)
-
-# Disable reading data from WS:
-ws_decoded_register_write("rd_en_I2C", "0")
-
-output = "rawdataWS_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv"
-df.to_csv(output)
-
-fig, ax = plt.subplots(figsize=(20, 8))
-ax.plot(df['Time [ns]'], df['Dout'])
-ax.set_xlabel('Time [ns]', fontsize=15)
-plt.show()
+if __name__ == "__main__":
+    main()
