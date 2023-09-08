@@ -290,10 +290,49 @@ class i2c_connection():
             del_chip=True
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
-        for row in tqdm(range(16), desc="Disabling row", position=0):
-            for col in range(16):
-                self.disable_pixel(row=row, col=col, verbose=False, chip_address=None, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
-        # Delete created components
+        column_indexer_handle.set(0)
+        row_indexer_handle.set(0)
+        broadcast_handle,_,_ = chip.get_indexer("broadcast")
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("disDataReadout", "1", chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("QInjEn", "0", chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("disTrigPath", "1", chip)
+        ## Close the trigger and data windows
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("upperTOATrig", format(0x000, '010b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("upperTOTTrig", format(0x1ff, '09b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("lowerTOTTrig", format(0x1ff, '09b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("upperCalTrig", format(0x3ff, '010b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("lowerCalTrig", format(0x3ff, '010b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("upperTOA", format(0x000, '010b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("lowerTOA", format(0x000, '010b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("upperTOT", format(0x1ff, '09b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("lowerTOT", format(0x1ff, '09b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("upperCal", format(0x3ff, '010b'), chip)
+        broadcast_handle.set(True)
+        self.pixel_decoded_register_write("lowerCal", format(0x3ff, '010b'), chip)
+        # Disable TDC
+        self.pixel_decoded_register_write("enable_TDC", "0", chip)
+        # Broadcase self consistency check
+        upperTOT = self.pixel_decoded_register_read("upperTOT", "Config", chip)
+        if (upperTOT != "0x1ff"):
+            print("Broadcast failed! \n Will manually disable pixels")
+            for row in tqdm(range(16), desc="Disabling row", position=0):
+                for col in range(16):
+                    self.disable_pixel(row=row, col=col, verbose=False, chip_address=None, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         if(del_chip): del chip
         del row_indexer_handle, column_indexer_handle
         print(f"Disabled pixels for chip: {hex(chip_address)}")
@@ -380,9 +419,10 @@ class i2c_connection():
         column_indexer_handle,_,_ = chip.get_indexer("column")
         data = []
         # Loop for threshold calibration
+        self.disable_all_pixels(chip_address=chip_address, chip=chip)
         for row in tqdm(range(16), desc="Calibrating and Disabling row", position=0):
             for col in tqdm(range(16), desc=" col", position=1, leave=False):
-                self.disable_pixel(row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+                # self.disable_pixel(row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
                 self.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=data, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         BL_df = pandas.DataFrame(data = data)
         self.BL_df[chip_address] = BL_df
