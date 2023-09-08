@@ -56,7 +56,7 @@ def push_history_to_git(
     for col in new_columns:
         input_df[col] = new_columns[col]
 
-    outdir = git_repo
+    outdir = Path(f'../{git_repo}')
     outfile = outdir / 'BaselineHistory.sqlite'
 
     init_cmd = [
@@ -108,6 +108,22 @@ def push_history_to_git(
     p.stdin.close()
     print(p.stdout.read())
 
+def clear_data_daq(
+        fpga_ip = "192.168.2.3",
+        delay: int = 485,
+        led_flag = 0x0000,
+        active_channel = 0x0011,
+    ):
+    trigger_bit_delay = int('001011'+format(delay, '010b'), base=2)
+    parser = run_script.getOptionParser()
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 10 -o PlzDelete -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --nodaq".split())
+    IPC_queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
+    process.start()
+    process.join()
+
+    del IPC_queue, process, parser
+
 def func_daq(
         chip_names,
         run_str,
@@ -117,6 +133,9 @@ def func_daq(
         delay: int = 485,
         run_time: int = 120,
         extra_margin_time: int = 100,
+        led_flag = 0x0000,
+        active_channel = 0x0011,
+        do_ssd: bool = False,
     ):
 
     print('DAQ Start:', datetime.datetime.now())
@@ -129,9 +148,13 @@ def func_daq(
     outdir = directory / outdir_name
     outdir.mkdir(exist_ok=False)
 
-    trigger_bit_delay = int('100011'+format(delay, '010b'), base=2)
+    trigger_bit_delay = int('001011'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s 0x000C -p 0x000f -d {trigger_bit_delay} -a 0x0088 --counter_duration 0x0001 --compressed_translation -l 100000 --skip_binary".split())
+    if do_ssd:
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary --ssd".split())
+    else:
+         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary".split())
+    # (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --skip_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
     process.start()
@@ -196,6 +219,7 @@ def run_daq(
         do_saveHistory: bool = False,
         do_skipConfig: bool = False,
         do_skipCalibration: bool = False,
+        do_ssd: bool = False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
     chip_fignames = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
@@ -301,8 +325,13 @@ def run_daq(
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
         if do_skipConfig:
-            col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
-            scan_list = list(zip(row_list.flatten(), col_list.flatten()))
+            if do_fullAutoCal:
+                col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
+                scan_list = list(zip(row_list.flatten(), col_list.flatten()))
+            else:
+                row_list = [14, 14, 14, 14]
+                col_list = [6, 7, 8, 9]
+                scan_list = list(zip(row_list, col_list))
         for row, col in scan_list:
             print(f"Operating on chip {hex(chip_address)} Pixel ({row},{col})")
             column_indexer_handle.set(col)
@@ -326,7 +355,7 @@ def run_daq(
         print('\nOne time DAQ run for checking LED lights')
         # Run One Time DAQ to Set FPGA Firmware
         parser = run_script.getOptionParser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x000c -p 0x000f -d 0x8800 -a 0x0088 --clear_fifo".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x0004 -p 0x000f -d 0x2800 -a 0x0022 --clear_fifo".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_Start_LEDs_Board013_NoLinkCheck'))
         process.start()
@@ -357,6 +386,9 @@ def run_daq(
             delay = 485,
             run_time = run_time,
             extra_margin_time = 15,
+            led_flag = 0x0004,
+            active_channel = 0x0022,
+            do_ssd = do_ssd,
         )
     elif do_Counter:
         func_fpga_data(
@@ -441,6 +473,18 @@ def main():
         dest = 'skipCalibration',
     )
     parser.add_argument(
+        '--clear',
+        help = 'Run DAQ with nodaq option',
+        action = 'store_true',
+        dest = 'clear',
+    )
+    parser.add_argument(
+        '--saveSSD',
+        help = 'Save data in SSD',
+        action = 'store_true',
+        dest = 'saveSSD',
+    )
+    parser.add_argument(
         '-b0',
         '--board0_name',
         metavar = 'NAME',
@@ -518,7 +562,6 @@ def main():
     chip_addresses = list(filter(lambda item: item is not None, full_chip_addresses))
 
     count = 0
-    usb_iss_port = "/dev/ttyACM0"
     while True:
         run_str = f"Run{count}"
 
@@ -528,38 +571,40 @@ def main():
             break
 
         def signal_handler(sig, frame):
-            print("Softreboot the ETROC2 before ending the script")
-            tmp_i2c_conn = i2c_connection(usb_iss_port, chip_addresses, chip_names, [("1","1"), ("1","1"), ("1","1")])
-            tmp_i2c_conn.peripheral_decoded_register_write("softBoot", "1")
-            time.sleep(0.01)
-            tmp_i2c_conn.peripheral_decoded_register_write("softBoot", "0")
-
             print("Exiting gracefully")
             sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
 
-        run_daq(
-            chip_names = chip_names,
-            chip_addresses = chip_addresses,
-            run_str = run_str,
-            extra_str = args.extra_str,
-            i2c_port = usb_iss_port,
-            fpga_ip = "192.168.2.3",
-            th_offset = 0x0d,
-            run_time = args.daq_run_time,
-            do_infiniteLoop = args.infinite_loop,
-            do_TDC = args.run_TDC,
-            do_Counter = args.run_Counter,
-            do_fullAutoCal =  args.fullAutoCal,
-            do_saveHistory = args.saveHistory,
-            do_skipConfig = args.skipConfig,
-            do_skipCalibration = args.skipCalibration,
-        )
-        end_time = time.time()
+        if args.clear:
+            clear_data_daq(
+                led_flag = 0x0004,
+                active_channel = 0x0022,
+            )
+            pass
+        else:
+            run_daq(
+                chip_names = chip_names,
+                chip_addresses = chip_addresses,
+                run_str = run_str,
+                extra_str = args.extra_str,
+                i2c_port = "/dev/ttyACM0",
+                fpga_ip = "192.168.2.3",
+                th_offset = 0x0a,
+                run_time = args.daq_run_time,
+                do_infiniteLoop = args.infinite_loop,
+                do_TDC = args.run_TDC,
+                do_Counter = args.run_Counter,
+                do_fullAutoCal =  args.fullAutoCal,
+                do_saveHistory = args.saveHistory,
+                do_skipConfig = args.skipConfig,
+                do_skipCalibration = args.skipCalibration,
+                do_ssd = args.saveSSD,
+            )
 
-        if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
-            break
+            end_time = time.time()
+            if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
+                break
 
         count += 1
         if not args.infinite_loop:
