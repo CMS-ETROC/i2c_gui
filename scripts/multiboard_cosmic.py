@@ -108,22 +108,6 @@ def push_history_to_git(
     p.stdin.close()
     print(p.stdout.read())
 
-def clear_data_daq(
-        fpga_ip = "192.168.2.3",
-        delay: int = 485,
-        led_flag = 0x0000,
-        active_channel = 0x0011,
-    ):
-    trigger_bit_delay = int('001011'+format(delay, '010b'), base=2)
-    parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 10 -o PlzDelete -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --nodaq".split())
-    IPC_queue = multiprocessing.Queue()
-    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
-    process.start()
-    process.join()
-
-    del IPC_queue, process, parser
-
 def func_daq(
         chip_names,
         run_str,
@@ -136,30 +120,33 @@ def func_daq(
         led_flag = 0x0000,
         active_channel = 0x0011,
         do_ssd: bool = False,
+        do_qinj: bool = False,
     ):
 
     print('DAQ Start:', datetime.datetime.now())
     ## Making directory to save main_process.out files
-    currentPath = Path('.')
-    main_pro_dir = currentPath / 'main_process_cosmic'
-    main_pro_dir.mkdir(exist_ok=True)
+    # currentPath = Path('.')
+    # main_pro_dir = currentPath / 'main_process_cosmic'
+    # main_pro_dir.mkdir(exist_ok=True)
 
     outdir_name = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
     outdir = directory / outdir_name
     outdir.mkdir(exist_ok=False)
 
-    trigger_bit_delay = int('001011'+format(delay, '010b'), base=2)
+    trigger_bit_delay = int('000111'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
     if do_ssd:
         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary --ssd".split())
     else:
          (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary".split())
-    # (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --skip_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
     process.start()
 
-    IPC_queue.put('memoFC Start Triggerbit')
+    if do_qinj:
+        IPC_queue.put('memoFC Start Triggerbit QInj BCR')
+    else:
+        IPC_queue.put('memoFC Start Triggerbit')
     while not IPC_queue.empty():
         pass
     time.sleep(run_time)
@@ -220,6 +207,7 @@ def run_daq(
         do_skipConfig: bool = False,
         do_skipCalibration: bool = False,
         do_ssd: bool = False,
+        do_qinj: bool = False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
     chip_fignames = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
@@ -258,7 +246,7 @@ def run_daq(
             ## Note that the NW represents the full width on either side of the BL
             frames = []
             for chip_address, chip_name in zip(chip_addresses,chip_names):
-                BL_map_THCal,NW_map_THCal, BL_df = i2c_conn.get_auto_cal_maps(chip_address)
+                BL_map_THCal, NW_map_THCal, BL_df = i2c_conn.get_auto_cal_maps(chip_address)
                 frames.append(BL_df)
                 fig = plt.figure(dpi=200, figsize=(10,10))
                 gs = fig.add_gridspec(1,2)
@@ -294,51 +282,65 @@ def run_daq(
                 plt.savefig(fig_path+"/BL_NW_"+chip_name+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
 
             full_BL_df = pd.concat(frames)
-            if do_saveHistory:
-                push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
-
             col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
             scan_list = list(zip(row_list.flatten(), col_list.flatten()))
 
-        else:
-            # Define pixels of interest
-            row_list = [14, 14, 14, 14]
-            col_list = [6, 7, 8, 9]
-            scan_list = list(zip(row_list, col_list))
-            print(scan_list)
-
-            tmp_data = []
-            for chip_address, chip_name in zip(chip_addresses, chip_names):
-                for row, col in scan_list:
-                    i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
-            BL_df = pandas.DataFrame(data = tmp_data)
             if do_saveHistory:
-                push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+                push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
 
     ### Enable pixels of Interest
     if not do_skipConfig:
         i2c_conn.enable_select_pixels_in_chips(scan_list)
 
-    offset = th_offset
-    for chip_address in chip_addresses[:]:
-        chip = i2c_conn.get_chip_i2c_connection(chip_address)
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        if do_skipConfig:
-            if do_fullAutoCal:
-                col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
-                scan_list = list(zip(row_list.flatten(), col_list.flatten()))
-            else:
-                row_list = [14, 14, 14, 14]
-                col_list = [6, 7, 8, 9]
-                scan_list = list(zip(row_list, col_list))
-        for row, col in scan_list:
-            print(f"Operating on chip {hex(chip_address)} Pixel ({row},{col})")
-            column_indexer_handle.set(col)
-            row_indexer_handle.set(row)
-            i2c_conn.pixel_decoded_register_write("TH_offset", format(offset, '06b'), chip)
-            i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
-        del chip, row_indexer_handle, column_indexer_handle
+    if th_offset is not None:
+        print('Single offset value will be applied!')
+        for chip_address in chip_addresses[:]:
+            chip = i2c_conn.get_chip_i2c_connection(chip_address)
+            row_indexer_handle,_,_ = chip.get_indexer("row")
+            column_indexer_handle,_,_ = chip.get_indexer("column")
+            if do_skipConfig:
+                if do_fullAutoCal:
+                    col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
+                    scan_list = list(zip(row_list.flatten(), col_list.flatten()))
+                else:
+                    row_list = [14, 14, 14, 14]
+                    col_list = [6, 7, 8, 9]
+                    scan_list = list(zip(row_list, col_list))
+            for row, col in scan_list:
+                print(f"Operating on chip {hex(chip_address)} Pixel ({row},{col})")
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+                i2c_conn.pixel_decoded_register_write("TH_offset", format(th_offset, '06b'), chip)
+                i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
+            del chip, row_indexer_handle, column_indexer_handle
+    else:
+        print('Offset was not specify.')
+        sys.exit(0)
+        # print('Individual pixel will be set by different noise width')
+        # if do_skipConfig:
+        #     print('Please remove --skipConfig option.')
+        #     sys.exit(0)
+        # else:
+        #     for chip_address in chip_addresses[:]:
+        #         chip = i2c_conn.get_chip_i2c_connection(chip_address)
+        #         row_indexer_handle,_,_ = chip.get_indexer("row")
+        #         column_indexer_handle,_,_ = chip.get_indexer("column")
+        #         if do_fullAutoCal:
+        #             col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
+        #             scan_list = list(zip(row_list.flatten(), col_list.flatten()))
+        #         else:
+        #             row_list = [14, 14, 14, 14]
+        #             col_list = [6, 7, 8, 9]
+        #             scan_list = list(zip(row_list, col_list))
+
+        #             tmp_data = []
+        #             for chip_address, chip_name in zip(chip_addresses, chip_names):
+        #                 for row, col in scan_list:
+        #                     i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
+        #                 BL_map_THCal, NW_map_THCal, BL_df = i2c_conn.get_auto_cal_maps(chip_address)
+        #                 if do_saveHistory:
+        #                     push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+        #     pass
 
     if not do_skipCalibration:
         # Calibrate PLL
@@ -355,7 +357,7 @@ def run_daq(
         print('\nOne time DAQ run for checking LED lights')
         # Run One Time DAQ to Set FPGA Firmware
         parser = run_script.getOptionParser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x0004 -p 0x000f -d 0x2800 -a 0x0022 --clear_fifo".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x0000 -p 0x000f -d 0x1800 -a 0x0011 --clear_fifo".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_Start_LEDs_Board013_NoLinkCheck'))
         process.start()
@@ -383,12 +385,13 @@ def run_daq(
             extra_str = extra_str,
             directory = data_outdir,
             fpga_ip = fpga_ip,
-            delay = 485,
+            delay = 484,
             run_time = run_time,
             extra_margin_time = 15,
-            led_flag = 0x0004,
-            active_channel = 0x0022,
+            led_flag = 0x0000,
+            active_channel = 0x0011,
             do_ssd = do_ssd,
+            do_qinj = do_qinj,
         )
     elif do_Counter:
         func_fpga_data(
@@ -406,7 +409,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-                    prog='Cosmic run!',
+                    prog='Lighweight version of DAQ',
                     description='Control them!',
                     #epilog='Text at the bottom of help'
                     )
@@ -473,16 +476,24 @@ def main():
         dest = 'skipCalibration',
     )
     parser.add_argument(
-        '--clear',
-        help = 'Run DAQ with nodaq option',
-        action = 'store_true',
-        dest = 'clear',
-    )
-    parser.add_argument(
         '--saveSSD',
         help = 'Save data in SSD',
         action = 'store_true',
         dest = 'saveSSD',
+    )
+    parser.add_argument(
+        '--qinj',
+        help = 'Run charge injection',
+        action = 'store_true',
+        dest = 'qinj',
+    )
+    parser.add_argument(
+        '--offset',
+        metavar = 'VAL',
+        help = "Apply single offset value for all pixels",
+        dest = 'offset',
+        default = None,
+        type = int,
     )
     parser.add_argument(
         '-b0',
@@ -576,35 +587,29 @@ def main():
 
         signal.signal(signal.SIGINT, signal_handler)
 
-        if args.clear:
-            clear_data_daq(
-                led_flag = 0x0004,
-                active_channel = 0x0022,
-            )
-            pass
-        else:
-            run_daq(
-                chip_names = chip_names,
-                chip_addresses = chip_addresses,
-                run_str = run_str,
-                extra_str = args.extra_str,
-                i2c_port = "/dev/ttyACM0",
-                fpga_ip = "192.168.2.3",
-                th_offset = 0x0a,
-                run_time = args.daq_run_time,
-                do_infiniteLoop = args.infinite_loop,
-                do_TDC = args.run_TDC,
-                do_Counter = args.run_Counter,
-                do_fullAutoCal =  args.fullAutoCal,
-                do_saveHistory = args.saveHistory,
-                do_skipConfig = args.skipConfig,
-                do_skipCalibration = args.skipCalibration,
-                do_ssd = args.saveSSD,
-            )
+        run_daq(
+            chip_names = chip_names,
+            chip_addresses = chip_addresses,
+            run_str = run_str,
+            extra_str = args.extra_str,
+            i2c_port = "/dev/ttyACM0",
+            fpga_ip = "192.168.2.3",
+            th_offset = args.offset,
+            run_time = args.daq_run_time,
+            do_infiniteLoop = args.infinite_loop,
+            do_TDC = args.run_TDC,
+            do_Counter = args.run_Counter,
+            do_fullAutoCal =  args.fullAutoCal,
+            do_saveHistory = args.saveHistory,
+            do_skipConfig = args.skipConfig,
+            do_skipCalibration = args.skipCalibration,
+            do_ssd = args.saveSSD,
+            do_qinj = args.qinj,
+        )
 
-            end_time = time.time()
-            if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
-                break
+        end_time = time.time()
+        if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
+            break
 
         count += 1
         if not args.infinite_loop:
