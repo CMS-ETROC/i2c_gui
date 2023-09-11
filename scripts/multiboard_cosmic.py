@@ -208,6 +208,7 @@ def run_daq(
         do_skipCalibration: bool = False,
         do_ssd: bool = False,
         do_qinj: bool = False,
+        qsel: int = 15,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
     chip_fignames = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
@@ -316,7 +317,11 @@ def run_daq(
                 column_indexer_handle.set(col)
                 row_indexer_handle.set(row)
                 i2c_conn.pixel_decoded_register_write("TH_offset", format(th_offset, '06b'), chip)
-                i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
+                if do_qinj:
+                    i2c_conn.pixel_decoded_register_write("QInjEn", "1", chip)
+                    i2c_conn.pixel_decoded_register_write("Qsel", format(qsel, '05b'), chip)
+                else:
+                    i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
             del chip, row_indexer_handle, column_indexer_handle
     else:
         print('Offset was not specify.')
@@ -493,6 +498,14 @@ def main():
         dest = 'qinj',
     )
     parser.add_argument(
+        '--qsel',
+        metavar = 'VAL',
+        help = "Set amount of charge injection",
+        dest = 'qsel',
+        default = 15,
+        type = int,
+    )
+    parser.add_argument(
         '--offset',
         metavar = 'VAL',
         help = "Apply single offset value for all pixels",
@@ -610,6 +623,7 @@ def main():
             do_skipCalibration = args.skipCalibration,
             do_ssd = args.saveSSD,
             do_qinj = args.qinj,
+            qsel = args.qsel,
         )
 
         end_time = time.time()
