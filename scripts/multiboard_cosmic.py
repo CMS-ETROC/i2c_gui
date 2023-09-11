@@ -287,6 +287,11 @@ def run_daq(
 
             if do_saveHistory:
                 push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+        
+        else:
+            row_list = [14, 14, 14, 14]
+            col_list = [6, 7, 8, 9]
+            scan_list = list(zip(row_list, col_list))
 
     ### Enable pixels of Interest
     if not do_skipConfig:
