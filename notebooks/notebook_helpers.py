@@ -285,7 +285,7 @@ class i2c_connection():
     # Function 3
     def disable_all_pixels(self, chip_address, chip=None):
         del_chip = False
-        if(chip==None):
+        if(chip==None): 
             chip = self.get_chip_i2c_connection(chip_address)
             del_chip=True
         row_indexer_handle,_,_ = chip.get_indexer("row")
@@ -325,16 +325,30 @@ class i2c_connection():
         broadcast_handle.set(True)
         self.pixel_decoded_register_write("lowerCal", format(0x3ff, '010b'), chip)
         # Disable TDC
+        broadcast_handle.set(True)
         self.pixel_decoded_register_write("enable_TDC", "0", chip)
-        # Broadcase self consistency check
+        # Broadcase self consistency check\
+        column_indexer_handle.set(12)
+        row_indexer_handle.set(12)
         upperTOT = self.pixel_decoded_register_read("upperTOT", "Config", chip)
-        if (upperTOT != "0x1ff"):
+        lowerTOT = self.pixel_decoded_register_read("lowerTOT", "Config", chip)
+        upperTOA = self.pixel_decoded_register_read("upperTOA", "Config", chip)
+        lowerTOA = self.pixel_decoded_register_read("lowerTOA", "Config", chip)
+        upperCAL = self.pixel_decoded_register_read("upperCal", "Config", chip)
+        lowerCAL = self.pixel_decoded_register_read("lowerCal", "Config", chip)
+        upperTOTTrig = self.pixel_decoded_register_read("upperTOTTrig", "Config", chip)
+        lowerTOTTrig = self.pixel_decoded_register_read("lowerTOTTrig", "Config", chip)
+        upperTOATrig = self.pixel_decoded_register_read("upperTOATrig", "Config", chip)
+        lowerTOATrig = self.pixel_decoded_register_read("lowerTOATrig", "Config", chip)
+        upperCALTrig = self.pixel_decoded_register_read("upperCalTrig", "Config", chip)
+        lowerCALTrig = self.pixel_decoded_register_read("lowerCalTrig", "Config", chip)
+        if (upperTOT != "0x1ff" or upperTOA != "0x000" or upperCAL != "0x3ff" or lowerTOT != "0x1ff" or lowerTOA != "0x000" or lowerCAL != "0x3ff" or upperTOTTrig != "0x1ff" or upperTOATrig != "0x000" or upperCALTrig != "0x3ff" or lowerTOTTrig != "0x1ff" or lowerTOATrig != "0x000" or lowerCALTrig != "0x3ff"):
             print("Broadcast failed! \n Will manually disable pixels")
             for row in tqdm(range(16), desc="Disabling row", position=0):
                 for col in range(16):
                     self.disable_pixel(row=row, col=col, verbose=False, chip_address=None, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         if(del_chip): del chip
-        del row_indexer_handle, column_indexer_handle
+        del row_indexer_handle, column_indexer_handle, broadcast_handle
         print(f"Disabled pixels for chip: {hex(chip_address)}")
 
     # Function 4
