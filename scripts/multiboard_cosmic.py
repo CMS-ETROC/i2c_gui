@@ -288,11 +288,19 @@ def run_daq(
 
             if do_saveHistory:
                 push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
-        
+
         else:
             row_list = [14, 14, 14, 14]
             col_list = [6, 7, 8, 9]
             scan_list = list(zip(row_list, col_list))
+
+            tmp_data = []
+            for chip_address, chip_name in zip(chip_addresses, chip_names):
+                for row, col in scan_list:
+                    i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
+                BL_map_THCal, NW_map_THCal, BL_df = i2c_conn.get_auto_cal_maps(chip_address)
+                if do_saveHistory:
+                    push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
 
     ### Enable pixels of Interest
     if not do_skipConfig:
