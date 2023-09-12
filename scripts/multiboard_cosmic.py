@@ -286,9 +286,6 @@ def run_daq(
             col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
             scan_list = list(zip(row_list.flatten(), col_list.flatten()))
 
-            if do_saveHistory:
-                push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
-
         else:
             # Define pixels of interest
             row_list = [14, 14, 14, 14]
