@@ -285,7 +285,7 @@ class i2c_connection():
     # Function 3
     def disable_all_pixels(self, chip_address, chip=None):
         del_chip = False
-        if(chip==None): 
+        if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
             del_chip=True
         row_indexer_handle,_,_ = chip.get_indexer("row")
@@ -860,12 +860,9 @@ class i2c_connection():
         self.pixel_decoded_register_write("upperTOATrig", format(0x3ff if triggerWindow else 0x000, '010b'), chip)
         self.pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'), chip)
         self.pixel_decoded_register_write("upperTOTTrig", format(0x1ff if triggerWindow else 0x000, '09b'), chip)
-        # self.pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'), chip)
-        self.pixel_decoded_register_write("lowerTOTTrig", format(0x064, '09b'), chip) ## only for cosmic run
-        # self.pixel_decoded_register_write("upperCalTrig", format(0x3ff if triggerWindow else 0x000, '010b'), chip)
-        # self.pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("upperCalTrig", format(0x0e6 if triggerWindow else 0x000, '010b'), chip)
-        self.pixel_decoded_register_write("lowerCalTrig", format(0x0aa, '010b'), chip)
+        self.pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'), chip)
+        self.pixel_decoded_register_write("upperCalTrig", format(0x3ff if triggerWindow else 0x000, '010b'), chip)
+        self.pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'), chip)
         self.pixel_decoded_register_write("upperTOA", format(0x3ff if cbWindow else 0x000, '010b'), chip)
         self.pixel_decoded_register_write("lowerTOA", format(0x000, '010b'), chip)
         self.pixel_decoded_register_write("upperTOT", format(0x1ff if cbWindow else 0x000, '09b'), chip)
