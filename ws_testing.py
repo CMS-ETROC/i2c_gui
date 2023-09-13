@@ -48,6 +48,7 @@ importlib.reload(run_script)
 def run_ws(
         chip_name: str,
         port: str = '/dev/ttyACM0',
+        fpga_ip: str = '192.168.2.3',
         chip_address = 0x60,
         ws_address = 0x40,
     ):
@@ -245,8 +246,8 @@ def run_ws(
     dout_handle = chip.get_decoded_display_var("Waveform Sampler", "Status", "dout")
 
     ### Run DAQ to send ws fc
-    time_per_pixel = 5
-    dead_time_per_pixel = 5
+    time_per_pixel = 3
+    dead_time_per_pixel = 3
     total_scan_time = time_per_pixel + dead_time_per_pixel
     outname = 'ws_test'
 
@@ -256,7 +257,7 @@ def run_ws(
     base_dir.mkdir(exist_ok=True)
 
     parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname 192.168.2.3 -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation  --clear_fifo".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation  --clear_fifo".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
@@ -413,11 +414,20 @@ def main():
         required = True,
         dest = 'chip_name',
     )
+    parser.add_argument(
+        '--ip_address',
+        metavar = 'NAME',
+        type = str,
+        help = 'KC705 FPGA IP address',
+        default="192.168.2.3",
+        dest = 'ip_address',
+    )
     args = parser.parse_args()
 
     run_ws(
         chip_name = args.chip_name,
         port = '/dev/ttyACM0',
+        fpga_ip = args.ip_address,
         chip_address = 0x60,
         ws_address = 0x40,
     )
