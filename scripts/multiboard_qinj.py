@@ -101,6 +101,7 @@ def run_daq(
         do_skipCalibration: bool = False,
         do_qinj: bool = False,
         do_skipOffset: bool = False,
+        do_skipAlign: bool = False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
     chip_fignames = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
@@ -138,10 +139,10 @@ def run_daq(
         scan_list = list(zip(row_list.flatten(), col_list.flatten()))
     else:
         # Define pixels of interest
-        # row_list = [14, 14, 14, 14]
-        # col_list = [6, 7, 8, 9]
-        row_list = [14]
-        col_list = [6]
+        row_list = [14, 14, 14, 14]
+        col_list = [6, 7, 8, 9]
+        # row_list = [14]
+        # col_list = [6]
         scan_list = list(zip(row_list, col_list))
         print(scan_list)
 
@@ -212,15 +213,15 @@ def run_daq(
                 i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
         del chip, row_indexer_handle, column_indexer_handle
 
-    # if not do_skipCalibration:
-    #     # Calibrate PLL
-    #     for chip_address in chip_addresses[:]:
-    #         i2c_conn.calibratePLL(chip_address, chip=None)
+    if not do_skipAlign:
+        # Calibrate PLL
+        for chip_address in chip_addresses[:]:
+            i2c_conn.calibratePLL(chip_address, chip=None)
 
-    #     # Calibrate FC
-    #     for chip_address in chip_addresses[:]:
-    #         i2c_conn.asyResetGlobalReadout(chip_address, chip=None)
-    #         i2c_conn.asyAlignFastcommand(chip_address, chip=None)
+        # Calibrate FC
+        for chip_address in chip_addresses[:]:
+            i2c_conn.asyResetGlobalReadout(chip_address, chip=None)
+            i2c_conn.asyAlignFastcommand(chip_address, chip=None)
 
     plzDelDir = data_outdir / 'PlzDelete_Board013_NoLinkCheck'
     if not plzDelDir.is_dir():
@@ -329,15 +330,21 @@ def main():
     )
     parser.add_argument(
         '--skipCalibration',
-        help = 'Skip configure ETROC2',
+        help = 'Skip automatic calibration',
         action = 'store_true',
         dest = 'skipCalibration',
     )
     parser.add_argument(
         '--skipOffset',
-        help = 'Skip configure ETROC2',
+        help = 'Skip offset configuration',
         action = 'store_true',
         dest = 'skipOffset',
+    )
+    parser.add_argument(
+        '--skipAlign',
+        help = 'Skip PLL and FC alignment',
+        action = 'store_true',
+        dest = 'skipAlign',
     )
     parser.add_argument(
         '--qinj',
@@ -469,6 +476,7 @@ def main():
             do_skipCalibration = args.skipCalibration,
             do_qinj = args.qinj,
             do_skipOffset = args.skipOffset,
+            do_skipAlign = args.skipAlign,
         )
 
         end_time = time.time()
