@@ -119,7 +119,9 @@ def func_daq(
         extra_margin_time: int = 100,
         led_flag = 0x0000,
         active_channel = 0x0011,
+        active_delay = "0001",
         do_ssd: bool = False,
+        do_qinj: bool = False,
     ):
 
     print('DAQ Start:', datetime.datetime.now())
@@ -133,7 +135,7 @@ def func_daq(
         outdir = directory / outdir_name
         outdir.mkdir(exist_ok=False)
 
-    trigger_bit_delay = int('100111'+format(delay, '010b'), base=2)
+    trigger_bit_delay = int(f'{active_delay}11'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
     if do_ssd:
         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary --ssd".split())
@@ -144,7 +146,11 @@ def func_daq(
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
     process.start()
 
-    IPC_queue.put('memoFC Start Triggerbit')
+    if do_qinj:
+        IPC_queue.put('memoFC Start Triggerbit QInj BCR')
+    else:
+        IPC_queue.put('memoFC Start Triggerbit')
+
     while not IPC_queue.empty():
         pass
     time.sleep(run_time)
@@ -197,6 +203,7 @@ def run_daq(
         fpga_ip: str = "192.168.2.3",
         th_offset: int = 0x18,
         run_time: int = 120,
+        qsel: int = 15,
         do_infiniteLoop: bool = False,
         do_TDC: bool = False,
         do_Counter: bool = False,
@@ -205,6 +212,8 @@ def run_daq(
         do_skipConfig: bool = False,
         do_skipCalibration: bool = False,
         do_ssd: bool = False,
+        do_qinj: bool = False,
+        do_cosmic: bool= False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
     chip_fignames = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
@@ -331,9 +340,17 @@ def run_daq(
                 print(f"Operating on chip {hex(chip_address)} Pixel ({row},{col})")
                 column_indexer_handle.set(col)
                 row_indexer_handle.set(row)
-                i2c_conn.pixel_decoded_register_write("TH_offset", format(offset, '06b'), chip)
-                i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
-                if(chip_index==0 or chip_index==2): i2c_conn.pixel_decoded_register_write("lowerTOTTrig", format(0x064, '09b'), chip) ## only for cosmic run
+
+                i2c_conn.pixel_decoded_register_write("TH_offset", format(th_offset, '06b'), chip)
+                if do_qinj:
+                    i2c_conn.pixel_decoded_register_write("QInjEn", "1", chip)
+                    i2c_conn.pixel_decoded_register_write("QSel", format(qsel, '05b'), chip)
+                else:
+                    i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
+
+                if do_cosmic:
+                    if(chip_index==0 or chip_index==2):
+                        i2c_conn.pixel_decoded_register_write("lowerTOTTrig", format(0x064, '09b'), chip) ## only for cosmic run
             del chip, row_indexer_handle, column_indexer_handle
 
     if not do_skipCalibration:
@@ -379,11 +396,12 @@ def run_daq(
             extra_str = extra_str,
             directory = data_outdir,
             fpga_ip = fpga_ip,
-            delay = 485,
+            delay = 484,
             run_time = run_time,
             extra_margin_time = 15,
             led_flag = 0x0000,
-            active_channel = 0x00bb,
+            active_channel = 0x0011,
+            active_delay = "0001",
             do_ssd = do_ssd,
         )
     elif do_Counter:
@@ -469,16 +487,23 @@ def main():
         dest = 'skipCalibration',
     )
     parser.add_argument(
-        '--clear',
-        help = 'Run DAQ with nodaq option',
-        action = 'store_true',
-        dest = 'clear',
-    )
-    parser.add_argument(
         '--saveSSD',
         help = 'Save data in SSD',
         action = 'store_true',
         dest = 'saveSSD',
+    )
+    parser.add_argument(
+        '--qinj',
+        help = 'Run charge injection',
+        action = 'store_true',
+        dest = 'qinj',
+    )
+    parser.add_argument(
+        '--qsel',
+        help = 'Amount of injected charge',
+        metavar = 'NUM',
+        type = int,
+        dest = 'qsel',
     )
     parser.add_argument(
         '-b0',
@@ -581,6 +606,7 @@ def main():
             fpga_ip = "192.168.2.3",
             th_offset = 0x0a,
             run_time = args.daq_run_time,
+            qsel = args.qsel,
             do_infiniteLoop = args.infinite_loop,
             do_TDC = args.run_TDC,
             do_Counter = args.run_Counter,
@@ -589,6 +615,7 @@ def main():
             do_skipConfig = args.skipConfig,
             do_skipCalibration = args.skipCalibration,
             do_ssd = args.saveSSD,
+            do_qinj = args.qinj,
         )
 
         end_time = time.time()
