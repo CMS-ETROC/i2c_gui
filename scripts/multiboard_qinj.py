@@ -52,23 +52,15 @@ def func_daq(
         extra_margin_time: int = 100,
         led_flag = 0x0000,
         active_channel = 0x0011,
-        active_delay = "0001",
-        do_ssd: bool = False,
         do_qinj: bool = False,
     ):
 
     print('DAQ Start:', datetime.datetime.now())
-    ## Making directory to save main_process.out files
-    currentPath = Path('.')
-    main_pro_dir = currentPath / 'main_process_cosmic'
-    main_pro_dir.mkdir(exist_ok=True)
-
     outdir_name = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
-    if not do_ssd:
-        outdir = directory / outdir_name
-        outdir.mkdir(exist_ok=False)
+    outdir = directory / outdir_name
+    outdir.mkdir(exist_ok=False)
 
-    trigger_bit_delay = int(f'{active_delay}11'+format(delay, '010b'), base=2)
+    trigger_bit_delay = int(f'000111'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
     (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --compressed_translation -l 100000 --compressed_binary".split())
     IPC_queue = multiprocessing.Queue()
@@ -146,8 +138,10 @@ def run_daq(
         scan_list = list(zip(row_list.flatten(), col_list.flatten()))
     else:
         # Define pixels of interest
-        row_list = [14, 14, 14, 14]
-        col_list = [6, 7, 8, 9]
+        # row_list = [14, 14, 14, 14]
+        # col_list = [6, 7, 8, 9]
+        row_list = [14]
+        col_list = [6]
         scan_list = list(zip(row_list, col_list))
         print(scan_list)
 
@@ -218,22 +212,22 @@ def run_daq(
                 i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
         del chip, row_indexer_handle, column_indexer_handle
 
-    if not do_skipCalibration:
-        # Calibrate PLL
-        for chip_address in chip_addresses[:]:
-            i2c_conn.calibratePLL(chip_address, chip=None)
+    # if not do_skipCalibration:
+    #     # Calibrate PLL
+    #     for chip_address in chip_addresses[:]:
+    #         i2c_conn.calibratePLL(chip_address, chip=None)
 
-        # Calibrate FC
-        for chip_address in chip_addresses[:]:
-            i2c_conn.asyResetGlobalReadout(chip_address, chip=None)
-            i2c_conn.asyAlignFastcommand(chip_address, chip=None)
+    #     # Calibrate FC
+    #     for chip_address in chip_addresses[:]:
+    #         i2c_conn.asyResetGlobalReadout(chip_address, chip=None)
+    #         i2c_conn.asyAlignFastcommand(chip_address, chip=None)
 
     plzDelDir = data_outdir / 'PlzDelete_Board013_NoLinkCheck'
     if not plzDelDir.is_dir():
         print('\nOne time DAQ run for checking LED lights')
         # Run One Time DAQ to Set FPGA Firmware
         parser = run_script.getOptionParser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x0000 -p 0x000f -d 0xb800 -a 0x00bb --clear_fifo".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 20 -o PlzDelete_Board013_NoLinkCheck -v -w -s 0x0000 -p 0x000f -d 0x1800 -a 0x0011 --clear_fifo".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_Start_LEDs_Board013_NoLinkCheck'))
         process.start()
@@ -261,12 +255,12 @@ def run_daq(
             extra_str = extra_str,
             directory = data_outdir,
             fpga_ip = fpga_ip,
-            delay = 485,
+            delay = 485,    
             run_time = run_time,
             extra_margin_time = 15,
             led_flag = 0x0000,
             active_channel = 0x0011,
-            active_delay = "0001",
+            do_qinj = do_qinj,
         )
     else:
         print('Run mode is not specify. Exit the script and disconnect I2C.')
@@ -281,7 +275,6 @@ def run_daq(
 
     # Disconnect I2C Device
     del i2c_conn
-
 
 def main():
     import argparse
@@ -472,7 +465,6 @@ def main():
             qsel = args.qsel,
             do_TDC = args.run_TDC,
             do_fullAutoCal =  args.fullAutoCal,
-            do_saveHistory = args.saveHistory,
             do_skipConfig = args.skipConfig,
             do_skipCalibration = args.skipCalibration,
             do_qinj = args.qinj,
