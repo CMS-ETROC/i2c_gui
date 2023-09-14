@@ -33,6 +33,7 @@ from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import time
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 from i2c_gui.chips.etroc2_chip import register_decoding
 import os, sys
@@ -48,7 +49,7 @@ importlib.reload(run_script)
 def run_ws(
         chip_name: str,
         port: str = '/dev/ttyACM0',
-        fpga_ip: str = '192.168.2.3',
+        fpga_ip: str = '192.168.2.7',
         chip_address = 0x60,
         ws_address = 0x40,
     ):
@@ -148,7 +149,7 @@ def run_ws(
     peripheral_decoded_register_write("onChipL1AConf", '00')                        # Switches off the onboard L1A
     peripheral_decoded_register_write("PLL_ENABLEPLL", '1')                         # "Enable PLL mode, active high. Debugging use only."
     peripheral_decoded_register_write("chargeInjectionDelay", format(0x0a, '05b'))  # User tunable delay of Qinj pulse
-    peripheral_decoded_register_write("triggerGranularity", format(0x00, '03b'))    # only for trigger bit
+    peripheral_decoded_register_write("triggerGranularity", format(0x01, '03b'))    # only for trigger bit
 
     # Perform Auto-calibration on WS pixel (Row0, Col14)
     # Reset the maps
@@ -385,13 +386,13 @@ def run_ws(
     base_dir.mkdir(exist_ok=True)
 
     fig_aout.write_html(
-        base_dir / 'WS_Aout_{}.html'.format(chip_name),
+        base_dir / f'WS_Aout_{chip_name}_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}.html',
         full_html = False,
         include_plotlyjs = 'cdn',
     )
 
     fig_dout.write_html(
-        base_dir / 'WS_Dout_{}.html'.format(chip_name),
+        base_dir / f'WS_Dout_{chip_name}_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}.html',
         full_html = False,
         include_plotlyjs = 'cdn',
     )
