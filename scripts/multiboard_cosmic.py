@@ -117,7 +117,7 @@ def func_daq(
         delay: int = 485,
         run_time: int = 120,
         extra_margin_time: int = 100,
-        polarity = 0x000b,
+        polarity = 0x000f,
         led_flag = 0x0000,
         active_channel = 0x0011,
         active_delay = "0001",
@@ -160,53 +160,27 @@ def func_daq(
 
     del IPC_queue, process, parser
 
-def func_fpga_data(
-        chip_names,
-        fpga_ip = "192.168.2.3",
-        time_limit: int = 3,
-        th_offset: int = 0x0f,
-    ):
-
-    parser = run_script.getOptionParser()
-
-    ## One time to create output file
-    rootdir = Path('../ETROC-Data')
-    todaydir = rootdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
-    outdir_name = '_'.join(chip_names)+'_FPGA_data'
-    outdir = todaydir / outdir_name
-
-    if not outdir.is_dir():
-        (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {outdir_name} -v -w --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {time_limit} --fpga_data --nodaq --DAC_Val {th_offset}".split())
-        IPC_queue = multiprocessing.Queue()
-        process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_fpga_data'))
-        process.start()
-        process.join()
-
-    (options, args) = parser.parse_args(args=f"--useIPC --hostname {fpga_ip} -o {outdir_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {time_limit} --fpga_data --nodaq --DAC_Val {th_offset}".split())
-    IPC_queue = multiprocessing.Queue()
-    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_fpga_data'))
-    process.start()
-    process.join()
-
-    del IPC_queue, process, parser
-
 def run_daq(
         chip_names: list,
         chip_addresses: list,
+        chip_offsets: list,
         run_str: str,
         extra_str: str,
         i2c_port: str = "/dev/ttyACM0",
         fpga_ip: str = "192.168.2.3",
-        th_offset: int = 0x18,
         run_time: int = 120,
-        do_TDC: bool = False,
-        do_Counter: bool = False,
+        activeChannel: str = "0x0011",
+        activeTrigger: str = "0001",
+        led_flag: int = 0,
+        polarity: str = "0x000f",
         do_fullAutoCal: bool = False,
         do_saveHistory: bool = False,
         do_skipConfig: bool = False,
         do_skipCalibration: bool = False,
         do_skipOffset: bool = False,
         do_skipAlign: bool = False,
+        do_skipOnOff: bool = False,
+        do_skipTDC: bool = False,
         do_ssd: bool = False,
         do_cosmic: bool= False,
     ):
@@ -316,7 +290,8 @@ def run_daq(
                 push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Testbeam')
 
     ### Enable pixels of Interest
-    i2c_conn.enable_select_pixels_in_chips(scan_list)
+    if not do_skipOnOff:
+        i2c_conn.enable_select_pixels_in_chips(scan_list)
 
     for chip_index, chip_address in enumerate(chip_addresses):
         chip = i2c_conn.get_chip_i2c_connection(chip_address)
@@ -328,7 +303,7 @@ def run_daq(
             row_indexer_handle.set(row)
             i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
             if not do_skipOffset:
-                i2c_conn.pixel_decoded_register_write("TH_offset", format(th_offset, '06b'), chip)
+                i2c_conn.pixel_decoded_register_write("TH_offset", format(chip_offsets[chip_index], '06b'), chip)
             if do_cosmic:
                 if(chip_index == 0 or chip_index == 2):
                     i2c_conn.pixel_decoded_register_write("lowerTOTTrig", format(0x064, '09b'), chip) ## only for cosmic run
@@ -366,7 +341,7 @@ def run_daq(
         process.join()
         del IPC_queue, process, parser
 
-    if do_TDC:
+    if not do_skipTDC:
         func_daq(
             chip_names = chip_names,
             run_str = run_str,
@@ -376,27 +351,21 @@ def run_daq(
             delay = 485,
             run_time = run_time,
             extra_margin_time = 15,
-            polarity = 0x000f,
-            led_flag = 0x0000,
-            active_channel = 0x0011,
-            active_delay = "0001",
+            polarity = polarity,
+            led_flag = led_flag,
+            active_channel = activeChannel,
+            active_delay = activeTrigger,
             do_ssd = do_ssd,
         )
-    elif do_Counter:
-        func_fpga_data(
-            chip_names = chip_names,
-            fpga_ip = fpga_ip,
-        )
-    else:
-        print('Run mode is not specify. Exit the script and disconnect I2C.')
 
-    for chip_address in chip_addresses[:]:
-        chip = i2c_conn.get_chip_i2c_connection(chip_address)
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        for row,col in scan_list:
-            i2c_conn.disable_pixel(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
-        del chip, row_indexer_handle, column_indexer_handle
+    if not do_skipOnOff:
+        for chip_address in chip_addresses[:]:
+            chip = i2c_conn.get_chip_i2c_connection(chip_address)
+            row_indexer_handle,_,_ = chip.get_indexer("row")
+            column_indexer_handle,_,_ = chip.get_indexer("column")
+            for row,col in scan_list:
+                i2c_conn.disable_pixel(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+            del chip, row_indexer_handle, column_indexer_handle
 
     # Disconnect I2C Device
     del i2c_conn
@@ -435,6 +404,7 @@ def main():
         type = int,
         help = 'Global time limit for the total running time',
         dest = 'globalRunTime',
+        default = -1,
     )
     parser.add_argument(
         '--globalCount',
@@ -442,25 +412,29 @@ def main():
         type = int,
         help = 'Global count limit',
         dest = 'globalCount',
+        default = -1,
     )
     parser.add_argument(
-        '-l',
-        '--infiniteLoop',
-        help = 'Do infinite loop',
-        action = 'store_true',
-        dest = 'infinite_loop',
+        '--activeCh',
+        metavar = 'HEX',
+        help = 'Decide which channel will be actived (0x0011: ch1, 0x0022: ch2, 0x0044: ch3, 0x0088: ch4)',
+        required = True,
+        dest = 'activeCh',
     )
     parser.add_argument(
-        '--runTDC',
-        help = 'Take TDC data while running DAQ',
-        action = 'store_true',
-        dest = 'run_TDC',
+        '--activeTrig',
+        metavar = 'BINARY',
+        help = 'Decide which channel will be used for trigger (0001: ch1, 0010: ch2, 0100: ch3, 1000: ch4)',
+        type = str,
+        required = True,
+        dest = 'activeTrig',
     )
     parser.add_argument(
-        '--runCounter',
-        help = 'Take FPGA data while running DAQ',
-        action = 'store_true',
-        dest = 'run_Counter',
+        '--polarity',
+        metavar = 'HEX',
+        help = 'Polarity',
+        required = True,
+        dest = 'polarity',
     )
     parser.add_argument(
         '--cosmic',
@@ -488,23 +462,39 @@ def main():
     )
     parser.add_argument(
         '--skipCalibration',
-        help = 'Skip configure ETROC2',
+        help = 'Skip automatic calibration',
         action = 'store_true',
         dest = 'skipCalibration',
+    )
+    parser.add_argument(
+        '--skipOffset',
+        help = 'Skip offset configuration',
+        action = 'store_true',
+        dest = 'skipOffset',
+    )
+    parser.add_argument(
+        '--skipAlign',
+        help = 'Skip PLL and FC alignment',
+        action = 'store_true',
+        dest = 'skipAlign',
+    )
+    parser.add_argument(
+        '--skipOnOff',
+        help = 'Skip Enabling and disabling pixels',
+        action = 'store_true',
+        dest = 'skipOnOff',
+    )
+    parser.add_argument(
+        '--skipTDC',
+        help = 'Skip TDC DAQ run',
+        action = 'store_true',
+        dest = 'skipTDC',
     )
     parser.add_argument(
         '--saveSSD',
         help = 'Save data in SSD',
         action = 'store_true',
         dest = 'saveSSD',
-    )
-    parser.add_argument(
-        '--offset',
-        help = 'Offset to determine the thresholds = BL + offset',
-        metavar = 'NUM',
-        type = int,
-        default = 10,
-        dest = 'offset',
     )
     parser.add_argument(
         '-b0',
@@ -574,23 +564,64 @@ def main():
         default = None,
         type = int,
     )
+    parser.add_argument(
+        '--board0_offset',
+        help = 'Offset to determine the thresholds = BL + offset for channel 0 (FMCRX1)',
+        metavar = 'NUM',
+        type = int,
+        default = 10,
+        required = True,
+        dest = 'board0_offset',
+    )
+    parser.add_argument(
+        '--board1_offset',
+        help = 'Offset to determine the thresholds = BL + offset for channel 1 (FMCRX2)',
+        metavar = 'NUM',
+        type = int,
+        default = None,
+        dest = 'board1_offset',
+    )
+    parser.add_argument(
+        '--board2_offset',
+        help = 'Offset to determine the thresholds = BL + offset for channel 2 (FMCRX3)',
+        metavar = 'NUM',
+        type = int,
+        default = None,
+        dest = 'board2_offset',
+    )
+    parser.add_argument(
+        '--board3_offset',
+        help = 'Offset to determine the thresholds = BL + offset for channel 3 (FMCRX4)',
+        metavar = 'NUM',
+        type = int,
+        default = None,
+        dest = 'board3_offset',
+    )
+
     args = parser.parse_args()
     start_time = time.time()
 
     full_chip_names = [args.board0_name, args.board1_name, args.board2_name, args.board3_name]
     full_chip_addresses = [args.board0_i2c, args.board1_i2c, args.board2_i2c, args.board3_i2c]
+    full_chip_offsets = [args.board0_offset, args.board1_offset, args.board2_offset, args.board3_offset]
 
     chip_names = list(filter(lambda item: item is not None, full_chip_names))
     chip_addresses = list(filter(lambda item: item is not None, full_chip_addresses))
+    chip_offsets = list(filter(lambda item: item is not None, full_chip_offsets))
 
     count = 0
+    num_active_boards = len(chip_names)
+    binary_active_boards = format(int(args.activeCh[-1], base=16),'04b')
+    position_active_boards = np.argwhere(np.array(list(binary_active_boards)).astype(int)[::-1]>0).flatten()
 
-    if (not args.globalRunTime) or (not args.globalCount):
-        print("Global run limit does not set, please check the option")
+    if (args.globalRunTime == -1) and (args.globalCount == -1):
+        print("Global run limit does not set, Please check the option")
         sys.exit(0)
 
     while True:
         run_str = f"Run{count}"
+        led_page_count = count % num_active_boards
+        led_page = int("000000000000"+format(position_active_boards[led_page_count], '02b')+"00", base=2)
 
         def signal_handler(sig, frame):
             print("Exiting gracefully")
@@ -601,20 +632,24 @@ def main():
         run_daq(
             chip_names = chip_names,
             chip_addresses = chip_addresses,
+            chip_offsets = chip_offsets,
             run_str = run_str,
             extra_str = args.extra_str,
             i2c_port = "/dev/ttyACM0",
             fpga_ip = "192.168.2.3",
-            th_offset = args.offset,
             run_time = args.daq_run_time,
-            do_TDC = args.run_TDC,
-            do_Counter = args.run_Counter,
+            activeChannel = args.activeCh,
+            activeTrigger = args.activeTrig,
+            led_flag = led_page,
+            polarity = args.polarity,
             do_fullAutoCal =  args.fullAutoCal,
             do_saveHistory = args.saveHistory,
             do_skipConfig = args.skipConfig,
             do_skipCalibration = args.skipCalibration,
             do_skipOffset = args.skipOffset,
             do_skipAlign = args.skipAlign,
+            do_skipOnOff = args.skipOnOff,
+            do_skipTDC = args.skipTDC,
             do_ssd = args.saveSSD,
             do_cosmic = args.cosmic,
         )
@@ -622,9 +657,13 @@ def main():
         end_time = time.time()
 
         count += 1
-        if (end_time - start_time > args.globalRunTime):
+
+        if (end_time - start_time > args.globalRunTime) and (args.globalRunTime != -1):
+            print('Exiting because of time limit')
             break
-        elif (count > args.globalCount):
+
+        if (count >= args.globalCount) and (args.globalCount != -1):
+            print('Exiting because of count limit')
             break
 
 if __name__ == "__main__":
