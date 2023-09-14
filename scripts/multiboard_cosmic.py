@@ -430,6 +430,20 @@ def main():
         dest = 'daq_run_time',
     )
     parser.add_argument(
+        '--globalRunTime',
+        metavar = 'TIME',
+        type = int,
+        help = 'Global time limit for the total running time',
+        dest = 'globalRunTime',
+    )
+    parser.add_argument(
+        '--globalCount',
+        metavar = 'NUM',
+        type = int,
+        help = 'Global count limit',
+        dest = 'globalCount',
+    )
+    parser.add_argument(
         '-l',
         '--infiniteLoop',
         help = 'Do infinite loop',
@@ -570,13 +584,13 @@ def main():
     chip_addresses = list(filter(lambda item: item is not None, full_chip_addresses))
 
     count = 0
+
+    if (not args.globalRunTime) or (not args.globalCount):
+        print("Global run limit does not set, please check the option")
+        sys.exit(0)
+
     while True:
         run_str = f"Run{count}"
-
-        if (args.infinite_loop) and (args.daq_run_time > 7200) and (args.run_TDC):
-            print("User set daq running time too long while enabling infinite loop option!")
-            print("Maximum running time should be 7200s!")
-            break
 
         def signal_handler(sig, frame):
             print("Exiting gracefully")
@@ -606,11 +620,11 @@ def main():
         )
 
         end_time = time.time()
-        if (args.infinite_loop) and (args.run_Counter) and (end_time - start_time > args.daq_run_time):
-            break
 
         count += 1
-        if not args.infinite_loop:
+        if (end_time - start_time > args.globalRunTime):
+            break
+        elif (count > args.globalCount):
             break
 
 if __name__ == "__main__":
