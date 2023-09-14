@@ -117,6 +117,7 @@ def func_daq(
         delay: int = 485,
         run_time: int = 120,
         extra_margin_time: int = 100,
+        polarity = 0x000b,
         led_flag = 0x0000,
         active_channel = 0x0011,
         active_delay = "0001",
@@ -137,9 +138,9 @@ def func_daq(
     trigger_bit_delay = int(f'{active_delay}11'+format(delay, '010b'), base=2)
     parser = run_script.getOptionParser()
     if do_ssd:
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary --ssd".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p {polarity} -d {trigger_bit_delay} -a {active_channel} --compressed_translation -l 100000 --compressed_binary --ssd".split())
     else:
-         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary".split())
+         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p {polarity} -d {trigger_bit_delay} -a {active_channel} --compressed_translation -l 100000 --compressed_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
     process.start()
@@ -290,18 +291,18 @@ def run_daq(
                     for y in range(16):
                         ax0.text(x,y,f"{BL_map_THCal.T[x,y]:.0f}", c="white", size=5, rotation=45, fontweight="bold", ha="center", va="center")
                         ax1.text(x,y,f"{NW_map_THCal.T[x,y]:.0f}", c="white", size=5, rotation=45, fontweight="bold", ha="center", va="center")
-                plt.savefig(fig_path+"/BL_NW_"+chip_name+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+                plt.savefig(fig_path+"/BL_NW_"+chip_fignames+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
 
             full_BL_df = pd.concat(frames)
             if do_saveHistory:
-                push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+                push_history_to_git(full_BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Testbeam')
 
             col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
             scan_list = list(zip(row_list.flatten(), col_list.flatten()))
 
         else:
             # Define pixels of interest
-            row_list = [14, 14, 14, 14]
+            row_list = [15, 15, 15, 15]
             col_list = [6, 7, 8, 9]
             scan_list = list(zip(row_list, col_list))
             print(scan_list)
@@ -312,7 +313,7 @@ def run_daq(
                     i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
             BL_df = pandas.DataFrame(data = tmp_data)
             if do_saveHistory:
-                push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
+                push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Testbeam')
 
     ### Enable pixels of Interest
     i2c_conn.enable_select_pixels_in_chips(scan_list)
@@ -375,6 +376,7 @@ def run_daq(
             delay = 485,
             run_time = run_time,
             extra_margin_time = 15,
+            polarity = 0x000f,
             led_flag = 0x0000,
             active_channel = 0x0011,
             active_delay = "0001",
@@ -445,6 +447,12 @@ def main():
         help = 'Take FPGA data while running DAQ',
         action = 'store_true',
         dest = 'run_Counter',
+    )
+    parser.add_argument(
+        '--cosmic',
+        help = 'TOT trigger window set for cosmic run',
+        action = 'store_true',
+        dest = 'cosmic',
     )
     parser.add_argument(
         '--fullAutoCal',
@@ -594,6 +602,7 @@ def main():
             do_skipOffset = args.skipOffset,
             do_skipAlign = args.skipAlign,
             do_ssd = args.saveSSD,
+            do_cosmic = args.cosmic,
         )
 
         end_time = time.time()
