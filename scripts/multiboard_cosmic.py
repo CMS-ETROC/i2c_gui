@@ -121,13 +121,12 @@ def func_daq(
         active_channel = 0x0011,
         active_delay = "0001",
         do_ssd: bool = False,
-        do_qinj: bool = False,
     ):
 
     print('DAQ Start:', datetime.datetime.now())
     ## Making directory to save main_process.out files
     currentPath = Path('.')
-    main_pro_dir = currentPath / 'main_process_cosmic'
+    main_pro_dir = currentPath / 'main_process_multiboard'
     main_pro_dir.mkdir(exist_ok=True)
 
     outdir_name = f'{run_str}_'+'_'.join(chip_names)+f'_{extra_str}'
@@ -141,15 +140,11 @@ def func_daq(
         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary --ssd".split())
     else:
          (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --compressed_binary".split())
-    # (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {run_time+extra_margin_time} -o {outdir_name} -v -w -s {led_flag} -p 0x000f -d {trigger_bit_delay} -a {active_channel} --counter_duration 0x0001 --compressed_translation -l 100000 --skip_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process_cosmic'))
     process.start()
 
-    if do_qinj:
-        IPC_queue.put('memoFC Start Triggerbit QInj BCR')
-    else:
-        IPC_queue.put('memoFC Start Triggerbit')
+    IPC_queue.put('memoFC Start Triggerbit')
 
     while not IPC_queue.empty():
         pass
@@ -203,16 +198,15 @@ def run_daq(
         fpga_ip: str = "192.168.2.3",
         th_offset: int = 0x18,
         run_time: int = 120,
-        qsel: int = 15,
-        do_infiniteLoop: bool = False,
         do_TDC: bool = False,
         do_Counter: bool = False,
         do_fullAutoCal: bool = False,
         do_saveHistory: bool = False,
         do_skipConfig: bool = False,
         do_skipCalibration: bool = False,
+        do_skipOffset: bool = False,
+        do_skipAlign: bool = False,
         do_ssd: bool = False,
-        do_qinj: bool = False,
         do_cosmic: bool= False,
     ):
     # It is very important to correctly set the chip name, this value is stored with the data
@@ -242,11 +236,21 @@ def run_daq(
     # Config chips
     ### Key is (Disable Pixels, Auto Cal, Chip Peripherals, Basic Peri Reg Check, Pixel Check)
     # 0 - 0 - (disable & auto_cal all pixels) - (auto_TH_CAL) - (disable default all pixels) - (set basic peripherals) - (peripheral reg check) -  (pixel ID check)
-    # if not do_skipConfig:
-    #     i2c_conn.config_chips('00001111')
-
-
     if not do_skipConfig:
+        i2c_conn.config_chips('00001111')
+
+    ## Define pixel of interests:
+    if do_fullAutoCal:
+        col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
+        scan_list = list(zip(row_list.flatten(), col_list.flatten()))
+    else:
+        # Define pixels of interest
+        row_list = [14, 14, 14, 14]
+        col_list = [6, 7, 8, 9]
+        scan_list = list(zip(row_list, col_list))
+        print(scan_list)
+
+    if not do_skipCalibration:
         if do_fullAutoCal:
             i2c_conn.config_chips('00100000')
             ## Visualize the learned Baselines (BL) and Noise Widths (NW)
@@ -310,50 +314,26 @@ def run_daq(
             if do_saveHistory:
                 push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
 
-            tmp_data = []
-            for chip_address, chip_name in zip(chip_addresses, chip_names):
-                for row, col in scan_list:
-                    i2c_conn.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=None, data=tmp_data, row_indexer_handle=None, column_indexer_handle=None)
-                BL_map_THCal, NW_map_THCal, BL_df = i2c_conn.get_auto_cal_maps(chip_address)
-                if do_saveHistory:
-                    push_history_to_git(BL_df, f'{run_str}_{extra_str}', 'ETROC-History-Cosmic')
-
     ### Enable pixels of Interest
-    if not do_skipConfig:
-        i2c_conn.enable_select_pixels_in_chips(scan_list)
+    i2c_conn.enable_select_pixels_in_chips(scan_list)
 
-    if not do_skipConfig:
-        offset = th_offset
-        for chip_index, chip_address in enumerate(chip_addresses):
-            chip = i2c_conn.get_chip_i2c_connection(chip_address)
-            row_indexer_handle,_,_ = chip.get_indexer("row")
-            column_indexer_handle,_,_ = chip.get_indexer("column")
-            if do_skipConfig:
-                if do_fullAutoCal:
-                    col_list, row_list = np.meshgrid(np.arange(16), np.arange(16))
-                    scan_list = list(zip(row_list.flatten(), col_list.flatten()))
-                else:
-                    row_list = [14, 14, 14, 14]
-                    col_list = [6, 7, 8, 9]
-                    scan_list = list(zip(row_list, col_list))
-            for row, col in scan_list:
-                print(f"Operating on chip {hex(chip_address)} Pixel ({row},{col})")
-                column_indexer_handle.set(col)
-                row_indexer_handle.set(row)
-
+    for chip_index, chip_address in enumerate(chip_addresses):
+        chip = i2c_conn.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        for row, col in scan_list:
+            print(f"Operating on chip {hex(chip_address)} Pixel ({row},{col})")
+            column_indexer_handle.set(col)
+            row_indexer_handle.set(row)
+            i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
+            if not do_skipOffset:
                 i2c_conn.pixel_decoded_register_write("TH_offset", format(th_offset, '06b'), chip)
-                if do_qinj:
-                    i2c_conn.pixel_decoded_register_write("QInjEn", "1", chip)
-                    i2c_conn.pixel_decoded_register_write("QSel", format(qsel, '05b'), chip)
-                else:
-                    i2c_conn.pixel_decoded_register_write("QInjEn", "0", chip)
+            if do_cosmic:
+                if(chip_index == 0 or chip_index == 2):
+                    i2c_conn.pixel_decoded_register_write("lowerTOTTrig", format(0x064, '09b'), chip) ## only for cosmic run
+        del chip, row_indexer_handle, column_indexer_handle
 
-                if do_cosmic:
-                    if(chip_index==0 or chip_index==2):
-                        i2c_conn.pixel_decoded_register_write("lowerTOTTrig", format(0x064, '09b'), chip) ## only for cosmic run
-            del chip, row_indexer_handle, column_indexer_handle
-
-    if not do_skipCalibration:
+    if not do_skipAlign:
         # Calibrate PLL
         for chip_address in chip_addresses[:]:
             i2c_conn.calibratePLL(chip_address, chip=None)
@@ -385,10 +365,6 @@ def run_daq(
         process.join()
         del IPC_queue, process, parser
 
-    # if not do_infiniteLoop:
-    #     # hold for keyboard input when infinite loop is off
-    #     input("Are LEDs looking okay? Press the Enter key to continue: ")
-
     if do_TDC:
         func_daq(
             chip_names = chip_names,
@@ -396,7 +372,7 @@ def run_daq(
             extra_str = extra_str,
             directory = data_outdir,
             fpga_ip = fpga_ip,
-            delay = 484,
+            delay = 485,
             run_time = run_time,
             extra_margin_time = 15,
             led_flag = 0x0000,
@@ -411,6 +387,14 @@ def run_daq(
         )
     else:
         print('Run mode is not specify. Exit the script and disconnect I2C.')
+
+    for chip_address in chip_addresses[:]:
+        chip = i2c_conn.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        for row,col in scan_list:
+            i2c_conn.disable_pixel(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        del chip, row_indexer_handle, column_indexer_handle
 
     # Disconnect I2C Device
     del i2c_conn
@@ -493,17 +477,12 @@ def main():
         dest = 'saveSSD',
     )
     parser.add_argument(
-        '--qinj',
-        help = 'Run charge injection',
-        action = 'store_true',
-        dest = 'qinj',
-    )
-    parser.add_argument(
-        '--qsel',
-        help = 'Amount of injected charge',
+        '--offset',
+        help = 'Offset to determine the thresholds = BL + offset',
         metavar = 'NUM',
         type = int,
-        dest = 'qsel',
+        default = 10,
+        dest = 'offset',
     )
     parser.add_argument(
         '-b0',
@@ -604,18 +583,17 @@ def main():
             extra_str = args.extra_str,
             i2c_port = "/dev/ttyACM0",
             fpga_ip = "192.168.2.3",
-            th_offset = 0x0a,
+            th_offset = args.offset,
             run_time = args.daq_run_time,
-            qsel = args.qsel,
-            do_infiniteLoop = args.infinite_loop,
             do_TDC = args.run_TDC,
             do_Counter = args.run_Counter,
             do_fullAutoCal =  args.fullAutoCal,
             do_saveHistory = args.saveHistory,
             do_skipConfig = args.skipConfig,
             do_skipCalibration = args.skipCalibration,
+            do_skipOffset = args.skipOffset,
+            do_skipAlign = args.skipAlign,
             do_ssd = args.saveSSD,
-            do_qinj = args.qinj,
         )
 
         end_time = time.time()
