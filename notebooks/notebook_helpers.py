@@ -35,7 +35,20 @@ from tqdm import tqdm
 import pandas
 import logging
 import pickle
+import matplotlib.pyplot as plt
+import multiprocessing
 from pathlib import Path
+os.chdir(f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
+import run_script
+import importlib
+importlib.reload(run_script)
+from fnmatch import fnmatch
+import scipy.stats as stats
+import hist
+import mplhep as hep
+import subprocess
+import sqlite3
+plt.style.use(hep.style.CMS)
 import i2c_gui
 import i2c_gui.chips
 from i2c_gui.usb_iss_helper import USB_ISS_Helper
@@ -951,4 +964,747 @@ class i2c_connection():
         print(f"PLL Calibrated for chip: {hex(chip_address)}")
     #--------------------------------------------------------------------------#
 
+#--------------------------------------------------------------------------#
+#  Functions separate from the i2c_conn class
 
+def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, attempt='', today='', calibrate=False, hostname = "192.168.2.3"):
+    scan_name = chip_figname+"_VRef_SCurve_BinarySearch_TurnOn"
+    fpga_time = 3
+
+    if(today==''): today = datetime.date.today().isoformat()
+    todaystr = "../ETROC-Data/" + today + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
+
+    chip = i2c_conn.get_chip_i2c_connection(chip_address)
+    row_indexer_handle,_,_ = chip.get_indexer("row")
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+
+    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    for row, col in tqdm(scan_list, leave=False):
+        turnon_point = -1
+        if(calibrate):
+            i2c_conn.auto_cal_pixel(chip_name=chip_figname, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=None, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+            # i2c_conn.disable_pixel(row, col, verbose=False, chip_address=chip_address, chip=None, row_indexer_handle=None, column_indexer_handle=None)
+        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=False)
+        # pixel_connected_chip = i2c_conn.get_pixel_chip(chip_address, row, col)
+        row_indexer_handle.set(row)
+        column_indexer_handle.set(col)
+        threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
+        parser = run_script.getOptionParser()
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
+        IPC_queue = multiprocessing.Queue()
+        process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
+        process.start()
+        process.join()
+
+        a = 0
+        b = BL_map_THCal[row][col] + 3*(NW_map_THCal[row][col])
+        while b-a>1:
+            DAC = int(np.floor((a+b)/2))
+            # Set the DAC to the value being scanned
+            i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip)
+            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
+            IPC_queue = multiprocessing.Queue()
+            process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{DAC}'))
+            process.start()
+            process.join()
+            
+            continue_flag = False
+            root = '../ETROC-Data'
+            file_pattern = "*FPGA_Data.dat"
+            path_pattern = f"*{today}_Array_Test_Results/{threshold_name}"
+            file_list = []
+            for path, subdirs, files in os.walk(root):
+                if not fnmatch(path, path_pattern): continue
+                for name in files:
+                    pass
+                    if fnmatch(name, file_pattern):
+                        file_list.append(os.path.join(path, name))
+            for file_index, file_name in enumerate(file_list):
+                with open(file_name) as infile:
+                    lines = infile.readlines()
+                    last_line = lines[-1]
+                    first_line = lines[0]
+                    text_list = last_line.split(',')
+                    FPGA_state = text_list[0]
+                    line_DAC = int(text_list[-1])
+                    if(FPGA_state==0 or line_DAC!=DAC): 
+                        continue_flag=True
+                        continue
+                    TDC_tb = int(text_list[-2])
+                    turnon_point = line_DAC
+                    # Condition handling for Binary Search
+                    if(TDC_tb>0):
+                        b = DAC
+                    else:
+                        a = DAC                    
+            if(continue_flag): continue  
+        i2c_conn.disable_pixel(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        if(verbose): print(f"Turn-On point for Pixel ({row},{col}) for chip {hex(chip_address)} is found to be DAC:{turnon_point}")
+        del IPC_queue, process, parser
+    del chip, row_indexer_handle, column_indexer_handle
+
+def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3"):
+    root = '../ETROC-Data'
+    file_pattern = "*FPGA_Data.dat"
+    thresholds = np.arange(-10,20,pedestal_scan_step) # relative to BL
+    scan_name = chip_figname+"_VRef_SCurve_NoiseOnly"
+    fpga_time = 3
+    if(today==''): today = datetime.date.today().isoformat()
+    todaystr = root+"/" + today + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
+    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    chip = i2c_conn.get_chip_i2c_connection(chip_address)
+    row_indexer_handle,_,_ = chip.get_indexer("row")
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+    if(allon):
+        for first_idx in tqdm(range(16), leave=False):
+            for second_idx in range(16):
+                i2c_conn.enable_pixel_modular(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=False, cbWindow=True)
+    for row,col in scan_list:
+        # turnon_point = -1
+        # path_pattern = f"*{today}_Array_Test_Results/{chip_figname}_VRef_SCurve_BinarySearch_TurnOn_Pixel_C{col}_R{row}"+tp_tag
+        # file_list = []
+        # for path, subdirs, files in os.walk(root):
+        #     if not fnmatch(path, path_pattern): continue
+        #     for name in files:
+        #         pass
+        #         if fnmatch(name, file_pattern):
+        #             file_list.append(os.path.join(path, name))
+        # for file_index, file_name in enumerate(file_list):
+        #     with open(file_name) as infile:
+        #         lines = infile.readlines()
+        #         last_line = lines[-1]
+        #         text_list = last_line.split(',')
+        #         line_DAC = int(text_list[-1])
+        #         turnon_point = line_DAC
+        turnon_point = BL_map_THCal[row][col]
+        if(allon or busyCB):
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+        else:
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=False)
+        if(neighbors and (not allon)):
+            for first_idx in range(-1,2):
+                row_nb = row+first_idx
+                if(row_nb>15 or row_nb<0): continue
+                for second_idx in range(-1,2):
+                    col_nb = col+second_idx
+                    if(col_nb>15 or col_nb<0): continue
+                    if(col_nb==col and row_nb == row): continue
+                    i2c_conn.enable_pixel_modular(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+        row_indexer_handle.set(row)
+        column_indexer_handle.set(col)
+        threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
+        parser = run_script.getOptionParser()
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag}".split())
+        IPC_queue = multiprocessing.Queue()
+        process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_noiseOnly'))
+        process.start()
+        process.join()
+        
+        for DAC in tqdm(thresholds, desc=f'DAC Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
+        # for DAC in thresholds:
+            threshold = int(DAC+turnon_point)
+            if threshold < 1:
+                threshold = 1
+            # triggerbit_full_Scurve[row][col][threshold] = 0
+            i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip)
+            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq --DAC_Val {int(threshold)}".split())
+            IPC_queue = multiprocessing.Queue()
+            process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_NoiseOnly_{threshold}'))
+            process.start()
+            process.join()
+            
+        if(not allon): 
+            i2c_conn.disable_pixel(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+            if(neighbors):
+                for first_idx in range(-1,2):
+                    row_nb = row+first_idx
+                    if(row_nb>15 or row_nb<0): continue
+                    for second_idx in range(-1,2):
+                        col_nb = col+second_idx
+                        if(col_nb>15 or col_nb<0): continue
+                        if(col_nb==col and row_nb == row): continue
+                        i2c_conn.disable_pixel(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        else:
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=False, cbWindow=True)
+        del IPC_queue, process, parser
+    if(allon):
+        for first_idx in tqdm(range(16), leave=False):
+            for second_idx in range(16):
+                i2c_conn.disable_pixel(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+    del chip, row_indexer_handle, column_indexer_handle
+
+def trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, chip_figname, scan_list, attempt='', today='', autoBL=False, gaus=True, tag=''):
+    root = '../ETROC-Data'
+    file_pattern = "*FPGA_Data.dat"
+    scan_name = chip_figname+"_VRef_SCurve_NoiseOnly"
+    if(autoBL): BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    triggerbit_full_Scurve = {row:{col:{} for col in range(16)} for row in range(16)}
+
+    if(today==''): today = datetime.date.today().isoformat()
+    todaystr = root+"/" + today + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
+
+    fig_outdir = Path('../ETROC-figures')
+    fig_outdir = fig_outdir / (today + '_Array_Test_Results')
+    fig_outdir.mkdir(exist_ok=True)
+    fig_path = str(fig_outdir)
+    
+    for row,col in scan_list:
+        path_pattern = f"*{today}_Array_Test_Results/{scan_name}_Pixel_C{col}_R{row}"+attempt
+        file_list = []
+        for path, subdirs, files in os.walk(root):
+            if not fnmatch(path, path_pattern): continue
+            for name in files:
+                pass
+                if fnmatch(name, file_pattern):
+                    file_list.append(os.path.join(path, name))
+        for file_index, file_name in enumerate(file_list):
+            with open(file_name) as infile:
+                for line in infile:
+                    text_list = line.split(',')
+                    FPGA_triggerbit = int(text_list[5])
+                    DAC = int(text_list[-1])
+                    if DAC == -1: continue
+                    triggerbit_full_Scurve[row][col][DAC] = FPGA_triggerbit
+    row_list, col_list = zip(*scan_list)
+    u_cl = np.sort(np.unique(col_list))
+    u_rl = np.sort(np.unique(row_list))
+
+    fig = plt.figure(dpi=200, figsize=(len(np.unique(u_cl))*16,len(np.unique(u_rl))*10))
+    gs = fig.add_gridspec(len(np.unique(u_rl)),len(np.unique(u_cl)))
+    for ri,row in enumerate(u_rl):
+        for ci,col in enumerate(u_cl):
+            Y = np.array(list(triggerbit_full_Scurve[row][col].values()))
+            X = np.array(list(triggerbit_full_Scurve[row][col].keys()))
+            ax0 = fig.add_subplot(gs[len(u_rl)-ri-1,len(u_cl)-ci-1])
+            ax0.plot(X, Y, '.-', color='b',lw=1.0)
+            ax0.set_xlabel("DAC Value [decimal]")
+            ax0.set_ylabel("Trigger Bit Counts [decimal]")
+            hep.cms.text(loc=0, ax=ax0, text="Preliminary", fontsize=25)
+            max_y_point = np.amax(Y)
+            max_x_point = X[np.argmax(Y)]
+            fwhm_key_array  = X[Y>.0000037*max_y_point]
+            fwhm_val_array  = Y[Y>.0000037*max_y_point]
+            left_index  = np.argmin(np.where(Y>.0000037*max_y_point,X,np.inf))-1
+            right_index = np.argmax(np.where(Y>.0000037*max_y_point,X,-np.inf))+1
+            ax0.set_xlim(left=max_x_point-20, right=max_x_point+20)
+            if(gaus):
+                ax0.plot([max_x_point, max_x_point], [0, max_y_point], 'w-', label=f"Max at {max_x_point}", lw=0.7)
+                ax0.plot([X[left_index], X[right_index]], [Y[left_index], Y[right_index]], color='w', ls='--', label=f"99.9996% width = {(X[right_index]-X[left_index])/2.}", lw=0.7)
+            if(autoBL):
+                ax0.axvline(BL_map_THCal[row][col], color='k', label=f"AutoBL = {BL_map_THCal[row][col]}", lw=0.7)
+                ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label=f"AutoNW = $\pm${NW_map_THCal[row][col]}", lw=0.7)
+                ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
+            if(gaus or autoBL): plt.legend(loc="upper right", fontsize=6)
+            plt.yscale("log")
+            plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Noise Peak"+tag,size=25, loc="right")
+            plt.tight_layout()
+    plt.savefig(fig_path+"/"+chip_figname+"_NoisePeak_Log"+attempt+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+    plt.close()
+
+    fig = plt.figure(dpi=200, figsize=(len(np.unique(u_cl))*16,len(np.unique(u_rl))*10))
+    gs = fig.add_gridspec(len(np.unique(u_rl)),len(np.unique(u_cl)))
+    for ri,row in enumerate(u_rl):
+        for ci,col in enumerate(u_cl):
+            Y = np.array(list(triggerbit_full_Scurve[row][col].values()))
+            X = np.array(list(triggerbit_full_Scurve[row][col].keys()))
+            ax0 = fig.add_subplot(gs[len(u_rl)-ri-1,len(u_cl)-ci-1])
+            ax0.plot(X, Y, '.-', color='b',lw=1.0)
+            ax0.set_xlabel("DAC Value [decimal]")
+            ax0.set_ylabel("Trigger Bit Counts [decimal]")
+            hep.cms.text(loc=1, ax=ax0, text="Preliminary", fontsize=25)
+            max_y_point = np.amax(Y)
+            max_x_point = X[np.argmax(Y)]
+            fwhm_key_array  = X[Y>.0000037*max_y_point]
+            fwhm_val_array  = Y[Y>.0000037*max_y_point]
+            left_index  = np.argmin(np.where(Y>.0000037*max_y_point,X,np.inf))-1
+            right_index = np.argmax(np.where(Y>.0000037*max_y_point,X,-np.inf))+1
+            ax0.set_xlim(left=max_x_point-20, right=max_x_point+20)
+            if(gaus):
+                ax0.plot([max_x_point, max_x_point], [0, max_y_point], 'w-', label=f"Max at {max_x_point}", lw=0.7)
+                ax0.plot([X[left_index], X[right_index]], [Y[left_index], Y[right_index]], color='w', ls='--', label=f"99.9996% width = {(X[right_index]-X[left_index])/2.}", lw=0.7)
+            if(autoBL):
+                ax0.axvline(BL_map_THCal[row][col], color='k', label=f"AutoBL = {BL_map_THCal[row][col]}", lw=0.7)
+                ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label=f"AutoNW = $\pm${NW_map_THCal[row][col]}", lw=0.7)
+                ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
+            if(gaus or autoBL): plt.legend(loc="upper right", fontsize=6)
+            plt.yscale("linear")
+            plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Noise Peak"+tag,size=25, loc="right")
+            plt.tight_layout()
+    plt.savefig(fig_path+"/"+chip_figname+"_NoisePeak_Linear"+attempt+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+    plt.close()
+    del triggerbit_full_Scurve
+
+
+def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3"):
+    DAC_scan_max = 1020
+    scan_name = chip_figname+"_VRef_SCurve_BinarySearch_TurnOff"
+    fpga_time = 3
+
+    if(today==''): today = datetime.date.today().isoformat()
+    todaystr = "../ETROC-Data/" + today + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
+
+    chip = i2c_conn.get_chip_i2c_connection(chip_address)
+    row_indexer_handle,_,_ = chip.get_indexer("row")
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+
+    BL_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    for row, col in scan_list:
+        if(calibrate):
+            i2c_conn.auto_cal_pixel(chip_name=chip_figname, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=None, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+            # i2c_conn.disable_pixel(row, col, verbose=False, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+        row_indexer_handle.set(row)
+        column_indexer_handle.set(col)
+        for QInj in tqdm(QInjEns, desc=f'QInj Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
+            i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip)
+            threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}'+attempt
+            parser = run_script.getOptionParser()
+            (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
+            IPC_queue = multiprocessing.Queue()
+            process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
+            process.start()
+            process.join()
+
+            a = BL_map_THCal[row][col]
+            b = DAC_scan_max
+            header_max = -1
+            while b-a>1:
+                DAC = int(np.floor((a+b)/2))
+                # Set the DAC to the value being scanned
+                i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip)
+                (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
+                IPC_queue = multiprocessing.Queue()
+                process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{DAC}'))
+                process.start()
+                process.join()
+                
+                continue_flag = False
+                root = '../ETROC-Data'
+                file_pattern = "*FPGA_Data.dat"
+                path_pattern = f"*{today}_Array_Test_Results/{threshold_name}"
+                file_list = []
+                for path, subdirs, files in os.walk(root):
+                    if not fnmatch(path, path_pattern): continue
+                    for name in files:
+                        pass
+                        if fnmatch(name, file_pattern):
+                            file_list.append(os.path.join(path, name))
+                for file_index, file_name in enumerate(file_list):
+                    with open(file_name) as infile:
+                        lines = infile.readlines()
+                        last_line = lines[-1]
+                        first_line = lines[0]
+                        header_max = int(first_line.split(',')[4])
+                        text_list = last_line.split(',')
+                        FPGA_state = text_list[0]
+                        line_DAC = int(text_list[-1])
+                        if(FPGA_state==0 or line_DAC!=DAC): 
+                            continue_flag=True
+                            continue
+                        TDC_data = int(text_list[3])
+                        # Condition handling for Binary Search
+                        if(TDC_data>=header_max/2.):
+                            a = DAC
+                        else:
+                            b = DAC                     
+                if(continue_flag): continue  
+        i2c_conn.disable_pixel(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        if(verbose): print(f"Turn-Off points for Pixel ({row},{col}) for chip {hex(chip_address)} were found")
+        del parser, IPC_queue, process
+    del chip, row_indexer_handle, column_indexer_handle
+
+def charge_peakDAC_plot(i2c_conn, chip_address, chip_figtitle, chip_figname, scan_list, QInjEns, attempt='', today='', tag=''):
+    root = '../ETROC-Data'
+    file_pattern = "*FPGA_Data.dat"
+    scan_name = chip_figname+"_VRef_SCurve_BinarySearch_TurnOff"
+    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    QInj_Peak_DAC_map = {row:{col:{q:0 for q in QInjEns} for col in range(16)} for row in range(16)}
+
+    if(today==''): today = datetime.date.today().isoformat()
+    todaystr = root+"/" + today + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
+
+    fig_outdir = Path('../ETROC-figures')
+    fig_outdir = fig_outdir / (today + '_Array_Test_Results')
+    fig_outdir.mkdir(exist_ok=True)
+    fig_path = str(fig_outdir)
+    
+    for row,col in scan_list:
+        for QInj in QInjEns:
+            threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}'+attempt
+            path_pattern = f"*{today}_Array_Test_Results/{threshold_name}"
+            file_list = []
+            for path, subdirs, files in os.walk(root):
+                if not fnmatch(path, path_pattern): continue
+                for name in files:
+                    pass
+                    if fnmatch(name, file_pattern):
+                        file_list.append(os.path.join(path, name))
+            for file_index, file_name in enumerate(file_list):
+                with open(file_name) as infile:
+                    last_line = infile.readlines()[-1]
+                    text_list = last_line.split(',')
+                    DAC = int(text_list[-1])
+                    QInj_Peak_DAC_map[row][col][QInj] = DAC
+
+    row_list, col_list = zip(*scan_list)
+    u_cl = np.sort(np.unique(col_list))
+    u_rl = np.sort(np.unique(row_list))
+    fig = plt.figure(dpi=200, figsize=(len(np.unique(u_cl))*16,len(np.unique(u_rl))*10))
+    gs = fig.add_gridspec(len(np.unique(u_rl)),len(np.unique(u_cl)))
+    for ri,row in enumerate(u_rl):
+        for ci,col in enumerate(u_cl):
+            BL = int(np.floor(BL_map_THCal[row][col]))
+            NW = abs(int(np.floor(NW_map_THCal[row][col])))
+            ax0 = fig.add_subplot(gs[len(u_rl)-ri-1,len(u_cl)-ci-1])
+            ax0.axhline(BL, color='k', lw=0.8, label=f"BL = {BL} DAC LSB")
+            ax0.axhline(BL+NW, color='k',ls="--", lw=0.8, label=f"NW = $\pm${NW} DAC LSB")
+            ax0.axhline(BL-NW, color='k',ls="--", lw=0.8)
+            X = []
+            Y = []
+            for QInj in QInjEns:
+                ax0.plot(QInj, QInj_Peak_DAC_map[row][col][QInj], 'rx')
+                X.append(QInj)
+                Y.append(QInj_Peak_DAC_map[row][col][QInj])
+            X = np.array(X[:])
+            Y = np.array(Y[:])
+            (m, b), cov = np.polyfit(X, Y, 1, cov = True)
+            n = Y.size
+            Yfit = np.polyval((m,b), X)
+            errorbars = np.sqrt(np.diag(cov))
+            x_range = np.linspace(0, 35, 100)
+            y_est = b + m*x_range
+            resid = Y - Yfit
+            s_err = np.sqrt(np.sum(resid**2)/(n - 2))
+            t = stats.t.ppf(0.95, n - 2)
+            ci2= t * s_err * np.sqrt(    1/n + (x_range - np.mean(X))**2/(np.sum((X)**2)-n*np.sum((np.mean(X))**2)))
+            
+            ax0.plot(x_range, y_est, 'b-', lw=-.8, label=f"DAC_TH = ({m:.2f}$\pm${errorbars[0]:.2f})$\cdot$Q + ({b:.2f}$\pm${errorbars[1]:.2f})")
+            plt.fill_between(x_range, y_est+ci2, y_est-ci2, color='b',alpha=0.2, label="95% Confidence Interval on Linear Fit")
+            ax0.set_xlabel("Charge Injected [fC]")
+            ax0.set_ylabel("DAC Threshold [LSB]")
+            hep.cms.text(loc=0, ax=ax0, text="Preliminary", fontsize=25)
+            plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Qinj Sensitivity Plot"+tag, size=25, loc='right')
+            plt.legend(loc=(0.04,0.65))
+            plt.tight_layout()
+    plt.savefig(fig_path+"/"+chip_figname+"_QInj_Sensitivity"+attempt+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+    plt.close()
+    del QInj_Peak_DAC_map
+
+def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_flag, hostname = "192.168.2.3"):
+
+    total_scan_time = timePerPixel + deadTime
+
+    parser = run_script.getOptionParser() 
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --reset_till_trigger_linked".split())
+    IPC_queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
+    process.start()
+
+    IPC_queue.put('memoFC Start Triggerbit QInj L1A')
+    while not IPC_queue.empty():
+        pass
+    time.sleep(timePerPixel)
+    IPC_queue.put('stop DAQ')
+    IPC_queue.put('memoFC Triggerbit')
+    while not IPC_queue.empty():
+        pass
+    IPC_queue.put('allow threads to exit')
+
+    process.join()
+
+def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3"):
+    root = '../ETROC-Data'
+    file_pattern = "*FPGA_Data.dat"
+    scan_name = chip_figname+"_VRef_SCurve_TDC"
+    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+
+    if(today==''): today = datetime.date.today().isoformat()
+    todaystr = root+"/" + today + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
+
+    chip = i2c_conn.get_chip_i2c_connection(chip_address)
+    row_indexer_handle,_,_ = chip.get_indexer("row")
+    column_indexer_handle,_,_ = chip.get_indexer("column")
+
+    if(allon):
+        for first_idx in tqdm(range(16), leave=False):
+            for second_idx in range(16):
+                i2c_conn.enable_pixel_modular(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False)
+    
+    for row,col in scan_list:
+        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+        if(neighbors and (not allon)):
+            for first_idx in range(-1,2):
+                row_nb = row+first_idx
+                if(row_nb>15 or row_nb<0): continue
+                for second_idx in range(-1,2):
+                    col_nb = col+second_idx
+                    if(col_nb>15 or col_nb<0): continue
+                    if(col_nb==col and row_nb == row): continue
+                    i2c_conn.enable_pixel_modular(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False)
+        row_indexer_handle.set(row)
+        column_indexer_handle.set(col)
+        # for QInj in tqdm(QInjEns, desc=f'QInj Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
+        for QInj in QInjEns:
+            turning_point = -1
+            path_pattern = f"*{today}_Array_Test_Results/"+chip_figname+"_VRef_SCurve_BinarySearch_TurnOff"+f'_Pixel_C{col}_R{row}_QInj_{QInj}'+tp_tag
+            file_list = []
+            for path, subdirs, files in os.walk(root):
+                if not fnmatch(path, path_pattern): continue
+                for name in files:
+                    pass
+                    if fnmatch(name, file_pattern):
+                        file_list.append(os.path.join(path, name))
+            for file_index, file_name in enumerate(file_list):
+                with open(file_name) as infile:
+                    last_line = infile.readlines()[-1]
+                    text_list = last_line.split(',')
+                    DAC = int(text_list[-1])
+                    turning_point = DAC
+            thresholds = np.arange(BL_map_THCal[row][col]+NW_map_THCal[row][col],turning_point,pedestal_scan_step)
+            i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip)
+            for DAC in tqdm(thresholds, desc=f'DAC Loop for Pixel ({col},{row}) & Charge {QInj} fC', leave=False):
+                threshold = int(DAC)
+                if threshold < 1:
+                    threshold = 1
+                # Set the DAC v, Qinj {Qinj}fCalue to the value being scanned
+                i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip)
+                # TH = i2c_conn.pixel_decoded_register_read("TH", "Status", pixel_connected_chip, need_int=True)
+                threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}_Threshold_{threshold}'+attempt
+                run_daq(timePerPixel=4, deadTime=2, dirname=threshold_name, today=today, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname)
+                
+        # Disable
+        if(not allon): 
+            i2c_conn.disable_pixel(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+            if(neighbors):
+                for first_idx in range(-1,2):
+                    row_nb = row+first_idx
+                    if(row_nb>15 or row_nb<0): continue
+                    for second_idx in range(-1,2):
+                        col_nb = col+second_idx
+                        if(col_nb>15 or col_nb<0): continue
+                        if(col_nb==col and row_nb == row): continue
+                        i2c_conn.disable_pixel(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        else:
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False)
+    if(allon):
+        for first_idx in tqdm(range(16), leave=False):
+            for second_idx in range(16):
+                i2c_conn.disable_pixel(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+    del chip, row_indexer_handle, column_indexer_handle
+
+def return_empty_list(QInjEns, scan_list):
+    return {(row,col,q):{} for q in QInjEns for row,col in scan_list}
+
+def make_scurve_plot(QInjEns, scan_list, array, chip_figtitle, chip_figname, y_label="[LSB]", save_name='', isStd=False, fig_path=''):
+    colors = [plt.cm.viridis(i) for i in np.linspace(0,0.95,len(QInjEns))]
+    row_list, col_list = zip(*scan_list)
+    u_cl = np.sort(np.unique(col_list))
+    u_rl = np.sort(np.unique(row_list))
+    fig = plt.figure(dpi=200, figsize=(len(np.unique(u_cl))*16,len(np.unique(u_rl))*10))
+    gs = fig.add_gridspec(len(np.unique(u_rl)),len(np.unique(u_cl)))
+    for ri,row in enumerate(u_rl):
+        for ci,col in enumerate(u_cl):
+            ax0 = fig.add_subplot(gs[len(u_rl)-ri-1,len(u_cl)-ci-1])
+            for i, QInj in enumerate(QInjEns):
+                ax0.plot(array[row, col, QInj].keys(), np.array(list(array[row, col, QInj].values())), '.-', label=f"{QInj} fC", color=colors[i],lw=1)
+            if(isStd): 
+                # ax0.axhline(0.5, color='k', ls='--', label="0.5 LSB", lw=0.5)
+                ax0.set_ylim(top=10.0, bottom=0)
+            ax0.set_xlabel("DAC Value [LSB]")
+            ax0.set_ylabel(y_label)
+            plt.grid()
+            hep.cms.text(loc=0, ax=ax0, text="Preliminary", fontsize=25)
+            plt.title(f"{chip_figtitle}, Pixel ({row},{col}) QInj S-Curve",size=25, loc="right")
+            plt.legend(loc="upper right")
+    plt.tight_layout()
+    plt.savefig(fig_path+"/"+chip_figname+save_name+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+    plt.close()
+
+def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
+    if(today==''): today = datetime.date.today().isoformat()
+    scan_name = f"*{today}_Array_Test_Results/"+chip_figname+"_VRef_SCurve_TDC"
+    root = '../ETROC-Data'
+    file_pattern = "*translated_[1-9]*.dat"
+    path_pattern = f"*{scan_name}*"
+    file_list = []
+    for path, subdirs, files in os.walk(root):
+        if not fnmatch(path, path_pattern): continue
+        for name in files:
+            pass
+            if fnmatch(name, file_pattern):
+                file_list.append(os.path.join(path, name))
+                print(file_list[-1])
+    hit_counts = return_empty_list(QInjEns, scan_list)
+    # hit_counts_exc = return_empty_list(QInjEns, scan_list)
+    CAL_sum = return_empty_list(QInjEns, scan_list)
+    CAL_sum_sq = return_empty_list(QInjEns, scan_list)
+    TOA_sum = return_empty_list(QInjEns, scan_list)
+    TOA_sum_sq = return_empty_list(QInjEns, scan_list)
+    TOT_sum = return_empty_list(QInjEns, scan_list)
+    TOT_sum_sq = return_empty_list(QInjEns, scan_list)
+    CAL_mean = return_empty_list(QInjEns, scan_list)
+    CAL_std = return_empty_list(QInjEns, scan_list)
+    TOA_mean = return_empty_list(QInjEns, scan_list)
+    TOA_std = return_empty_list(QInjEns, scan_list)
+    TOT_mean = return_empty_list(QInjEns, scan_list)
+    TOT_std = return_empty_list(QInjEns, scan_list)
+
+    total_files = len(file_list)
+    for file_index, file_name in enumerate(file_list):
+        col = int(file_name.split('/')[-2].split('_')[-6][1:])
+        row = int(file_name.split('/')[-2].split('_')[-5][1:])
+        QInj = int(file_name.split('/')[-2].split('_')[-3])
+        DAC = int(file_name.split('/')[-2].split('_')[-1])
+        if((row,col) not in scan_list): continue
+        hit_counts[row, col, QInj][DAC] = 0
+        # hit_counts_exc[row, col, QInj][DAC] = 0
+        CAL_sum[row, col, QInj][DAC] = 0
+        CAL_sum_sq[row, col, QInj][DAC] = 0
+        TOA_sum[row, col, QInj][DAC] = 0
+        TOA_sum_sq[row, col, QInj][DAC] = 0
+        TOT_sum[row, col, QInj][DAC] = 0
+        TOT_sum_sq[row, col, QInj][DAC] = 0
+        CAL_mean[row, col, QInj][DAC] = 0
+        CAL_std[row, col, QInj][DAC] = 0
+        TOA_mean[row, col, QInj][DAC] = 0
+        TOA_std[row, col, QInj][DAC] = 0
+        TOT_mean[row, col, QInj][DAC] = 0
+        TOT_std[row, col, QInj][DAC] = 0
+        with open(file_name) as infile:
+            for line in infile:
+                text_list = line.split()
+                if text_list[2]=="HEADER":
+                    current_bcid = int(text_list[8])
+                if text_list[2]=="TRAILER":
+                    previous_bcid = current_bcid
+                if text_list[2]!="DATA": continue
+                # col = int(text_list[6])
+                # row = int(text_list[8])
+                TOA = int(text_list[10])
+                TOT = int(text_list[12])
+                CAL = int(text_list[14])
+
+                # if(CAL<193 or CAL>196): continue
+                hit_counts[row, col, QInj][DAC] += 1 
+                CAL_sum[row, col, QInj][DAC] += CAL
+                CAL_sum_sq[row, col, QInj][DAC] += CAL*CAL
+                # hit_counts_exc[row, col, QInj][DAC] += 1 
+                TOA_sum[row, col, QInj][DAC] += TOA
+                TOA_sum_sq[row, col, QInj][DAC] += TOA*TOA
+                TOT_sum[row, col, QInj][DAC] += TOT
+                TOT_sum_sq[row, col, QInj][DAC] += TOT*TOT
+
+    for row, col, QInj in hit_counts:
+        for DAC in hit_counts[row, col, QInj]:
+            if(hit_counts[row, col, QInj][DAC]==0):
+                CAL_mean[row, col, QInj].pop(DAC)
+                CAL_std[row, col, QInj].pop(DAC)
+                TOA_mean[row, col, QInj].pop(DAC)
+                TOA_std[row, col, QInj].pop(DAC)
+                TOT_mean[row, col, QInj].pop(DAC)
+                TOT_std[row, col, QInj].pop(DAC)
+                continue
+            CAL_mean[row, col, QInj][DAC] = CAL_sum[row, col, QInj][DAC]/hit_counts[row, col, QInj][DAC]
+            CAL_std[row, col, QInj][DAC] = np.sqrt((CAL_sum_sq[row, col, QInj][DAC]/hit_counts[row, col, QInj][DAC]) - pow(CAL_mean[row, col, QInj][DAC], 2))
+            # if(CAL_std[row, col, QInj][DAC]<2):
+            TOA_mean[row, col, QInj][DAC] = TOA_sum[row, col, QInj][DAC]/hit_counts[row, col, QInj][DAC]
+            TOA_std[row, col, QInj][DAC] = np.sqrt((TOA_sum_sq[row, col, QInj][DAC]/hit_counts[row, col, QInj][DAC]) - pow(TOA_mean[row, col, QInj][DAC], 2))
+            TOT_mean[row, col, QInj][DAC] = TOT_sum[row, col, QInj][DAC]/hit_counts[row, col, QInj][DAC]
+            TOT_std[row, col, QInj][DAC] = np.sqrt((TOT_sum_sq[row, col, QInj][DAC]/hit_counts[row, col, QInj][DAC]) - pow(TOT_mean[row, col, QInj][DAC], 2))
+            # else:
+            #     TOA_mean[row, col, QInj][DAC] = np.nan
+            #     TOA_std[row, col, QInj][DAC] = np.nan
+            #     TOT_mean[row, col, QInj][DAC] = np.nan
+            #     TOT_std[row, col, QInj][DAC] = np.nan
+
+    fig_outdir = Path('../ETROC-figures')
+    fig_outdir = fig_outdir / (today + '_Array_Test_Results')
+    fig_outdir.mkdir(exist_ok=True)
+    fig_path = str(fig_outdir)
+
+    make_scurve_plot(QInjEns, scan_list, TOA_std, chip_figtitle, chip_figname, y_label="TOA Std [LSB]", save_name='_TOA_STD', isStd=True, fig_path=fig_path)
+    make_scurve_plot(QInjEns, scan_list, TOT_std, chip_figtitle, chip_figname, y_label="TOT Std [LSB]", save_name='_TOT_STD', isStd=True, fig_path=fig_path)
+    make_scurve_plot(QInjEns, scan_list, CAL_std, chip_figtitle, chip_figname, y_label="CAL Std [LSB]", save_name='_CAL_STD', isStd=True, fig_path=fig_path)
+    make_scurve_plot(QInjEns, scan_list, TOA_mean, chip_figtitle, chip_figname, y_label="TOA Mean [LSB]", save_name='_TOA_MEAN', isStd=False, fig_path=fig_path)
+    make_scurve_plot(QInjEns, scan_list, TOT_mean, chip_figtitle, chip_figname, y_label="TOT Mean [LSB]", save_name='_TOT_MEAN', isStd=False, fig_path=fig_path)
+    make_scurve_plot(QInjEns, scan_list, CAL_mean, chip_figtitle, chip_figname, y_label="CAL Mean [LSB]", save_name='_CAL_MEAN', isStd=False, fig_path=fig_path)
+
+def push_history_to_git(
+        input_df: pandas.DataFrame,
+        note: str,
+        git_repo: str,
+    ):
+    # Store BL, NW dataframe for later use
+    new_columns = {
+        'note': f'{note}',
+    }
+
+    if not os.path.exists(f'/home/{os.getlogin()}/ETROC2/{git_repo}'):
+        os.system(f'git clone git@github.com:CMS-ETROC/{git_repo}.git /home/{os.getlogin()}/ETROC2/{git_repo}')
+
+    for col in new_columns:
+        input_df[col] = new_columns[col]
+
+    outdir = git_repo
+    outfile = outdir / 'BaselineHistory.sqlite'
+
+    init_cmd = [
+        'cd ' + str(outdir.resolve()),
+        'git stash -u',
+        'git pull',
+    ]
+    end_cmd = [
+        'cd ' + str(outdir.resolve()),
+        'git add BaselineHistory.sqlite',
+        'git commit -m "Added new history entry"',
+        'git push',
+        'git stash pop',
+        'git stash clear',
+    ]
+    init_cmd = [x + '\n' for x in init_cmd]
+    end_cmd  = [x + '\n' for x in end_cmd]
+
+    p = subprocess.Popen(
+        '/bin/bash',
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        )
+
+    for cmd in init_cmd:
+        p.stdin.write(cmd + "\n")
+    p.stdin.close()
+    p.wait()
+    print(p.stdout.read())
+
+    with sqlite3.connect(outfile) as sqlconn:
+        input_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
+
+    p = subprocess.Popen(
+        '/bin/bash',
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        )
+
+    for cmd in end_cmd:
+        p.stdin.write(cmd + "\n")
+    p.stdin.close()
+    p.wait()
+
+    p.stdin.close()
+    print(p.stdout.read())
