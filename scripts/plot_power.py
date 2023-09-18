@@ -63,6 +63,11 @@ def plot_power(
                 V2_str = 'V Digital [V]'
                 I1_str = 'I Analog [A]'
                 I2_str = 'I Digital [A]'
+            elif instrument == "WS_Power":
+                V1_str = 'WS V Analog [V]'
+                V2_str = 'WS V Digital [V]'
+                I1_str = 'WS I Analog [A]'
+                I2_str = 'WS I Digital [A]'
             else:
                 V1_str = 'V1 [V]'
                 V2_str = 'V2 [V]'
@@ -101,6 +106,22 @@ def plot_power(
             )
 
             if instrument == "Power":
+                this_df.plot(
+                    x = 'timestamp',
+                    y = V2_str,
+                    kind = 'scatter',
+                    ax=axis[0, 1],
+                    #kind = 'line',
+                )
+                this_df.plot(
+                    x = 'timestamp',
+                    y = I2_str,
+                    kind = 'scatter',
+                    ax=axis[1, 1],
+                    #kind = 'line',
+                )
+
+            elif instrument == "WS_Power":
                 this_df.plot(
                     x = 'timestamp',
                     y = V2_str,
