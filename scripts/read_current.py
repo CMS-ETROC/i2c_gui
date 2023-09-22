@@ -72,10 +72,10 @@ class DeviceMeasurements():
     _power_1_on = False
     _power_2_on = False
 
-    _WS_power_V1_set = 1.2 + 0.01
-    _WS_power_V2_set = 1.2 + 0.01
-    _WS_power_I1_limit = 0.03
-    _WS_power_I2_limit = 0.1
+    _WS_power_V1_set = 1.2 + 0.04
+    _WS_power_V2_set = 1.2 + 0.04
+    _WS_power_I1_limit = 0.1
+    _WS_power_I2_limit = 0.03
     _WS_power_1_on = False
     _WS_power_2_on = False
 
