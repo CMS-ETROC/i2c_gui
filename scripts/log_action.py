@@ -37,6 +37,23 @@ def log_action(output_path: Path, action_type: str, action_message: str):
     with sqlite3.connect(outfile) as sqlconn:
         df.to_sql('actions', sqlconn, if_exists='append', index=False)
 
+def log_action_v2(output_path: Path, action_system: str, action_type: str, action_message: str, time_override = None):
+    timestamp = datetime.datetime.now().isoformat(sep=' ')
+    if time_override is not None:
+        timestamp = time_override
+    data = {
+            'timestamp': [timestamp],
+            #'timestamp': ["2023-09-24 15:21:53.990000"],
+            'system': [action_system],
+            'type': [action_type],
+            'message': [action_message],
+    }
+    df = pandas.DataFrame(data)
+
+    outfile = output_path / 'PowerHistory_v2.sqlite'
+    with sqlite3.connect(outfile) as sqlconn:
+        df.to_sql('actions_v2', sqlconn, if_exists='append', index=False)
+
 if __name__ == "__main__":
     import argparse
 
@@ -55,13 +72,21 @@ if __name__ == "__main__":
         default = Path("./"),
     )
     parser.add_argument(
+        '-s',
+        '--action-system',
+        type = str,
+        help = "The type of action to log",
+        dest = 'action_system',
+        default = None,
+        choices = [None, "Power", "Cooling", "Config"],
+    )
+    parser.add_argument(
         '-t',
         '--action-type',
         type = str,
         help = "The type of action to log",
         dest = 'action_type',
         default = "Info",
-        choices = ["Info", "Power on", "Power off", "Power Logging", "Cooling"],
     )
     parser.add_argument(
         '-m',
@@ -71,7 +96,13 @@ if __name__ == "__main__":
         dest = 'action_message',
         required = True,
     )
+    parser.add_argument(
+        '--time-override',
+        type = str,
+        help = "Override the timestamp field with this value",
+        dest = 'time_override',
+    )
 
     args = parser.parse_args()
 
-    log_action(Path(args.output_directory), args.action_type, args.action_message)
+    log_action_v2(Path(args.output_directory), args.action_system, args.action_type, args.action_message, args.time_override)

@@ -29,6 +29,7 @@ import datetime
 import pandas
 import sqlite3
 from pathlib import Path
+from log_action import log_action_v2
 
 # This class from stackoverflow Q 474528
 class RepeatedTimer(object):
@@ -204,34 +205,32 @@ class DeviceMeasurements():
 
             for channel in self._channels[supply]:
                 self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
-                self.log_action("Power on", f"{supply} {channel}")
+                self.log_action("Power", "On", f"{supply} {channel}")
 
     def start_log(self):
         time.sleep(0.5)
         self._rt = RepeatedTimer(self._interval, self.log_measurement)
-        self.log_action("Power Logging", "Start")
+        self.log_action("Power", "Logging", "Start")
 
     def stop_log(self):
         if self._rt is not None:
             self._rt.stop()
             self._rt = None
-            self.log_action("Power Logging", "Stop")
+            self.log_action("Power", "Logging", "Stop")
 
     def turn_off(self):
         for supply in self._power_supplies:
             for channel in self._channels[supply]:
                 self._channels[supply][channel]['on'] = False
                 self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
-                self.log_action("Power off", f"{supply} {channel}")
+                self.log_action("Power", "Off", f"{supply} {channel}")
 
     def release_devices(self):
         for supply in self._power_supplies:
             self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
 
-    def log_action(self, action_type: str, action: str):
-        from log_action import log_action
-
-        log_action(self._outdir, action_type, action)
+    def log_action(self, action_system: str, action_type: str, action_message: str):
+        log_action_v2(self._outdir, action_system, action_type, action_message)
         #data = {
         #    'timestamp': [datetime.datetime.now().isoformat(sep=' ')],
         #    'type': [action_type],
