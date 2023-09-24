@@ -25,25 +25,12 @@ import pandas
 import sqlite3
 from pathlib import Path
 
-def log_action(output_path: Path, action_type: str, action_message: str):
-    data = {
-            'timestamp': [datetime.datetime.now().isoformat(sep=' ')],
-            'type': [action_type],
-            'message': [action_message],
-    }
-    df = pandas.DataFrame(data)
-
-    outfile = output_path / 'PowerHistory_v2.sqlite'
-    with sqlite3.connect(outfile) as sqlconn:
-        df.to_sql('actions', sqlconn, if_exists='append', index=False)
-
 def log_action_v2(output_path: Path, action_system: str, action_type: str, action_message: str, time_override = None):
     timestamp = datetime.datetime.now().isoformat(sep=' ')
     if time_override is not None:
         timestamp = time_override
     data = {
             'timestamp': [timestamp],
-            #'timestamp': ["2023-09-24 15:21:53.990000"],
             'system': [action_system],
             'type': [action_type],
             'message': [action_message],
