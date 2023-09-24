@@ -209,13 +209,13 @@ class DeviceMeasurements():
     def start_log(self):
         time.sleep(0.5)
         self._rt = RepeatedTimer(self._interval, self.log_measurement)
-        self.log_action("Logging", "Start")
+        self.log_action("Power Logging", "Start")
 
     def stop_log(self):
         if self._rt is not None:
             self._rt.stop()
             self._rt = None
-            self.log_action("Logging", "Stop")
+            self.log_action("Power Logging", "Stop")
 
     def turn_off(self):
         for supply in self._power_supplies:
@@ -229,16 +229,19 @@ class DeviceMeasurements():
             self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
 
     def log_action(self, action_type: str, action: str):
-        data = {
-            'timestamp': [datetime.datetime.now().isoformat(sep=' ')],
-            'type': [action_type],
-            'action': [action],
-        }
-        df = pandas.DataFrame(data)
+        from log_action import log_action
 
-        outfile = self._outdir / 'PowerHistory_v2.sqlite'
-        with sqlite3.connect(outfile) as sqlconn:
-            df.to_sql('actions', sqlconn, if_exists='append', index=False)
+        log_action(self._outdir, action_type, action)
+        #data = {
+        #    'timestamp': [datetime.datetime.now().isoformat(sep=' ')],
+        #    'type': [action_type],
+        #    'action': [action],
+        #}
+        #df = pandas.DataFrame(data)
+
+        #outfile = self._outdir / 'PowerHistory_v2.sqlite'
+        #with sqlite3.connect(outfile) as sqlconn:
+        #    df.to_sql('actions', sqlconn, if_exists='append', index=False)
 
     def log_measurement(self):
         measurement = self.do_measurement()
