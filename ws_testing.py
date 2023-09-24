@@ -48,8 +48,8 @@ importlib.reload(run_script)
 
 def run_ws(
         chip_name: str,
-        port: str = '/dev/ttyACM0',
-        fpga_ip: str = '192.168.2.7',
+        port: str = '/dev/ttyACM1',
+        fpga_ip: str = '192.168.2.3',
         chip_address = 0x60,
         ws_address = 0x40,
     ):
@@ -352,10 +352,10 @@ def run_ws(
 
     df['Aout'] = -(df['Dout']-(31.5-coeff*31.5)*1.2)/32
 
-    # fig, ax = plt.subplots(figsize=(20, 8))
-    # ax.plot(df['Time [ns]'], df['Dout'])
-    # ax.set_xlabel('Time [ns]', fontsize=15)
-    # plt.show()
+    fig, ax = plt.subplots(figsize=(20, 8))
+    ax.plot(df['Time [ns]'], df['Dout'])
+    ax.set_xlabel('Time [ns]', fontsize=15)
+    plt.show()
 
     fig_aout = px.line(
         df,
