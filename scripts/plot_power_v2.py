@@ -33,25 +33,40 @@ def plot_power(
     ):
     with sqlite3.connect(file) as sqlite3_connection:
         data_df = pandas.read_sql('SELECT * FROM power_v2', sqlite3_connection, index_col=None)
+        action_df = pandas.read_sql('SELECT * FROM actions_v2', sqlite3_connection, index_col=None)
 
         data_df['timestamp'] = pandas.to_datetime(data_df['timestamp'], infer_datetime_format=True, format='mixed')
+        action_df['timestamp'] = pandas.to_datetime(action_df['timestamp'], infer_datetime_format=True, format='mixed')
 
         if endHours is not None:
             tmp_sel = data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=(hours + endHours))
             tmp_sel = tmp_sel & (data_df['timestamp'] < datetime.datetime.now() - datetime.timedelta(hours=endHours))
             tmp_df = data_df.loc[tmp_sel]
+
+            tmp_sel = action_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=(hours + endHours))
+            tmp_sel = tmp_sel & (action_df['timestamp'] < datetime.datetime.now() - datetime.timedelta(hours=endHours))
+            action_df = action_df.loc[tmp_sel]
         else:
             tmp_df = data_df.loc[data_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=hours)]
+            action_df = action_df.loc[action_df['timestamp'] > datetime.datetime.now() - datetime.timedelta(hours=hours)]
+
+        power_df = action_df.loc[action_df['system'] == "Power"].copy()
+        power_df = power_df.loc[power_df['type'] != "Logging"].copy()
+        cooling_df = action_df.loc[action_df['system'] == "Cooling"].copy()
+        config_df = action_df.loc[action_df['system'] == "Config"].copy()
 
         instruments = tmp_df['Instrument'].unique()
 
         for instrument in instruments:
             instrument_df = tmp_df.loc[tmp_df['Instrument'] == instrument].copy()
+            channels_df = instrument_df.groupby(['Channel', 'channel_id']).size().reset_index().drop(0, axis=1)
 
-            channels = instrument_df['Channel'].unique()
-
-            for channel in channels:
+            for index, row in channels_df.iterrows():
+                channel = row['Channel']
+                channel_id = row['channel_id']
+                
                 channel_df = instrument_df[instrument_df['Channel'] == channel].copy()
+                this_power_df = power_df[(power_df['message'] == f"{instrument} {channel_id}") | (power_df['message'] == 'All channels')].copy()
 
                 channel_df['V'] = (channel_df['V'].str.replace('V','')).astype(float)
                 channel_df['I'] = (channel_df['I'].str.replace('A','')).astype(float)
@@ -83,6 +98,42 @@ def plot_power(
                     ax=this_ax,
                     #kind = 'line',
                 )
+
+                # Order of the loops below is important since the last one will be on top of the first
+                for cooling_index, cooling_row in cooling_df.iterrows():
+                    axis[0].axvline(
+                        x = cooling_row['timestamp'],
+                        color = 'c',
+                    )
+                    axis[1].axvline(
+                        x = cooling_row['timestamp'],
+                        color = 'c',
+                    )
+
+                for config_index, config_row in config_df.iterrows():
+                    axis[0].axvline(
+                        x = config_row['timestamp'],
+                        color = 'y',
+                    )
+                    axis[1].axvline(
+                        x = config_row['timestamp'],
+                        color = 'y',
+                    )
+
+                for power_index, power_row in this_power_df.iterrows():
+                    if power_row['type'] == 'On':
+                        color = 'g'
+                    elif power_row['type'] == 'Off':
+                        color = 'r'
+
+                    axis[0].axvline(
+                        x = power_row['timestamp'],
+                        color = color,
+                    )
+                    axis[1].axvline(
+                        x = power_row['timestamp'],
+                        color = color,
+                    )
 
                 plt.show()
 
