@@ -197,32 +197,48 @@ class DeviceMeasurements():
                     self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 1")
                 elif self._channels[supply][channel]["config"]["IRange"] == "High":
                     self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 0")
-                else:
+                else:  # TODO: Move the exception to another function (the add channel for instance), to avoid exceptions during config
                     raise RuntimeError(f'Unknown IRange option: {self._channels[supply][channel]["config"]["IRange"]}')
 
             self._power_supplies[supply]["handle"].write("*CLS")
 
             for channel in self._channels[supply]:
                 self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
+                self.log_action("Power on", f"{supply} {channel}")
 
     def start_log(self):
         time.sleep(0.5)
         self._rt = RepeatedTimer(self._interval, self.log_measurement)
+        self.log_action("Logging", "Start")
 
     def stop_log(self):
         if self._rt is not None:
             self._rt.stop()
             self._rt = None
+            self.log_action("Logging", "Stop")
 
     def turn_off(self):
         for supply in self._power_supplies:
             for channel in self._channels[supply]:
                 self._channels[supply][channel]['on'] = False
                 self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
+                self.log_action("Power off", f"{supply} {channel}")
 
     def release_devices(self):
         for supply in self._power_supplies:
             self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
+
+    def log_action(self, action_type: str, action: str):
+        data = {
+            'timestamp': [datetime.datetime.now().isoformat(sep=' ')],
+            'type': [action_type],
+            'action': [action],
+        }
+        df = pandas.DataFrame(data)
+
+        outfile = self._outdir / 'PowerHistory_v2.sqlite'
+        with sqlite3.connect(outfile) as sqlconn:
+            df.to_sql('actions', sqlconn, if_exists='append', index=False)
 
     def log_measurement(self):
         measurement = self.do_measurement()
