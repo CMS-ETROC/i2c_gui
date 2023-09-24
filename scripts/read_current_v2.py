@@ -193,7 +193,12 @@ class DeviceMeasurements():
                         current = 0.01
                 self.set_channel_current_limit(supply, channel, current)
 
-                self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 1")
+                if 'IRange' not in self._channels[supply][channel]["config"] or self._channels[supply][channel]["config"]["IRange"] == "Low":
+                    self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 1")
+                elif self._channels[supply][channel]["config"]["IRange"] == "High":
+                    self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 0")
+                else:
+                    raise RuntimeError(f'Unknown IRange option: {self._channels[supply][channel]["config"]["IRange"]}')
 
             self._power_supplies[supply]["handle"].write("*CLS")
 
@@ -400,21 +405,25 @@ if __name__ == "__main__":
         device_meas.add_channel("Power", 1, "Analog", config = {
                                                                 "Vset": 1.2 + 0.04,
                                                                 "Ilimit": 0.5,
+                                                                "IRange": "Low",  # Alternative "High"
                                                                 }
         )
         device_meas.add_channel("Power", 2, "Digital", config = {
                                                                 "Vset": 1.2 + 0.09,
                                                                 "Ilimit": 0.4,
+                                                                "IRange": "Low",  # Alternative "High"
                                                                 }
         )
         device_meas.add_channel("WS Power", 1, "Analog", config = {
                                                                 "Vset": 1.2 + 0.01,
                                                                 "Ilimit": 0.03,
+                                                                "IRange": "Low",  # Alternative "High"
                                                                 }
         )
         device_meas.add_channel("WS Power", 2, "Digital", config = {
                                                                 "Vset": 1.2 + 0.01,
                                                                 "Ilimit": 0.1,
+                                                                "IRange": "Low",  # Alternative "High"
                                                                 }
         )
 
