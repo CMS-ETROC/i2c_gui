@@ -106,7 +106,7 @@ class i2c_connection():
             if(int(func_string[-3])): self.set_chip_peripherals(chip_address, chip_fc_delay, chip)
             if(int(func_string[-4])): self.disable_all_pixels(chip_address, chip)
             if(int(func_string[-5])): self.auto_calibration(chip_address, chip_name, chip)
-            if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip)
+            if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip_name, chip)
             if(int(func_string[-7])): pass
             if(int(func_string[-8])): pass
             del chip
