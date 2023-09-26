@@ -45,14 +45,16 @@ sys.path.insert(1, f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
 import run_script
 import importlib
 importlib.reload(run_script)
+from scripts.log_action import log_action_v2
 
 def run_ws(
         chip_name: str,
-        port: str = '/dev/ttyACM1',
+        port: str = '/dev/ttyACM0',
         fpga_ip: str = '192.168.2.3',
         chip_address = 0x60,
         ws_address = 0x40,
     ):
+    log_action_v2(Path("./"), "Config", "WS", f"Configure waveform sampler of chip with WS I2C {ws_address} with ws_testing.py script")
     # Set defaults
     ### It is very important to correctly set the chip name, this value is stored with the data
 
