@@ -29,7 +29,10 @@ import datetime
 import pandas
 import sqlite3
 from pathlib import Path
-from log_action import log_action_v2
+try:
+    from log_action import log_action_v2
+except:
+    from scripts.log_action import log_action_v2
 
 # This class from stackoverflow Q 474528
 class RepeatedTimer(object):
