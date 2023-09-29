@@ -421,7 +421,7 @@ if __name__ == "__main__":
 
         # TODO: Parse instruments and channels from a config file so that the code does not change from setup to setup, there would be a config file for each setup
         device_meas.add_instrument("Power", "THURLBY THANDAR", "PL303QMD-P", "506013")  # TID Top
-        device_meas.add_instrument("WS Power", "THURLBY THANDAR", "PL303QMD-P", "425044")  # TID Bottom
+        device_meas.add_instrument("WS Power", "THURLBY THANDAR", "PL303QMD-P", "521246")  # TID Bottom
 
         device_meas.add_channel("Power", 1, "Analog", config = {
                                                                 "Vset": 1.2 + 0.04,
