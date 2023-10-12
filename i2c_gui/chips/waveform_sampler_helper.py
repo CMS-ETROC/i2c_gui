@@ -354,13 +354,13 @@ class Waveform_Sampler_Helper(GUI_Helper):
         self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_en_I2C", no_message=True)
 
         # For loop to read data from WS
-        max_steps = 1024
+        max_steps = 1024  # Size of the data buffer inside the WS
         lastUpdateTime = time.time_ns()
         base_data = []
         coeff=0.04/5*8.5  # This number comes from the example script in the manual
         time_coeff = 1/2.56  # 2.56 GHz WS frequency
-        for time_idx in range(max_steps):
-            self._ws_read_address.set(hex_0fill(time_idx, 10))
+        for address in range(max_steps):
+            self._ws_read_address.set(hex_0fill(address, 10))
             self._parent.write_decoded_value("Waveform Sampler", "Config", "rd_addr", no_message=True)
 
             self._parent.read_decoded_value("Waveform Sampler", "Status", "dout", no_message=True)
@@ -381,13 +381,13 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
             base_data.append(
                 {
-                    "Time Index": time_idx,
+                    "Data Address": address,
                     "Data": int(data, 0),
                     "Raw Data": bin(int(data, 0))[2:].zfill(14),
                     "pointer": int(binary_data[0]),
                     "Dout_S1": Dout_S1,
                     "Dout_S2": Dout_S2,
-                    "Dout": Dout_S1*coeff + Dout_S2,
+                    "Dout": Dout_S1 - coeff * Dout_S2,
                 }
             )
 
@@ -395,7 +395,7 @@ class Waveform_Sampler_Helper(GUI_Helper):
             if thisTime - lastUpdateTime > 0.3 * 10**9:
                 lastUpdateTime = thisTime
                 if hasattr(self, "_dialog_progress"):
-                    self._dialog_progress['value'] = int(time_idx*100.0/max_steps)
+                    self._dialog_progress['value'] = int(address*100.0/max_steps)
                 if hasattr(self, "_window"):
                     self._window.update()
 
@@ -404,15 +404,31 @@ class Waveform_Sampler_Helper(GUI_Helper):
 
         self._df = pandas.DataFrame(base_data)
 
-        pointer_idx = self._df["pointer"].loc[self._df["pointer"] != 0].index
-        if len(pointer_idx) != 0:
-            pointer_idx = pointer_idx[0]
-            new_idx = list(set(range(len(self._df))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
-            self._df = self._df.iloc[new_idx].reset_index(drop = True)
-            self._df["Time Index"] = self._df.index
+        df_length = len(self._df)
+        channels = 8
 
+        df_per_ch : list[pandas.DataFrame] = []
+        for ch in range(channels):
+            df_per_ch += [self._df.iloc[int(ch * df_length/channels):int((ch + 1) * df_length/channels)].copy()]
+            df_per_ch[ch].reset_index(inplace = True, drop = True)
+
+        pointer_idx = df_per_ch[-1]["pointer"].loc[df_per_ch[-1]["pointer"] != 0].index  # TODO: Maybe add a search of the pointer in any channel, not just the last one
+        if len(pointer_idx) != 0:  # If pointer found, reorder the data
+            pointer_idx = pointer_idx[0]
+            new_idx = list(set(range(len(df_per_ch[-1]))).difference(range(pointer_idx+1))) + list(range(pointer_idx+1))
+            for ch in range(channels):
+                df_per_ch[ch] = df_per_ch[ch].iloc[new_idx].reset_index(drop = True)  # Fix indexes after reordering
+
+        # interleave the channels
+        for ch in range(channels):
+            df_per_ch[ch]["Time Index"] = df_per_ch[ch].index * channels + (channels - 1 - ch)  # Flip the order of the channels in the interleave...
+            df_per_ch[ch]["Channel"] = ch + 1
+
+        # Actually put it all together in one dataframe and sort the data correctly
+        self._df = pandas.concat(df_per_ch)
         self._df["Time [ns]"] = self._df["Time Index"] * time_coeff
         self._df.set_index('Time Index', inplace=True)
+        self._df.sort_index(inplace=True)
 
         # Disable reading data from WS:
         self._ws_read_en.set(0)
