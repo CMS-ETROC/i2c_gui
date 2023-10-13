@@ -725,6 +725,105 @@ class i2c_connection():
     #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
     #     if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
+    def broadcast_calibrate_pixels(self, chip_address, chip_name, chip:i2c_gui.chips.ETROC2_Chip=None):
+        if(chip==None):
+            chip = self.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        broadcast_indexer_handle,_,_ = chip.get_indexer("broadcast")
+        data = []
+
+        column_indexer_handle.set(15)
+        row_indexer_handle.set(15)
+
+        chip.read_all_block("ETROC2", "Pixel Config")
+
+        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+        CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
+        BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
+        Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
+        TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
+        RSTn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
+        ScanStart_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
+        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
+        ScanDone_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
+        BL_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
+        NW_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
+
+        # Disable TDC
+        enable_TDC_handle.set("0")
+        # Enable THCal clock and buffer, disable bypass
+        CLKEn_THCal_handle.set("1")
+        BufEn_THCal_handle.set("1")
+        Bypass_THCal_handle.set("0")
+        TH_offset_handle.set(hex(0x0a))
+
+        # Send changes to all pixels
+        broadcast_indexer_handle.set(True)
+        chip.write_all_block("ETROC2", "Pixel Config")
+
+        # Reset the calibration block (active low)
+        RSTn_THCal_handle.set("0")
+        broadcast_indexer_handle.set(True)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+        RSTn_THCal_handle.set("1")
+        broadcast_indexer_handle.set(True)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+
+        # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
+        ScanStart_THCal_handle.set("1")
+        broadcast_indexer_handle.set(True)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+        ScanStart_THCal_handle.set("0")
+        broadcast_indexer_handle.set(True)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+
+        for row in range(16):
+            for col in range(16):
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+
+                # Wait for the calibration to be done correctly
+                retry_counter = 0
+                chip.read_all_block("ETROC2", "Pixel Status")
+                while ScanDone_handle.get() != "1":
+                    time.sleep(0.01)
+                    chip.read_all_block("ETROC2", "Pixel Status")
+                    retry_counter += 1
+                    if retry_counter == 5 and ScanDone_handle.get() != "1":
+                        print(f"!!!ERROR!!! Scan not done for row {row}, col {col}!!!")
+                        break
+
+                self.BL_map_THCal[chip_address][row, col] = int(BL_handle.get(), 0)
+                self.NW_map_THCal[chip_address][row, col] = int(NW_handle.get(), 0)
+                if(data != None):
+                    data += [{
+                        'col': col,
+                        'row': row,
+                        'baseline': self.BL_map_THCal[chip_address][row, col],
+                        'noise_width': self.NW_map_THCal[chip_address][row, col],
+                        'timestamp': datetime.datetime.now(),
+                        'chip_name': chip_name,
+                    }]
+
+        # Enable TDC
+        enable_TDC_handle.set("1")
+        # Disable THCal clock and buffer, enable bypass
+        CLKEn_THCal_handle.set("0")
+        BufEn_THCal_handle.set("0")
+        Bypass_THCal_handle.set("1")
+        DAC_handle.set(hex(0x3ff))
+
+        # Send changes to chip
+        broadcast_indexer_handle.set(True)
+        chip.write_all_block("ETROC2", "Pixel Config")
+
+        BL_df = pandas.DataFrame(data = data)
+        self.BL_df[chip_address] = BL_df
+        # Delete created components
+        del data
+        print(f"Broadcast auto calibration finished for chip: {hex(chip_address)}")
+
     def auto_cal_pixel(self, chip_name, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, data=None, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
@@ -785,6 +884,7 @@ class i2c_connection():
             retry_counter += 1
             if retry_counter == 5 and ScanDone_handle.get() != "1":
                 print(f"!!!ERROR!!! Scan not done for row {row}, col {col}!!!")
+                break
 
 
         self.BL_map_THCal[chip_address][row, col] = int(BL_handle.get(), 0)
