@@ -632,32 +632,6 @@ class i2c_connection():
 
         if(verbose): print(f"Disabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
-    # def enable_pixel(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
-    #     if(chip==None and chip_address!=None):
-    #         chip = self.get_chip_i2c_connection(chip_address)
-    #     elif(chip==None and chip_address==None):
-    #         print("Need chip address to make a new chip in disable pixel!")
-    #         return
-    #     if(row_indexer_handle==None):
-    #         row_indexer_handle,_,_ = chip.get_indexer("row")
-    #     if(column_indexer_handle==None):
-    #         column_indexer_handle,_,_ = chip.get_indexer("column")
-    #     column_indexer_handle.set(col)
-    #     row_indexer_handle.set(row)
-    #     self.pixel_decoded_register_write("disDataReadout", "0", chip)
-    #     self.pixel_decoded_register_write("QInjEn", "1", chip)
-    #     self.pixel_decoded_register_write("disTrigPath", "0", chip)
-    #     self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
-    #     self.pixel_decoded_register_write("Bypass_THCal", "0", chip)
-    #     self.pixel_decoded_register_write("TH_offset", format(0x0f, '06b'), chip)  # Offset used to add to the auto BL for real triggering
-    #     self.pixel_decoded_register_write("QSel", format(0x14, '05b'), chip)       # Ensure we inject 20 fC of charge
-    #     ## Open the trigger and data windows
-    #     self.TDC_window_pixel(chip_address, row, col, verbose=verbose, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, alreadySetPixel=True, triggerWindow=True, cbWindow=True)
-    #     # Enable TDC
-    #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
-    #     # Delete created components
-    #     if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
-
     def enable_pixel_modular(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=True):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
@@ -699,79 +673,6 @@ class i2c_connection():
         chip.write_decoded_value("ETROC2", "Pixel Config", "enable_TDC")
 
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
-
-    # def enable_pixel_triggerbit(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
-    #     if(chip==None and chip_address!=None):
-    #         chip = self.get_chip_i2c_connection(chip_address)
-    #     elif(chip==None and chip_address==None):
-    #         print("Need chip address to make a new chip in disable pixel!")
-    #         return
-    #     if(row_indexer_handle==None):
-    #         row_indexer_handle,_,_ = chip.get_indexer("row")
-    #     if(column_indexer_handle==None):
-    #         column_indexer_handle,_,_ = chip.get_indexer("column")
-    #     column_indexer_handle.set(col)
-    #     row_indexer_handle.set(row)
-    #     self.pixel_decoded_register_write("disDataReadout", "1", chip)
-    #     self.pixel_decoded_register_write("QInjEn", "0", chip)
-    #     self.pixel_decoded_register_write("disTrigPath", "0", chip)
-    #     self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
-    #     self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
-    #     ## Open the trigger and close data windows
-    #     self.TDC_window_pixel(chip_address, row, col, verbose=verbose, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, alreadySetPixel=True, triggerWindow=True, cbWindow=False)
-    #     # Enable TDC
-    #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
-    #     if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
-
-    # def enable_pixel_data_qinj(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
-    #     if(chip==None and chip_address!=None):
-    #         chip = self.get_chip_i2c_connection(chip_address)
-    #     elif(chip==None and chip_address==None):
-    #         print("Need chip address to make a new chip in disable pixel!")
-    #         return
-    #     if(row_indexer_handle==None):
-    #         row_indexer_handle,_,_ = chip.get_indexer("row")
-    #     if(column_indexer_handle==None):
-    #         column_indexer_handle,_,_ = chip.get_indexer("column")
-    #     column_indexer_handle.set(col)
-    #     row_indexer_handle.set(row)
-    #     self.pixel_decoded_register_write("disDataReadout", "0", chip)
-    #     self.pixel_decoded_register_write("QInjEn", "1", chip)
-    #     self.pixel_decoded_register_write("disTrigPath", "0", chip)
-    #     self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
-    #     self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
-    #     self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("QSel", format(0x1b, '05b'), chip)       # Ensure we inject 27 fC of charge
-    #     ## Open the trigger and data windows
-    #     self.TDC_window_pixel(chip_address, row, col, verbose=verbose, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, alreadySetPixel=True, triggerWindow=True, cbWindow=True)
-    #     # Enable TDC
-    #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
-    #     if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
-
-    # def enable_pixel_data(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
-    #     if(chip==None and chip_address!=None):
-    #         chip = self.get_chip_i2c_connection(chip_address)
-    #     elif(chip==None and chip_address==None):
-    #         print("Need chip address to make a new chip in disable pixel!")
-    #         return
-    #     if(row_indexer_handle==None):
-    #         row_indexer_handle,_,_ = chip.get_indexer("row")
-    #     if(column_indexer_handle==None):
-    #         column_indexer_handle,_,_ = chip.get_indexer("column")
-    #     column_indexer_handle.set(col)
-    #     row_indexer_handle.set(row)
-    #     self.pixel_decoded_register_write("disDataReadout", "0", chip)
-    #     self.pixel_decoded_register_write("QInjEn", "0", chip)
-    #     self.pixel_decoded_register_write("disTrigPath", "0", chip)
-    #     self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
-    #     self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
-    #     self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("QSel", format(0x1b, '05b'), chip)       # Ensure we inject 27 fC of charge
-    #     ## Open the trigger and data windows
-    #     self.TDC_window_pixel(chip_address, row, col, verbose=verbose, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, alreadySetPixel=True, triggerWindow=True, cbWindow=True)
-    #     # Enable TDC
-    #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
-    #     if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
     def broadcast_calibrate_pixels(self, chip_address, chip_name, chip:i2c_gui.chips.ETROC2_Chip=None):
         if(chip==None):
@@ -1061,31 +962,6 @@ class i2c_connection():
     #     self.pixel_decoded_register_write("lowerCal", format(0x000, '010b'), chip)
     #     if verbose: print(f"Opened TDC on pixel ({row},{col}) for chip: {hex(chip_address)}")
 
-    def TDC_window_pixel(self, chip_address, row, col, verbose=False, chip=None, row_indexer_handle=None, column_indexer_handle=None, alreadySetPixel=False, triggerWindow=True, cbWindow=True):
-        if(chip==None):
-            chip = self.get_chip_i2c_connection(chip_address)
-        if(row_indexer_handle==None):
-            row_indexer_handle,_,_ = chip.get_indexer("row")
-        if(column_indexer_handle==None):
-            column_indexer_handle,_,_ = chip.get_indexer("column")
-        if(not alreadySetPixel):
-            column_indexer_handle.set(col)
-            row_indexer_handle.set(row)
-        ## Release trigger and data range
-        self.pixel_decoded_register_write("upperTOATrig", format(0x3ff if triggerWindow else 0x000, '010b'), chip)
-        self.pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("upperTOTTrig", format(0x1ff if triggerWindow else 0x000, '09b'), chip)
-        self.pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'), chip)
-        self.pixel_decoded_register_write("upperCalTrig", format(0x3ff if triggerWindow else 0x000, '010b'), chip)
-        self.pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("upperTOA", format(0x3ff if cbWindow else 0x000, '010b'), chip)
-        self.pixel_decoded_register_write("lowerTOA", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("upperTOT", format(0x1ff if cbWindow else 0x000, '09b'), chip)
-        self.pixel_decoded_register_write("lowerTOT", format(0x000, '09b'), chip)
-        self.pixel_decoded_register_write("upperCal", format(0x3ff if cbWindow else 0x000, '010b'), chip)
-        self.pixel_decoded_register_write("lowerCal", format(0x000, '010b'), chip)
-        if verbose: print(f"Opened TDC on pixel ({row},{col}) for chip: {hex(chip_address)}")
-
     def set_TDC_window_vars(self, chip, triggerWindow=True, cbWindow=True):
         upperTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOATrig")
         lowerTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOATrig")
@@ -1116,17 +992,29 @@ class i2c_connection():
     def open_TDC_all(self, chip_address, chip=None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
         for row in tqdm(range(16), desc="Disabling row", position=0):
             for col in tqdm(range(16), desc=" col", position=1, leave=False):
-                self.TDC_window_pixel(row=row, col=col, verbose=False, chip=chip, triggerWindow=True, cbWindow=True)
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+                chip.read_all_block("ETROC2", "Pixel Config")
+                self.set_TDC_window_vars(chip=chip, triggerWindow=True, cbWindow=True)
+                chip.write_all_block("ETROC2", "Pixel Config")
         print(f"Opened TDC for pixels for chip: {hex(chip_address)}")
 
     def close_TDC_all(self, chip_address, chip=None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
         for row in tqdm(range(16), desc="Disabling row", position=0):
             for col in tqdm(range(16), desc=" col", position=1, leave=False):
-                self.TDC_window_pixel(row=row, col=col, verbose=False, chip=chip, triggerWindow=True, cbWindow=False)
+                column_indexer_handle.set(col)
+                row_indexer_handle.set(row)
+                chip.read_all_block("ETROC2", "Pixel Config")
+                self.set_TDC_window_vars(chip=chip, triggerWindow=True, cbWindow=False)
+                chip.write_all_block("ETROC2", "Pixel Config")
         print(f"Closed TDC for pixels for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
