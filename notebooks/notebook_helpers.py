@@ -626,7 +626,7 @@ class i2c_connection():
     #     # Delete created components
     #     if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
-    def enable_pixel_modular(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=True):
+    def enable_pixel_modular(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=True):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None):
@@ -638,18 +638,34 @@ class i2c_connection():
             column_indexer_handle,_,_ = chip.get_indexer("column")
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
-        self.pixel_decoded_register_write("disDataReadout", "0", chip)
-        self.pixel_decoded_register_write("QInjEn", "1" if QInjEn else "0", chip)
-        self.pixel_decoded_register_write("disTrigPath", "0", chip)
-        self.pixel_decoded_register_write("L1Adelay", format(0x01f5, '09b'), chip) # Change L1A delay - circular buffer in ETROC2 pixel
-        self.pixel_decoded_register_write("Bypass_THCal", "1" if Bypass_THCal else "0", chip)
-        self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip)  # Offset 10 used to add to the auto BL for real triggering
-        self.pixel_decoded_register_write("QSel", format(0x1b, '05b'), chip)       # Ensure we inject 27 fC of charge
-        self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
-        ## Open the trigger and data windows
-        self.TDC_window_pixel(chip_address, row, col, verbose=verbose, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, alreadySetPixel=True, triggerWindow=triggerWindow, cbWindow=cbWindow)
-        # Enable TDC
-        self.pixel_decoded_register_write("enable_TDC", "1", chip)
+
+        chip.read_all_block("ETROC2", "Pixel Config")
+
+        disDataReadout_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disDataReadout")
+        QInjEn_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "QInjEn")
+        disTrigPath_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disTrigPath")
+        L1Adelay_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "L1Adelay")
+        Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
+        TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
+        QSel_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "QSel")
+        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
+        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+
+        disDataReadout_handle.set("0")
+        QInjEn_handle.set("1" if QInjEn else "0")
+        disTrigPath_handle.set("0")
+        L1Adelay_handle.set(hex(0x01f5)) # Change L1A delay - circular buffer in ETROC2 pixel
+        Bypass_THCal_handle.set("1" if Bypass_THCal else "0")
+        TH_offset_handle.set(hex(0x0a))  # Offset 10 used to add to the auto BL for real
+        QSel_handle.set(hex(0x1b))       # Ensure we inject 27 fC of charge
+        DAC_handle.set(hex(0x3ff))
+        self.set_TDC_window_vars(chip=chip, triggerWindow=triggerWindow, cbWindow=cbWindow)
+
+        chip.write_all_block("ETROC2", "Pixel Config")
+
+        enable_TDC_handle.set("1")
+        chip.write_decoded_value("ETROC2", "Pixel Config", "enable_TDC")
+
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
     # def enable_pixel_triggerbit(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
@@ -1037,6 +1053,33 @@ class i2c_connection():
         self.pixel_decoded_register_write("upperCal", format(0x3ff if cbWindow else 0x000, '010b'), chip)
         self.pixel_decoded_register_write("lowerCal", format(0x000, '010b'), chip)
         if verbose: print(f"Opened TDC on pixel ({row},{col}) for chip: {hex(chip_address)}")
+
+    def set_TDC_window_vars(self, chip, triggerWindow=True, cbWindow=True):
+        upperTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOATrig")
+        lowerTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOATrig")
+        upperTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOTTrig")
+        lowerTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOTTrig")
+        upperCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCalTrig")
+        lowerCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCalTrig")
+        upperTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOA")
+        lowerTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOA")
+        upperTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOT")
+        lowerTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOT")
+        upperCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCal")
+        lowerCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCal")
+
+        upperTOATrig_handle.set(hex(0x3ff if triggerWindow else 0x000))
+        lowerTOATrig_handle.set(hex(0x000))
+        upperTOTTrig_handle.set(hex(0x1ff if triggerWindow else 0x000))
+        lowerTOTTrig_handle.set(hex(0x000))
+        upperCalTrig_handle.set(hex(0x3ff if triggerWindow else 0x000))
+        lowerCalTrig_handle.set(hex(0x000))
+        upperTOA_handle.set(hex(0x3ff if cbWindow else 0x000))
+        lowerTOA_handle.set(hex(0x000))
+        upperTOT_handle.set(hex(0x1ff if cbWindow else 0x000))
+        lowerTOT_handle.set(hex(0x000))
+        upperCal_handle.set(hex(0x3ff if cbWindow else 0x000))
+        lowerCal_handle.set(hex(0x000))
 
     def open_TDC_all(self, chip_address, chip=None):
         if(chip==None):
