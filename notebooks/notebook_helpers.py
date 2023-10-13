@@ -504,7 +504,7 @@ class i2c_connection():
         BL_df = pandas.DataFrame(data = data)
         self.BL_df[chip_address] = BL_df
         # Delete created components
-        del data, BL_df
+        del data
         print(f"Auto calibration finished for chip: {hex(chip_address)}")
 
     def get_auto_cal_maps(self, chip_address):
@@ -563,20 +563,8 @@ class i2c_connection():
     def auto_calibration_and_disable(self, chip_address, chip_name, chip=None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        data = []
-        # Loop for threshold calibration
         self.disable_all_pixels(chip_address=chip_address, chip=chip)
-        for row in tqdm(range(16), desc="Calibrating and Disabling row", position=0):
-            for col in tqdm(range(16), desc=" col", position=1, leave=False):
-                # self.disable_pixel(row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
-                self.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=data, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
-        BL_df = pandas.DataFrame(data = data)
-        self.BL_df[chip_address] = BL_df
-        # Delete created components
-        del data, BL_df
-        print(f"Auto calibration and Disable Pixel operations finished for chip: {hex(chip_address)}")
+        self.auto_calibration(chip_address, chip_name, chip)
 
     #--------------------------------------------------------------------------#
 
