@@ -134,8 +134,10 @@ class i2c_connection():
 
     #--------------------------------------------------------------------------#
     ## Useful helper functions to streamline register reading and writing
-    def pixel_decoded_register_write(self, decodedRegisterName, data_to_write, chip=None):
-        if(chip==None): print("Need chip to access registers!")
+    def pixel_decoded_register_write(self, decodedRegisterName, data_to_write, chip=None, chip_address=None):
+        if(chip==None and chip_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address)
+        elif(chip==None and chip_address==None): print("Need either a chip or chip address to access registers!")
         bit_depth = register_decoding["ETROC2"]["Register Blocks"]["Pixel Config"][decodedRegisterName]["bits"]
         handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", decodedRegisterName)
         chip.read_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
@@ -146,14 +148,16 @@ class i2c_connection():
         else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
         chip.write_decoded_value("ETROC2", "Pixel Config", decodedRegisterName)
 
-    def pixel_decoded_register_read(self, decodedRegisterName, key, chip, need_int=False):
-        if(chip==None): print("Need chip to access registers!")
+    def pixel_decoded_register_read(self, decodedRegisterName, key, chip=None, chip_address=None, need_int=False):
+        if(chip==None and chip_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address)
+        elif(chip==None and chip_address==None): print("Need either a chip or chip address to access registers!")
         handle = chip.get_decoded_indexed_var("ETROC2", f"Pixel {key}", decodedRegisterName)
         chip.read_decoded_value("ETROC2", f"Pixel {key}", decodedRegisterName)
         if(need_int): return int(handle.get(), base=16)
         else: return handle.get()
 
-    def peripheral_decoded_register_write(self, decodedRegisterName, data_to_write, chip, chip_address=None):
+    def peripheral_decoded_register_write(self, decodedRegisterName, data_to_write, chip=None, chip_address=None):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None): print("Need either a chip or chip address to access registers!")
@@ -167,7 +171,7 @@ class i2c_connection():
         else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
         chip.write_decoded_value("ETROC2", "Peripheral Config", decodedRegisterName)
 
-    def peripheral_decoded_register_read(self, decodedRegisterName, key, chip, need_int=False, chip_address=None):
+    def peripheral_decoded_register_read(self, decodedRegisterName, key, chip=None, need_int=False, chip_address=None):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None): print("Need either a chip or chip address to access registers!")
@@ -212,8 +216,8 @@ class i2c_connection():
             for col in range(16):
                 column_indexer_handle.set(col)
                 row_indexer_handle.set(row)
-                fetched_row = self.pixel_decoded_register_read("PixelID-Row", "Status", chip, need_int=True)
-                fetched_col = self.pixel_decoded_register_read("PixelID-Col", "Status", chip, need_int=True)
+                fetched_row = self.pixel_decoded_register_read("PixelID-Row", "Status", chip=chip, need_int=True)
+                fetched_col = self.pixel_decoded_register_read("PixelID-Col", "Status", chip=chip, need_int=True)
                 if(row!=fetched_row or col!=fetched_col):
                     print(chip_address, f"Pixel ({row},{col}) returned ({fetched_row}{fetched_col}), failed consistency check!")
                     pixel_flag_fail = True
@@ -448,18 +452,18 @@ class i2c_connection():
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
         # Broadcast self consistency check
-        upperTOT = self.pixel_decoded_register_read("upperTOT", "Config", chip)
-        lowerTOT = self.pixel_decoded_register_read("lowerTOT", "Config", chip)
-        upperTOA = self.pixel_decoded_register_read("upperTOA", "Config", chip)
-        lowerTOA = self.pixel_decoded_register_read("lowerTOA", "Config", chip)
-        upperCAL = self.pixel_decoded_register_read("upperCal", "Config", chip)
-        lowerCAL = self.pixel_decoded_register_read("lowerCal", "Config", chip)
-        upperTOTTrig = self.pixel_decoded_register_read("upperTOTTrig", "Config", chip)
-        lowerTOTTrig = self.pixel_decoded_register_read("lowerTOTTrig", "Config", chip)
-        upperTOATrig = self.pixel_decoded_register_read("upperTOATrig", "Config", chip)
-        lowerTOATrig = self.pixel_decoded_register_read("lowerTOATrig", "Config", chip)
-        upperCALTrig = self.pixel_decoded_register_read("upperCalTrig", "Config", chip)
-        lowerCALTrig = self.pixel_decoded_register_read("lowerCalTrig", "Config", chip)
+        upperTOT = self.pixel_decoded_register_read("upperTOT", "Config", chip=chip)
+        lowerTOT = self.pixel_decoded_register_read("lowerTOT", "Config", chip=chip)
+        upperTOA = self.pixel_decoded_register_read("upperTOA", "Config", chip=chip)
+        lowerTOA = self.pixel_decoded_register_read("lowerTOA", "Config", chip=chip)
+        upperCAL = self.pixel_decoded_register_read("upperCal", "Config", chip=chip)
+        lowerCAL = self.pixel_decoded_register_read("lowerCal", "Config", chip=chip)
+        upperTOTTrig = self.pixel_decoded_register_read("upperTOTTrig", "Config", chip=chip)
+        lowerTOTTrig = self.pixel_decoded_register_read("lowerTOTTrig", "Config", chip=chip)
+        upperTOATrig = self.pixel_decoded_register_read("upperTOATrig", "Config", chip=chip)
+        lowerTOATrig = self.pixel_decoded_register_read("lowerTOATrig", "Config", chip=chip)
+        upperCALTrig = self.pixel_decoded_register_read("upperCalTrig", "Config", chip=chip)
+        lowerCALTrig = self.pixel_decoded_register_read("lowerCalTrig", "Config", chip=chip)
         if (upperTOT != "0x1ff"):
             print("Broadcast failed for upperTOT")
         if (upperTOA != "0x000"):
@@ -861,107 +865,6 @@ class i2c_connection():
 
         if(verbose): print(f"Auto calibration finished for pixel ({row},{col}) on chip: {hex(chip_address)}")
 
-    # def auto_cal_pixel_TDCon(self, chip_name, row, col, verbose=False, chip_address=None, chip=None, data=None, row_indexer_handle=None, column_indexer_handle=None):
-    #     if(chip==None and chip_address!=None):
-    #         chip = self.get_chip_i2c_connection(chip_address)
-    #     elif(chip==None and chip_address==None):
-    #         print("Need chip address to make a new chip in disable pixel!")
-    #         return
-    #     if(row_indexer_handle==None):
-    #         row_indexer_handle,_,_ = chip.get_indexer("row")
-    #     if(column_indexer_handle==None):
-    #         column_indexer_handle,_,_ = chip.get_indexer("column")
-    #     # BL_map_THCal, NW_map_THCal, BL_df = self.get_auto_cal_maps(chip_address)
-    #     column_indexer_handle.set(col)
-    #     row_indexer_handle.set(row)
-    #     # Disable TDC
-    #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
-    #     # Enable THCal clock and buffer, disable bypass
-    #     self.pixel_decoded_register_write("CLKEn_THCal", "1", chip)
-    #     self.pixel_decoded_register_write("BufEn_THCal", "1", chip)
-    #     self.pixel_decoded_register_write("Bypass_THCal", "0", chip)
-    #     self.pixel_decoded_register_write("TH_offset", format(0x07, '06b'), chip)
-    #     # Reset the calibration block (active low)
-    #     self.pixel_decoded_register_write("RSTn_THCal", "0", chip)
-    #     self.pixel_decoded_register_write("RSTn_THCal", "1", chip)
-    #     # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
-    #     self.pixel_decoded_register_write("ScanStart_THCal", "1", chip)
-    #     self.pixel_decoded_register_write("ScanStart_THCal", "0", chip)
-    #     # Check the calibration done correctly
-    #     if(self.pixel_decoded_register_read("ScanDone", "Status", chip)!="1"): print("!!!ERROR!!! Scan not done!!!")
-    #     self.BL_map_THCal[chip_address][row, col] = self.pixel_decoded_register_read("BL", "Status", chip, need_int=True)
-    #     self.NW_map_THCal[chip_address][row, col] = self.pixel_decoded_register_read("NW", "Status", chip, need_int=True)
-    #     if(data != None):
-    #         data += [{
-    #             'col': col,
-    #             'row': row,
-    #             'baseline': self.BL_map_THCal[chip_address][row, col],
-    #             'noise_width': self.NW_map_THCal[chip_address][row, col],
-    #             'timestamp': datetime.datetime.now(),
-    #             'chip_name': chip_name,
-    #         }]
-    #     # Enable TDC
-    #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
-    #     # Disable clock and buffer before charge injection
-    #     self.pixel_decoded_register_write("CLKEn_THCal", "0", chip)
-    #     self.pixel_decoded_register_write("BufEn_THCal", "0", chip)
-    #     self.pixel_decoded_register_write("QSel", format(0x1b, '05b'), chip)
-    #     self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip)
-    #     # Set DAC to max
-    #     self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
-    #     self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
-    #     if(verbose): print(f"Auto calibration finished for pixel ({row},{col}) on chip: {hex(chip_address)}")
-
-    # def close_TDC_pixel(self, chip_address, row, col, verbose=False, chip=None, row_indexer_handle=None, column_indexer_handle=None, alreadySetPixel=False):
-    #     if(chip==None):
-    #         chip = self.get_chip_i2c_connection(chip_address)
-    #     if(row_indexer_handle==None):
-    #         row_indexer_handle,_,_ = chip.get_indexer("row")
-    #     if(column_indexer_handle==None):
-    #         column_indexer_handle,_,_ = chip.get_indexer("column")
-    #     if(not alreadySetPixel):
-    #         column_indexer_handle.set(col)
-    #         row_indexer_handle.set(row)
-    #     ## Close trigger and data range
-    #     self.pixel_decoded_register_write("upperTOATrig", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'), chip)
-    #     self.pixel_decoded_register_write("upperTOTTrig", format(0x1ff, '09b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'), chip)
-    #     self.pixel_decoded_register_write("upperCalTrig", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'), chip)
-    #     self.pixel_decoded_register_write("upperTOA", format(0x000, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOA", format(0x000, '010b'), chip)
-    #     self.pixel_decoded_register_write("upperTOT", format(0x1ff, '09b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOT", format(0x1ff, '09b'), chip)
-    #     self.pixel_decoded_register_write("upperCal", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerCal", format(0x3ff, '010b'), chip)
-    #     if verbose: print(f"Closed TDC on pixel ({row},{col}) for chip: {hex(chip_address)}")
-
-    # def open_TDC_pixel(self, chip_address, row, col, verbose=False, chip=None, row_indexer_handle=None, column_indexer_handle=None, alreadySetPixel=False):
-    #     if(chip==None):
-    #         chip = self.get_chip_i2c_connection(chip_address)
-    #     if(row_indexer_handle==None):
-    #         row_indexer_handle,_,_ = chip.get_indexer("row")
-    #     if(column_indexer_handle==None):
-    #         column_indexer_handle,_,_ = chip.get_indexer("column")
-    #     if(not alreadySetPixel):
-    #         column_indexer_handle.set(col)
-    #         row_indexer_handle.set(row)
-    #     ## Release trigger and data range
-    #     self.pixel_decoded_register_write("upperTOATrig", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'), chip)
-    #     self.pixel_decoded_register_write("upperTOTTrig", format(0x1ff, '09b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOTTrig", format(0x000, '09b'), chip)
-    #     self.pixel_decoded_register_write("upperCalTrig", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerCalTrig", format(0x000, '010b'), chip)
-    #     self.pixel_decoded_register_write("upperTOA", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOA", format(0x000, '010b'), chip)
-    #     self.pixel_decoded_register_write("upperTOT", format(0x1ff, '09b'), chip)
-    #     self.pixel_decoded_register_write("lowerTOT", format(0x000, '09b'), chip)
-    #     self.pixel_decoded_register_write("upperCal", format(0x3ff, '010b'), chip)
-    #     self.pixel_decoded_register_write("lowerCal", format(0x000, '010b'), chip)
-    #     if verbose: print(f"Opened TDC on pixel ({row},{col}) for chip: {hex(chip_address)}")
-
     def set_TDC_window_vars(self, chip, triggerWindow=True, cbWindow=True):
         upperTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOATrig")
         lowerTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOATrig")
@@ -1022,34 +925,34 @@ class i2c_connection():
     def onchipL1A(self, chip_address, chip=None, comm='00'):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        self.peripheral_decoded_register_write("onChipL1AConf", comm, chip)
+        self.peripheral_decoded_register_write("onChipL1AConf", comm, chip=chip)
         print(f"OnChipL1A action {comm} done for chip: {hex(chip_address)}")
 
     def asyAlignFastcommand(self, chip_address, chip=None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        self.peripheral_decoded_register_write("asyAlignFastcommand", "1", chip)
+        self.peripheral_decoded_register_write("asyAlignFastcommand", "1", chip=chip)
         time.sleep(0.2)
-        self.peripheral_decoded_register_write("asyAlignFastcommand", "0", chip)
+        self.peripheral_decoded_register_write("asyAlignFastcommand", "0", chip=chip)
         print(f"asyAlignFastcommand action done for chip: {hex(chip_address)}")
 
     def asyResetGlobalReadout(self, chip_address, chip=None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        self.peripheral_decoded_register_write("asyResetGlobalReadout", "0", chip)
+        self.peripheral_decoded_register_write("asyResetGlobalReadout", "0", chip=chip)
         time.sleep(0.2)
-        self.peripheral_decoded_register_write("asyResetGlobalReadout", "1", chip)
+        self.peripheral_decoded_register_write("asyResetGlobalReadout", "1", chip=chip)
         print(f"Reset Global Readout done for chip: {hex(chip_address)}")
 
     def calibratePLL(self, chip_address, chip=None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        self.peripheral_decoded_register_write("asyPLLReset", "0", chip)
+        self.peripheral_decoded_register_write("asyPLLReset", "0", chip=chip)
         time.sleep(0.2)
-        self.peripheral_decoded_register_write("asyPLLReset", "1", chip)
-        self.peripheral_decoded_register_write("asyStartCalibration", "0", chip)
+        self.peripheral_decoded_register_write("asyPLLReset", "1", chip=chip)
+        self.peripheral_decoded_register_write("asyStartCalibration", "0", chip=chip)
         time.sleep(0.2)
-        self.peripheral_decoded_register_write("asyStartCalibration", "1", chip)
+        self.peripheral_decoded_register_write("asyStartCalibration", "1", chip=chip)
         print(f"PLL Calibrated for chip: {hex(chip_address)}")
     #--------------------------------------------------------------------------#
 
@@ -1092,7 +995,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         while b-a>1:
             DAC = int(np.floor((a+b)/2))
             # Set the DAC to the value being scanned
-            i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip)
+            i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip=chip)
             (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{DAC}'))
@@ -1198,7 +1101,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
             if threshold < 1:
                 threshold = 1
             # triggerbit_full_Scurve[row][col][threshold] = 0
-            i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip)
+            i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip=chip)
             (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq --DAC_Val {int(threshold)}".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_NoiseOnly_{threshold}'))
@@ -1351,7 +1254,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         for QInj in tqdm(QInjEns, desc=f'QInj Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
-            i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip)
+            i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip=chip)
             threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}'+attempt
             parser = run_script.getOptionParser()
             (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
@@ -1366,7 +1269,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
             while b-a>1:
                 DAC = int(np.floor((a+b)/2))
                 # Set the DAC to the value being scanned
-                i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip)
+                i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip=chip)
                 (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
                 IPC_queue = multiprocessing.Queue()
                 process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{DAC}'))
@@ -1565,7 +1468,7 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
                 if threshold < 1:
                     threshold = 1
                 # Set the DAC v, Qinj {Qinj}fCalue to the value being scanned
-                i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip)
+                i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip=chip)
                 # TH = i2c_conn.pixel_decoded_register_read("TH", "Status", pixel_connected_chip, need_int=True)
                 threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}_Threshold_{threshold}'+attempt
                 run_daq(timePerPixel=4, deadTime=2, dirname=threshold_name, today=today, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname)
