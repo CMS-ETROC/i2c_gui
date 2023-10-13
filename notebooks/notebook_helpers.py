@@ -725,7 +725,7 @@ class i2c_connection():
     #     self.pixel_decoded_register_write("enable_TDC", "1", chip)
     #     if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
-    def auto_cal_pixel(self, chip_name, row, col, verbose=False, chip_address=None, chip=None, data=None, row_indexer_handle=None, column_indexer_handle=None):
+    def auto_cal_pixel(self, chip_name, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, data=None, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None):
@@ -738,23 +738,57 @@ class i2c_connection():
         # BL_map_THCal, NW_map_THCal, BL_df = self.get_auto_cal_maps(chip_address)
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
+
+        chip.read_all_block("ETROC2", "Pixel Config")
+
+        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+        CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
+        BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
+        Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
+        TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
+        RSTn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
+        ScanStart_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
+        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
+        ScanDone_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
+        BL_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
+        NW_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
+
         # Disable TDC
-        self.pixel_decoded_register_write("enable_TDC", "0", chip)
+        enable_TDC_handle.set("0")
         # Enable THCal clock and buffer, disable bypass
-        self.pixel_decoded_register_write("CLKEn_THCal", "1", chip)
-        self.pixel_decoded_register_write("BufEn_THCal", "1", chip)
-        self.pixel_decoded_register_write("Bypass_THCal", "0", chip)
-        self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip)
+        CLKEn_THCal_handle.set("1")
+        BufEn_THCal_handle.set("1")
+        Bypass_THCal_handle.set("0")
+        TH_offset_handle.set(hex(0x0a))
+
+        # Send changes to chip
+        chip.write_all_block("ETROC2", "Pixel Config")
+
         # Reset the calibration block (active low)
-        self.pixel_decoded_register_write("RSTn_THCal", "0", chip)
-        self.pixel_decoded_register_write("RSTn_THCal", "1", chip)
+        RSTn_THCal_handle.set("0")
+        chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+        RSTn_THCal_handle.set("1")
+        chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+
         # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
-        self.pixel_decoded_register_write("ScanStart_THCal", "1", chip)
-        self.pixel_decoded_register_write("ScanStart_THCal", "0", chip)
-        # Check the calibration done correctly
-        if(self.pixel_decoded_register_read("ScanDone", "Status", chip)!="1"): print("!!!ERROR!!! Scan not done!!!")
-        self.BL_map_THCal[chip_address][row, col] = self.pixel_decoded_register_read("BL", "Status", chip, need_int=True)
-        self.NW_map_THCal[chip_address][row, col] = self.pixel_decoded_register_read("NW", "Status", chip, need_int=True)
+        ScanStart_THCal_handle.set("1")
+        chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+        ScanStart_THCal_handle.set("0")
+        chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+
+        # Wait for the calibration to be done correctly
+        retry_counter = 0
+        chip.read_all_block("ETROC2", "Pixel Status")
+        while ScanDone_handle.get() != "1":
+            time.sleep(0.01)
+            chip.read_all_block("ETROC2", "Pixel Status")
+            retry_counter += 1
+            if retry_counter == 5 and ScanDone_handle.get() != "1":
+                print(f"!!!ERROR!!! Scan not done for row {row}, col {col}!!!")
+
+
+        self.BL_map_THCal[chip_address][row, col] = int(BL_handle.get(), 0)
+        self.NW_map_THCal[chip_address][row, col] = int(NW_handle.get(), 0)
         if(data != None):
             data += [{
                 'col': col,
@@ -764,12 +798,18 @@ class i2c_connection():
                 'timestamp': datetime.datetime.now(),
                 'chip_name': chip_name,
             }]
-        # Disable clock and buffer before charge injection
-        self.pixel_decoded_register_write("CLKEn_THCal", "0", chip)
-        self.pixel_decoded_register_write("BufEn_THCal", "0", chip)
-        # Set DAC to max
-        self.pixel_decoded_register_write("Bypass_THCal", "1", chip)
-        self.pixel_decoded_register_write("DAC", format(0x3ff, '010b'), chip)
+
+        # Enable TDC
+        enable_TDC_handle.set("1")
+        # Disable THCal clock and buffer, enable bypass
+        CLKEn_THCal_handle.set("0")
+        BufEn_THCal_handle.set("0")
+        Bypass_THCal_handle.set("1")
+        DAC_handle.set(hex(0x3ff))
+
+        # Send changes to chip
+        chip.write_all_block("ETROC2", "Pixel Config")
+
         if(verbose): print(f"Auto calibration finished for pixel ({row},{col}) on chip: {hex(chip_address)}")
 
     # def auto_cal_pixel_TDCon(self, chip_name, row, col, verbose=False, chip_address=None, chip=None, data=None, row_indexer_handle=None, column_indexer_handle=None):
