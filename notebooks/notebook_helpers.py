@@ -1,7 +1,7 @@
 #############################################################################
 # zlib License
 #
-# (C) 2023 Zach FLowers, Murtaza Safdari <musafdar@cern.ch>
+# (C) 2023 Zach FLowers, Murtaza Safdari <musafdar@cern.ch>, Cristóvão Beirão da Cruz e Silva
 #
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
