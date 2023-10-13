@@ -568,7 +568,7 @@ class i2c_connection():
 
     #--------------------------------------------------------------------------#
 
-    def disable_pixel(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
+    def disable_pixel(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None):
@@ -580,24 +580,56 @@ class i2c_connection():
             column_indexer_handle,_,_ = chip.get_indexer("column")
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
-        self.pixel_decoded_register_write("disDataReadout", "1", chip)
-        self.pixel_decoded_register_write("QInjEn", "0", chip)
-        self.pixel_decoded_register_write("disTrigPath", "1", chip)
-        ## Close the trigger and data windows
-        self.pixel_decoded_register_write("upperTOATrig", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("lowerTOATrig", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("upperTOTTrig", format(0x1ff, '09b'), chip)
-        self.pixel_decoded_register_write("lowerTOTTrig", format(0x1ff, '09b'), chip)
-        self.pixel_decoded_register_write("upperCalTrig", format(0x3ff, '010b'), chip)
-        self.pixel_decoded_register_write("lowerCalTrig", format(0x3ff, '010b'), chip)
-        self.pixel_decoded_register_write("upperTOA", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("lowerTOA", format(0x000, '010b'), chip)
-        self.pixel_decoded_register_write("upperTOT", format(0x1ff, '09b'), chip)
-        self.pixel_decoded_register_write("lowerTOT", format(0x1ff, '09b'), chip)
-        self.pixel_decoded_register_write("upperCal", format(0x3ff, '010b'), chip)
-        self.pixel_decoded_register_write("lowerCal", format(0x3ff, '010b'), chip)
-        # Disable TDC
-        self.pixel_decoded_register_write("enable_TDC", "0", chip)
+
+        chip.read_all_block("ETROC2", "Pixel Config")
+
+        disDataReadout_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disDataReadout")
+        QInjEn_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "QInjEn")
+        disTrigPath_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disTrigPath")
+        upperTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOATrig")
+        lowerTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOATrig")
+        upperTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOTTrig")
+        lowerTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOTTrig")
+        upperCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCalTrig")
+        lowerCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCalTrig")
+        upperTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOA")
+        lowerTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOA")
+        upperTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOT")
+        lowerTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOT")
+        upperCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCal")
+        lowerCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCal")
+        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+
+        disDataReadout = "1"
+        QInjEn = "0"
+        disTrigPath = "1"
+        upperTOA = hex(0x000)
+        lowerTOA = hex(0x000)
+        upperTOT = hex(0x1ff)
+        lowerTOT = hex(0x1ff)
+        upperCal = hex(0x3ff)
+        lowerCal = hex(0x3ff)
+        enable_TDC = "0"
+
+        disDataReadout_handle.set(disDataReadout)
+        QInjEn_handle.set(QInjEn)
+        disTrigPath_handle.set(disTrigPath)
+        upperTOATrig_handle.set(upperTOA)
+        lowerTOATrig_handle.set(lowerTOA)
+        upperTOTTrig_handle.set(upperTOT)
+        lowerTOTTrig_handle.set(lowerTOT)
+        upperCalTrig_handle.set(upperCal)
+        lowerCalTrig_handle.set(lowerCal)
+        upperTOA_handle.set(upperTOA)
+        lowerTOA_handle.set(lowerTOA)
+        upperTOT_handle.set(upperTOT)
+        lowerTOT_handle.set(lowerTOT)
+        upperCal_handle.set(upperCal)
+        lowerCal_handle.set(lowerCal)
+        enable_TDC_handle.set(enable_TDC)
+
+        chip.write_all_block("ETROC2", "Pixel Config")
+
         if(verbose): print(f"Disabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
     # def enable_pixel(self, row, col, verbose=False, chip_address=None, chip=None, row_indexer_handle=None, column_indexer_handle=None):
