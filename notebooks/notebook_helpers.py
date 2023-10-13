@@ -221,37 +221,39 @@ class i2c_connection():
             print(f"Passed pixel check for chip: {hex(chip_address)}")
 
     # Function 1
-    def basic_peripheral_register_check(self,chip_address,chip=None):
+    def basic_peripheral_register_check(self,chip_address,chip:i2c_gui.chips.ETROC2_Chip =None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
         peri_flag_fail = False
         peripheralRegisterKeys = [i for i in range(32)]
+
+        # Initial read
+        chip.read_all_block("ETROC2", "Peripheral Config")
         for peripheralRegisterKey in peripheralRegisterKeys:
             # Fetch the register
             handle_PeriCfgX = chip.get_display_var("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            data_bin_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
+            data_PeriCfgX = int(handle_PeriCfgX.get(), 0)
             # Make the flipped bits
-            # data_bin_modified_PeriCfgX = list(data_bin_PeriCfgX)
-            data_bin_modified_PeriCfgX = data_bin_PeriCfgX.replace('1', '2').replace('0', '1').replace('2', '0')
-            # data_bin_modified_PeriCfgX = ''.join(data_bin_modified_PeriCfgX)
-            data_hex_modified_PeriCfgX = hex(int(data_bin_modified_PeriCfgX, base=2))
+            data_modified_PeriCfgX = data_PeriCfgX ^ 0xff
+
             # Set the register with the value
-            handle_PeriCfgX.set(data_hex_modified_PeriCfgX)
-            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            # Perform two reads to verify the persistence of the change
+            handle_PeriCfgX.set(hex(data_modified_PeriCfgX))
+            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}", write_check=True)  # Implicit read after write
+
+            # Perform second read to verify the persistence of the change
+            data_new_1_PeriCfgX = int(handle_PeriCfgX.get(), 0)
             chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            data_bin_new_1_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
-            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            data_bin_new_2_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
+            data_new_2_PeriCfgX = int(handle_PeriCfgX.get(), 0)
+
             # Undo the change to recover the original register value, and check for consistency
-            handle_PeriCfgX.set(hex(int(data_bin_PeriCfgX, base=2)))
+            handle_PeriCfgX.set(hex(data_PeriCfgX))
             chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
             chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            data_bin_recover_PeriCfgX = format(int(handle_PeriCfgX.get(), base=16), '08b')
+            data_recover_PeriCfgX = int(handle_PeriCfgX.get(), 0)
+
             # Handle what we learned from the tests
             # print(f"PeriCfg{peripheralRegisterKey:2}", data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX)
-            if(data_bin_new_1_PeriCfgX!=data_bin_new_2_PeriCfgX or data_bin_new_2_PeriCfgX!=data_bin_modified_PeriCfgX or data_bin_recover_PeriCfgX!=data_bin_PeriCfgX):
+            if(data_new_1_PeriCfgX!=data_new_2_PeriCfgX or data_new_2_PeriCfgX!=data_modified_PeriCfgX or data_recover_PeriCfgX!=data_PeriCfgX):
                 print(f"{chip_address}, PeriCfg{peripheralRegisterKey:2}", "FAILURE")
                 peri_flag_fail = True
         if(not peri_flag_fail):
@@ -260,21 +262,33 @@ class i2c_connection():
         del peripheralRegisterKeys
 
     # Function 2
-    def set_chip_peripherals(self, chip_address, chip_fc_delay, chip=None):
+    def set_chip_peripherals(self, chip_address, chip_fc_delay, chip:i2c_gui.chips.ETROC2_Chip=None):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        self.peripheral_decoded_register_write("EFuse_Prog", format(0x00017f0f, '032b'), chip)     # chip ID
-        self.peripheral_decoded_register_write("singlePort", '1', chip)                            # Set data output to right port only
-        self.peripheral_decoded_register_write("serRateLeft", '00', chip)                          # Set Data Rates to 320 mbps
-        self.peripheral_decoded_register_write("serRateRight", '00', chip)                         # ^^
-        self.peripheral_decoded_register_write("onChipL1AConf", '00', chip)                        # Switches off the onboard L1A
-        self.peripheral_decoded_register_write("PLL_ENABLEPLL", '1', chip)                         # "Enable PLL mode, active high. Debugging use only."
-        self.peripheral_decoded_register_write("chargeInjectionDelay", format(0x0a, '05b'), chip)  # User tunable delay of Qinj pulse
-        self.peripheral_decoded_register_write("triggerGranularity", format(0x01, '03b'), chip)    # only for trigger bit
-        ## "0" means disable
-        ## "1" means enable
-        self.peripheral_decoded_register_write("fcClkDelayEn", chip_fc_delay[0], chip)
-        self.peripheral_decoded_register_write("fcDataDelayEn", chip_fc_delay[1], chip)
+        chip.read_all_block("ETROC2", "Peripheral Config")
+
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "EFuse_Prog")           # chip ID
+        handle.set(hex(0x00017f0f))
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "singlePort")           # Set data output to right port only
+        handle.set('1')
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "serRateLeft")          # Set Data Rates to 320 mbps
+        handle.set(hex(0b00))
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "serRateRight")         # ^^
+        handle.set(hex(0b00))
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "onChipL1AConf")        # Switches off the onboard L1A
+        handle.set(hex(0b00))
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "PLL_ENABLEPLL")        # "Enable PLL mode, active high. Debugging use only."
+        handle.set('1')
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "chargeInjectionDelay") # User tunable delay of Qinj pulse
+        handle.set(hex(0x0a))
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "triggerGranularity")   # only for trigger bit
+        handle.set(hex(0x01))
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "fcClkDelayEn")
+        handle.set(chip_fc_delay[0])
+        handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "fcDataDelayEn")
+        handle.set(chip_fc_delay[1])
+
+        chip.write_all_block("ETROC2", "Peripheral Config")
         print(f"Peripherals set for chip: {hex(chip_address)}")
 
     # Function 3
