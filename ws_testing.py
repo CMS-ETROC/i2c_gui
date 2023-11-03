@@ -43,6 +43,10 @@ from pathlib import Path
 import pandas as pd
 sys.path.insert(1, f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
 import run_script
+try:
+  import parser_arguments
+except:
+    pass
 import importlib
 importlib.reload(run_script)
 from scripts.log_action import log_action_v2
@@ -53,6 +57,7 @@ def run_ws(
         fpga_ip: str = '192.168.2.3',
         chip_address = 0x60,
         ws_address = 0x40,
+        read_mode = 'WS',
     ):
     log_action_v2(Path("./"), "Config", "WS", f"Configure waveform sampler of chip with WS I2C {ws_address} with ws_testing.py script")
     # Set defaults
@@ -60,6 +65,19 @@ def run_ws(
 
     # 'The port name the USB-ISS module is connected to. Default: COM3'
     # I2C addresses for the pixel block and WS
+
+    if read_mode == 'WS':
+        do_ws_controller = True
+        do_i2c_controller = False
+        do_high_level = False
+    elif read_mode == 'I2C':
+        do_ws_controller = False
+        do_i2c_controller = True
+        do_high_level = False
+    else:
+        do_ws_controller = False
+        do_i2c_controller = False
+        do_high_level = True
 
     i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
     i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
@@ -259,7 +277,10 @@ def run_ws(
     base_dir = Path(todaystr)
     base_dir.mkdir(exist_ok=True)
 
-    parser = run_script.getOptionParser()
+    try:
+        parser = parser_arguments.create_parser()
+    except:
+        parser = run_script.getOptionParser()
     (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t {int(total_scan_time)} -o {outname} -v -w -s 0x000C -p 0x000f --compressed_translation  --clear_fifo".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
@@ -269,7 +290,9 @@ def run_ws(
     while not IPC_queue.empty():
         pass
 
+    print("Taking data, waiting 1.5 s")
     time.sleep(1.5)
+    print("Done waiting, will stop the DAQ")
     IPC_queue.put('stop DAQ')
     while not IPC_queue.empty():
         pass
@@ -286,11 +309,33 @@ def run_ws(
     coeff = 0.05/5*8.5  # This number comes from the example script in the manual
     time_coeff = 1/2.56  # 2.56 GHz WS frequency
 
+    from i2c_gui.chips.address_space_controller import Address_Space_Controller
+    ws_address_space_controller: Address_Space_Controller = chip._address_space["Waveform Sampler"]
+
+    from i2c_gui.i2c_connection_helper import I2C_Connection_Helper
+    i2c_controller: I2C_Connection_Helper = chip._i2c_controller
+    addr_regs = [0x00, 0x00]  # regOut1C and regOut1D
+
     for address in tqdm(range(max_steps)):
-        rd_addr_handle.set(hex(address))
-        chip.write_decoded_value("Waveform Sampler", "Config", "rd_addr")
-        chip.read_decoded_value("Waveform Sampler", "Status", "dout")
-        data = dout_handle.get()
+        if do_ws_controller:
+            ws_address_space_controller._memory[0x1C] = ((address & 0b11) << 6)
+            ws_address_space_controller._memory[0x1D] = ((address & 0b1111111100) >> 2)
+            ws_address_space_controller.write_memory_block(0x1C, 2, write_check=False)
+            ws_address_space_controller.read_memory_block(0x20, 2)  # Read regIn20 and regIn21
+            data = dout_handle.get()
+
+        if do_i2c_controller:
+            addr_regs[0] = ((address & 0b11) << 6)          # 0x1C
+            addr_regs[1] = ((address & 0b1111111100) >> 2)  # 0x1D
+            i2c_controller.write_device_memory(ws_address, 0x1C, addr_regs, 8)
+            tmp_data = i2c_controller.read_device_memory(ws_address, 0x20, 2, 8)
+            data = hex((tmp_data[0] >> 2) + (tmp_data[1] << 6))
+
+        if do_high_level:
+            rd_addr_handle.set(hex(address))
+            chip.write_decoded_value("Waveform Sampler", "Config", "rd_addr", write_check=False, no_message=True)
+            chip.read_decoded_value("Waveform Sampler", "Status", "dout", no_message=True)
+            data = dout_handle.get()
 
         #if time_idx == 1:
         #    data = hex_0fill(int(data, 0) + 8192, 14)
@@ -425,6 +470,15 @@ def main():
         default="192.168.2.3",
         dest = 'ip_address',
     )
+    parser.add_argument(
+        '-m',
+        '--read_mode',
+        metavar='MODE',
+        type = str,
+        choices=["WS", "I2C", "High Level"],
+        default='WS',
+        help='The read mode algorithm to use for reading the WS. Options are: WS - to read with the WS controller; I2C - to read with the I2C controller; High Level - to use the high level functions. Default: WS',
+    )
     args = parser.parse_args()
 
     run_ws(
@@ -433,6 +487,7 @@ def main():
         fpga_ip = args.ip_address,
         chip_address = 0x60,
         ws_address = 0x40,
+        read_mode = args.read_mode,
     )
 
 if __name__ == "__main__":
