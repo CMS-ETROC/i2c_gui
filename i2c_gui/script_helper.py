@@ -24,7 +24,8 @@ from __future__ import annotations
 
 from .gui_helper import GUI_Helper
 
-import tkinter as tk
+#import tkinter as tk
+from mttkinter import mtTkinter as tk
 import logging
 
 class ScriptHelper(GUI_Helper):
