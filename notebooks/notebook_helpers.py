@@ -38,10 +38,12 @@ import pickle
 import matplotlib.pyplot as plt
 import multiprocessing
 from pathlib import Path
-os.chdir(f'/home/{os.getlogin()}/ETROC/ETROC_DAQ')
+os.chdir(f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
 import run_script
+import parser_arguments
 import importlib
 importlib.reload(run_script)
+importlib.reload(parser_arguments)
 from fnmatch import fnmatch
 import scipy.stats as stats
 import hist
@@ -1052,7 +1054,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         column_indexer_handle.set(col)
         threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
         parser = parser_arguments.create_parser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
         process.start()
@@ -1064,7 +1066,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
             DAC = int(np.floor((a+b)/2))
             # Set the DAC to the value being scanned
             i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip=chip)
-            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
+            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq --DAC_Val {int(DAC)}".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{DAC}'))
             process.start()
@@ -1157,7 +1159,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
         column_indexer_handle.set(col)
         threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
         parser = parser_arguments.create_parser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag}".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --nodaq -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag}".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_noiseOnly'))
         process.start()
@@ -1170,7 +1172,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
                 threshold = 1
             # triggerbit_full_Scurve[row][col][threshold] = 0
             i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip=chip)
-            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq --DAC_Val {int(threshold)}".split())
+            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --nodaq --DAC_Val {int(threshold)}".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_NoiseOnly_{threshold}'))
             process.start()
@@ -1325,7 +1327,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
             i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip=chip)
             threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}'+attempt
             parser = parser_arguments.create_parser()
-            (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
+            (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
             process.start()
@@ -1338,7 +1340,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                 DAC = int(np.floor((a+b)/2))
                 # Set the DAC to the value being scanned
                 i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip=chip)
-                (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
+                (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq --DAC_Val {int(DAC)}".split())
                 IPC_queue = multiprocessing.Queue()
                 process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{DAC}'))
                 process.start()
