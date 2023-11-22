@@ -38,7 +38,7 @@ import pickle
 import matplotlib.pyplot as plt
 import multiprocessing
 from pathlib import Path
-os.chdir(f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
+os.chdir(f'/home/{os.getlogin()}/ETROC/ETROC_DAQ')
 import run_script
 import importlib
 importlib.reload(run_script)
@@ -1051,7 +1051,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
-        parser = run_script.getOptionParser()
+        parser = parser_arguments.create_parser()
         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
@@ -1156,7 +1156,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
-        parser = run_script.getOptionParser()
+        parser = parser_arguments.create_parser()
         (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag}".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_noiseOnly'))
@@ -1324,7 +1324,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
         for QInj in tqdm(QInjEns, desc=f'QInj Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
             i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip=chip)
             threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}'+attempt
-            parser = run_script.getOptionParser()
+            parser = parser_arguments.create_parser()
             (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
@@ -1461,8 +1461,8 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     total_scan_time = timePerPixel + deadTime
 
-    parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --reset_till_trigger_linked".split())
+    parser = parser_arguments.create_parser()
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag}".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
@@ -1641,16 +1641,16 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
         with open(file_name) as infile:
             for line in infile:
                 text_list = line.split()
-                if text_list[2]=="HEADER":
-                    current_bcid = int(text_list[8])
-                if text_list[2]=="TRAILER":
+                if text_list[0]=="H":
+                    current_bcid = int(text_list[4])
+                if text_list[0]=="T":
                     previous_bcid = current_bcid
-                if text_list[2]!="DATA": continue
-                # col = int(text_list[6])
-                # row = int(text_list[8])
-                TOA = int(text_list[10])
-                TOT = int(text_list[12])
-                CAL = int(text_list[14])
+                if text_list[0]!="D": continue
+                # col = int(text_list[3])
+                # row = int(text_list[4])
+                TOA = int(text_list[5])
+                TOT = int(text_list[6])
+                CAL = int(text_list[7])
 
                 # if(CAL<193 or CAL>196): continue
                 hit_counts[row, col, QInj][DAC] += 1
