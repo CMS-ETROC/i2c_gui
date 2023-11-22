@@ -1394,7 +1394,7 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
     total_scan_time = timePerPixel + deadTime
 
     parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --reset_till_trigger_linked".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --reset_till_trigger_linked --compressed_translation --skip_binary --ssd".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
