@@ -1369,9 +1369,11 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                         if(FPGA_state==0 or line_DAC!=DAC):
                             continue_flag=True
                             continue
-                        TDC_data = int(text_list[3])
                         # Condition handling for Binary Search
-                        if(TDC_data>=header_max/2.):
+                        # TDC_data = int(text_list[3])
+                        # if(TDC_data>=header_max/2.):
+                        Triggerbits = int(text_list[-2])
+                        if(Triggerbits>=11224/2.):
                             a = DAC
                         else:
                             b = DAC
