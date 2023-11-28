@@ -1596,7 +1596,7 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
     if(today==''): today = datetime.date.today().isoformat()
     scan_name = f"*{today}_Array_Test_Results/"+chip_figname+"_VRef_SCurve_TDC"
     root = '../ETROC-Data'
-    file_pattern = "*translated_[1-9]*.dat"
+    file_pattern = "*translated_[1-9]*.nem"
     path_pattern = f"*{scan_name}*"
     file_list = []
     for path, subdirs, files in os.walk(root):
@@ -1623,8 +1623,8 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
 
     total_files = len(file_list)
     for file_index, file_name in enumerate(file_list):
-        col = int(file_name.split('/')[-2].split('_')[-6][1:])
-        row = int(file_name.split('/')[-2].split('_')[-5][1:])
+        col = int(file_name.split('/')[-2].split('_')[-5][1:])
+        row = int(file_name.split('/')[-2].split('_')[-6][1:])
         QInj = int(file_name.split('/')[-2].split('_')[-3])
         DAC = int(file_name.split('/')[-2].split('_')[-1])
         if((row,col) not in scan_list): continue
