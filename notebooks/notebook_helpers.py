@@ -40,8 +40,10 @@ import multiprocessing
 from pathlib import Path
 os.chdir(f'/home/{os.getlogin()}/ETROC2/ETROC_DAQ')
 import run_script
+import parser_arguments
 import importlib
 importlib.reload(run_script)
+importlib.reload(parser_arguments)
 from fnmatch import fnmatch
 import scipy.stats as stats
 import hist
@@ -67,8 +69,9 @@ This script is composed of all the helper functions needed for I2C comms, FPGA, 
 class i2c_connection():
     _chips = None
 
-    def __init__(self, port, chip_addresses, chip_names, chip_fc_delays):
+    def __init__(self, port, chip_addresses,ws_addresses, chip_names, chip_fc_delays):
         self.chip_addresses = chip_addresses
+        self.ws_addresses = ws_addresses
         self.chip_names = chip_names
         # 2-tuple of binary numbers represented as strings ("0","1")
         # Here "0" is the "fcClkDelayEn" and "1" is the fcDataDelayEn
@@ -100,8 +103,8 @@ class i2c_connection():
     # func_string is an 8-bit binary number, LSB->MSB is function 0->7
     # "0" means don't call the corr function, and vice-versa
     def config_chips(self, func_string = '00000000'):
-        for chip_address, chip_name, chip_fc_delay in zip(self.chip_addresses, self.chip_names, self.chip_fc_delays):
-            chip = self.get_chip_i2c_connection(chip_address)
+        for chip_address, chip_name, chip_fc_delay, ws_address in zip(self.chip_addresses, self.chip_names, self.chip_fc_delays, self.ws_addresses):
+            chip = self.get_chip_i2c_connection(chip_address, ws_address)
             if(int(func_string[-1])): self.pixel_check(chip_address, chip)
             if(int(func_string[-2])): self.basic_peripheral_register_check(chip_address, chip)
             if(int(func_string[-3])): self.set_chip_peripherals(chip_address, chip_fc_delay, chip)
@@ -109,15 +112,20 @@ class i2c_connection():
             if(int(func_string[-5])): self.auto_calibration(chip_address, chip_name, chip)
             if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip_name, chip)
             if(int(func_string[-7])): pass
-            if(int(func_string[-8])): pass
+            if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
 
-    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=True):
-        for chip_address in self.chip_addresses:
+    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=True, specified_addresses=[]):
+        if(len(specified_addresses)==0):
+            full_list = self.chip_addresses
+        else:
+            full_list = specified_addresses
+        for chip_address in full_list:
             chip = self.get_chip_i2c_connection(chip_address)
             row_indexer_handle,_,_ = chip.get_indexer("row")
             column_indexer_handle,_,_ = chip.get_indexer("column")
             for row,col in pixel_list:
                 self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow)
+        del full_list
 
     def enable_all_pixels(self, chip_address, chip=None, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=False):
         if(chip==None):
@@ -180,23 +188,55 @@ class i2c_connection():
         value_to_return = handle.get()
         if(need_int): return int(value_to_return, base=16)
         else: return value_to_return
+
+    def ws_decoded_register_write(self, decodedRegisterName, data_to_write, chip=None, chip_address=None, ws_address=None):
+        if(chip==None and chip_address!=None and ws_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address, ws_address)
+        elif(chip==None and (chip_address==None or ws_address==None)): print("Need either a chip or chip+ws address to access registers!")
+        bit_depth = register_decoding["Waveform Sampler"]["Register Blocks"]["Config"][decodedRegisterName]["bits"]
+        handle = chip.get_decoded_display_var("Waveform Sampler", "Config", decodedRegisterName)
+        chip.read_decoded_value("Waveform Sampler", "Config", decodedRegisterName)
+        if len(data_to_write)!=bit_depth: print("Binary data_to_write is of incorrect length for",decodedRegisterName, "with bit depth", bit_depth)
+        data_hex_modified = hex(int(data_to_write, base=2))
+        if(bit_depth>1): handle.set(data_hex_modified)
+        elif(bit_depth==1): handle.set(data_to_write)
+        else: print(decodedRegisterName, "!!!ERROR!!! Bit depth <1, how did we get here...")
+        chip.write_decoded_value("Waveform Sampler", "Config", decodedRegisterName)
+
+    def ws_decoded_config_read(self, decodedRegisterName, need_int=False, chip=None, chip_address=None, ws_address=None):
+        if(chip==None and chip_address!=None and ws_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address, ws_address)
+        elif(chip==None and (chip_address==None or ws_address==None)): print("Need either a chip or chip+ws address to access registers!")
+        handle = chip.get_decoded_display_var("Waveform Sampler", f"Config", decodedRegisterName)
+        chip.read_decoded_value("Waveform Sampler", f"Config", decodedRegisterName)
+        if(need_int): return int(handle.get(), base=16)
+        else: return handle.get()
+
+    def ws_decoded_status_read(self, decodedRegisterName, need_int=False, chip=None, chip_address=None, ws_address=None):
+        if(chip==None and chip_address!=None and ws_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address, ws_address)
+        elif(chip==None and (chip_address==None or ws_address==None)): print("Need either a chip or chip+ws address to access registers!")
+        handle = chip.get_decoded_display_var("Waveform Sampler", f"Status", decodedRegisterName)
+        chip.read_decoded_value("Waveform Sampler", f"Status", decodedRegisterName)
+        if(need_int): return int(handle.get(), base=16)
+        else: return handle.get()
     #--------------------------------------------------------------------------#
 
     #--------------------------------------------------------------------------#
-    def get_chip_i2c_connection(self, chip_address):
+    def get_chip_i2c_connection(self, chip_address, ws_address=None):
         if self._chips is None:
             self._chips = {}
 
         if chip_address not in self._chips:
             self._chips[chip_address] = i2c_gui.chips.ETROC2_Chip(parent=self.Script_Helper, i2c_controller=self.conn)
             self._chips[chip_address].config_i2c_address(chip_address)
-            # self._chips[chip_address].config_i2c_address(ws_address)  # Not needed if you do not access WS registers
+            if(ws_address!=None): self._chips[chip_address].config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
 
         # logger.setLevel(log_level)
         return self._chips[chip_address]
 
-    def get_pixel_chip(self, chip_address, row, col):
-        chip = self.get_chip_i2c_connection(chip_address)
+    def get_pixel_chip(self, chip_address, row, col, ws_address=None):
+        chip = self.get_chip_i2c_connection(chip_address, ws_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
         row_indexer_handle.set(row)
@@ -569,6 +609,36 @@ class i2c_connection():
             chip = self.get_chip_i2c_connection(chip_address)
         self.disable_all_pixels(chip_address=chip_address, chip=chip)
         self.auto_calibration(chip_address, chip_name, chip)
+
+    # Function 7
+    def prepare_ws_testing(self, chip_address, ws_address, chip=None):
+        if(chip==None and chip_address!=None and ws_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address, ws_address)
+        elif(chip==None and (chip_address==None or ws_address==None)): print("Need either a chip or chip+ws address to access registers!")
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        row = 0
+        col = 14
+        column_indexer_handle.set(col)
+        row_indexer_handle.set(row)
+        ### WS and pixel initialization
+        self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True)
+        self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip=chip)  # Offset used to add to the auto BL for real triggering
+        self.pixel_decoded_register_write("RFSel", format(0x00, '02b'), chip=chip)      # Set Largest feedback resistance -> maximum gain
+        self.pixel_decoded_register_write("QSel", format(0x1e, '05b'), chip=chip)       # Ensure we inject 30 fC of charge
+        print(f"WS Pixel (R0,C14) TH_Offset, RFSel, QSel Initialized for chip: {hex(chip_address)}")
+        regOut1F_handle = chip.get_display_var("Waveform Sampler", "Config", "regOut1F")
+        regOut1F_handle.set("0x22")
+        chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        regOut1F_handle.set("0x0b")
+        chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
+        # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
+        # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
+        self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)             # Time Skew Calibration set to 0
+        self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)           # CTRL default = 0x10 for regOut0D
+        self.ws_decoded_register_write("comp_cali", format(0, '03b'), chip=chip)        # Comparator calibration should be off
+        print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
 
@@ -983,8 +1053,8 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
-        parser = run_script.getOptionParser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
+        parser = parser_arguments.create_parser()
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
         process.start()
@@ -996,7 +1066,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
             DAC = int(np.floor((a+b)/2))
             # Set the DAC to the value being scanned
             i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip=chip)
-            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
+            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq --DAC_Val {int(DAC)}".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{DAC}'))
             process.start()
@@ -1088,8 +1158,8 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
-        parser = run_script.getOptionParser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag}".split())
+        parser = parser_arguments.create_parser()
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --nodaq -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag}".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_noiseOnly'))
         process.start()
@@ -1102,7 +1172,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
                 threshold = 1
             # triggerbit_full_Scurve[row][col][threshold] = 0
             i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip=chip)
-            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --check_trigger_link_at_end --nodaq --DAC_Val {int(threshold)}".split())
+            (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data --nodaq --DAC_Val {int(threshold)}".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_NoiseOnly_{threshold}'))
             process.start()
@@ -1256,8 +1326,8 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
         for QInj in tqdm(QInjEns, desc=f'QInj Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
             i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip=chip)
             threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}'+attempt
-            parser = run_script.getOptionParser()
-            (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w --reset_till_trigger_linked -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq".split())
+            parser = parser_arguments.create_parser()
+            (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -o {threshold_name} -v -w -s {s_flag} -d {d_flag} -a {a_flag} -p {p_flag} --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq".split())
             IPC_queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_link'))
             process.start()
@@ -1270,7 +1340,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                 DAC = int(np.floor((a+b)/2))
                 # Set the DAC to the value being scanned
                 i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip=chip)
-                (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --reset_till_trigger_linked --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --check_trigger_link_at_end --nodaq --DAC_Val {int(DAC)}".split())
+                (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq --DAC_Val {int(DAC)}".split())
                 IPC_queue = multiprocessing.Queue()
                 process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{DAC}'))
                 process.start()
@@ -1299,9 +1369,11 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                         if(FPGA_state==0 or line_DAC!=DAC):
                             continue_flag=True
                             continue
-                        TDC_data = int(text_list[3])
                         # Condition handling for Binary Search
-                        if(TDC_data>=header_max/2.):
+                        # TDC_data = int(text_list[3])
+                        # if(TDC_data>=header_max/2.):
+                        Triggerbits = int(text_list[-2])
+                        if(Triggerbits>=11224/2.):
                             a = DAC
                         else:
                             b = DAC
@@ -1393,8 +1465,8 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     total_scan_time = timePerPixel + deadTime
 
-    parser = run_script.getOptionParser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --reset_till_trigger_linked --compressed_translation --skip_binary --ssd".split())
+    parser = parser_arguments.create_parser()
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --compressed_translation --skip_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
@@ -1573,16 +1645,16 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
         with open(file_name) as infile:
             for line in infile:
                 text_list = line.split()
-                if text_list[2]=="HEADER":
-                    current_bcid = int(text_list[8])
-                if text_list[2]=="TRAILER":
+                if text_list[0]=="H":
+                    current_bcid = int(text_list[4])
+                if text_list[0]=="T":
                     previous_bcid = current_bcid
-                if text_list[2]!="DATA": continue
-                # col = int(text_list[6])
-                # row = int(text_list[8])
-                TOA = int(text_list[10])
-                TOT = int(text_list[12])
-                CAL = int(text_list[14])
+                if text_list[0]!="D": continue
+                # col = int(text_list[3])
+                # row = int(text_list[4])
+                TOA = int(text_list[5])
+                TOT = int(text_list[6])
+                CAL = int(text_list[7])
 
                 # if(CAL<193 or CAL>196): continue
                 hit_counts[row, col, QInj][DAC] += 1
