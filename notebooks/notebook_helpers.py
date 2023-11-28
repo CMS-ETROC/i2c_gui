@@ -1106,7 +1106,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         if(verbose): print(f"Turn-On point for Pixel ({row},{col}) for chip {hex(chip_address)} is found to be DAC:{turnon_point}")
         del IPC_queue, process, parser
 
-def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3"):
+def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3", override_baseline=None):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     thresholds = np.arange(-10,20,pedestal_scan_step) # relative to BL
@@ -1141,7 +1141,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
         #         text_list = last_line.split(',')
         #         line_DAC = int(text_list[-1])
         #         turnon_point = line_DAC
-        turnon_point = BL_map_THCal[row][col]
+        turnon_point = override_baseline if override_baseline is not None else BL_map_THCal[row][col]
         if(allon or busyCB):
             i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
         else:
