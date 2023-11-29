@@ -1106,7 +1106,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         if(verbose): print(f"Turn-On point for Pixel ({row},{col}) for chip {hex(chip_address)} is found to be DAC:{turnon_point}")
         del IPC_queue, process, parser
 
-def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3"):
+def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3", override_baseline=None):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     thresholds = np.arange(-10,20,pedestal_scan_step) # relative to BL
@@ -1141,7 +1141,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
         #         text_list = last_line.split(',')
         #         line_DAC = int(text_list[-1])
         #         turnon_point = line_DAC
-        turnon_point = BL_map_THCal[row][col]
+        turnon_point = override_baseline if override_baseline is not None else BL_map_THCal[row][col]
         if(allon or busyCB):
             i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
         else:
@@ -1369,9 +1369,11 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                         if(FPGA_state==0 or line_DAC!=DAC):
                             continue_flag=True
                             continue
-                        TDC_data = int(text_list[3])
                         # Condition handling for Binary Search
-                        if(TDC_data>=header_max/2.):
+                        # TDC_data = int(text_list[3])
+                        # if(TDC_data>=header_max/2.):
+                        Triggerbits = int(text_list[-2])
+                        if(Triggerbits>=11224/2.):
                             a = DAC
                         else:
                             b = DAC
@@ -1464,7 +1466,7 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
     total_scan_time = timePerPixel + deadTime
 
     parser = parser_arguments.create_parser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag}".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --compressed_translation --skip_binary".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
@@ -1594,7 +1596,7 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
     if(today==''): today = datetime.date.today().isoformat()
     scan_name = f"*{today}_Array_Test_Results/"+chip_figname+"_VRef_SCurve_TDC"
     root = '../ETROC-Data'
-    file_pattern = "*translated_[1-9]*.dat"
+    file_pattern = "*translated_[1-9]*.nem"
     path_pattern = f"*{scan_name}*"
     file_list = []
     for path, subdirs, files in os.walk(root):
@@ -1621,8 +1623,8 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
 
     total_files = len(file_list)
     for file_index, file_name in enumerate(file_list):
-        col = int(file_name.split('/')[-2].split('_')[-6][1:])
-        row = int(file_name.split('/')[-2].split('_')[-5][1:])
+        col = int(file_name.split('/')[-2].split('_')[-5][1:])
+        row = int(file_name.split('/')[-2].split('_')[-6][1:])
         QInj = int(file_name.split('/')[-2].split('_')[-3])
         DAC = int(file_name.split('/')[-2].split('_')[-1])
         if((row,col) not in scan_list): continue
