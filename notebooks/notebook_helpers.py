@@ -66,6 +66,8 @@ This script is composed of all the helper functions needed for I2C comms, FPGA, 
 
 ## TODO Broadcast function check
 
+valid_power_modes = ['low', '010', '101', 'high']
+
 class i2c_connection():
     _chips = None
 
@@ -114,7 +116,9 @@ class i2c_connection():
             if(int(func_string[-7])): pass
             if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
 
-    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=True, specified_addresses=[]):
+    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=True, specified_addresses=[], power_mode="low"):
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
         if(len(specified_addresses)==0):
             full_list = self.chip_addresses
         else:
@@ -124,17 +128,19 @@ class i2c_connection():
             row_indexer_handle,_,_ = chip.get_indexer("row")
             column_indexer_handle,_,_ = chip.get_indexer("column")
             for row,col in pixel_list:
-                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow)
+                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
         del full_list
 
-    def enable_all_pixels(self, chip_address, chip=None, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=False):
+    def enable_all_pixels(self, chip_address, chip=None, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=False, power_mode="low"):
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
         for row in tqdm(range(16), desc="Enabling row", position=0):
             for col in range(16):
-                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow)
+                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
         print(f"Enabled pixels for chip: {hex(chip_address)}")
 
     def __del__(self):
@@ -622,7 +628,7 @@ class i2c_connection():
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
         ### WS and pixel initialization
-        self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True)
+        self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="low")
         self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip=chip)  # Offset used to add to the auto BL for real triggering
         self.pixel_decoded_register_write("RFSel", format(0x00, '02b'), chip=chip)      # Set Largest feedback resistance -> maximum gain
         self.pixel_decoded_register_write("QSel", format(0x1e, '05b'), chip=chip)       # Ensure we inject 30 fC of charge
@@ -706,7 +712,9 @@ class i2c_connection():
 
         if(verbose): print(f"Disabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
-    def enable_pixel_modular(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=True):
+    def enable_pixel_modular(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode = "low"):
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None):
@@ -730,6 +738,7 @@ class i2c_connection():
         QSel_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "QSel")
         DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
         enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+        IBSel_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "IBSel")
 
         disDataReadout_handle.set("0")
         QInjEn_handle.set("1" if QInjEn else "0")
@@ -740,6 +749,16 @@ class i2c_connection():
         QSel_handle.set(hex(0x1b))       # Ensure we inject 27 fC of charge
         DAC_handle.set(hex(0x3ff))
         self.set_TDC_window_vars(chip=chip, triggerWindow=triggerWindow, cbWindow=cbWindow)
+        if power_mode == "high":
+            IBSel_handle.set("000")
+        elif power_mode == "010":
+            IBSel_handle.set("010")
+        elif power_mode == "101":
+            IBSel_handle.set("101")
+        elif power_mode == "low":
+            IBSel_handle.set("111")
+        else:
+            IBSel_handle.set('111')
 
         chip.write_all_block("ETROC2", "Pixel Config")
 
@@ -1029,7 +1048,7 @@ class i2c_connection():
 #--------------------------------------------------------------------------#
 #  Functions separate from the i2c_conn class
 
-def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, attempt='', today='', calibrate=False, hostname = "192.168.2.3"):
+def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode="low"):
     scan_name = chip_figname+"_VRef_SCurve_BinarySearch_TurnOn"
     fpga_time = 3
 
@@ -1048,7 +1067,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         if(calibrate):
             i2c_conn.auto_cal_pixel(chip_name=chip_figname, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=None, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
             # i2c_conn.disable_pixel(row, col, verbose=False, chip_address=chip_address, chip=None, row_indexer_handle=None, column_indexer_handle=None)
-        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=False)
+        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=False, power_mode=power_mode)
         # pixel_connected_chip = i2c_conn.get_pixel_chip(chip_address, row, col)
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
@@ -1106,7 +1125,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         if(verbose): print(f"Turn-On point for Pixel ({row},{col}) for chip {hex(chip_address)} is found to be DAC:{turnon_point}")
         del IPC_queue, process, parser
 
-def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3", override_baseline=None):
+def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3", override_baseline=None, power_mode="low"):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     thresholds = np.arange(-10,20,pedestal_scan_step) # relative to BL
@@ -1123,7 +1142,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
     if(allon):
         for first_idx in tqdm(range(16), leave=False):
             for second_idx in range(16):
-                i2c_conn.enable_pixel_modular(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=False, cbWindow=True)
+                i2c_conn.enable_pixel_modular(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=False, cbWindow=True, power_mode=power_mode)
     for row,col in scan_list:
         # turnon_point = -1
         # path_pattern = f"*{today}_Array_Test_Results/{chip_figname}_VRef_SCurve_BinarySearch_TurnOn_Pixel_C{col}_R{row}"+tp_tag
@@ -1143,9 +1162,9 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
         #         turnon_point = line_DAC
         turnon_point = override_baseline if override_baseline is not None else BL_map_THCal[row][col]
         if(allon or busyCB):
-            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True, power_mode=power_mode)
         else:
-            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=False)
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=False, power_mode=power_mode)
         if(neighbors and (not allon)):
             for first_idx in range(-1,2):
                 row_nb = row+first_idx
@@ -1154,7 +1173,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
                     col_nb = col+second_idx
                     if(col_nb>15 or col_nb<0): continue
                     if(col_nb==col and row_nb == row): continue
-                    i2c_conn.enable_pixel_modular(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+                    i2c_conn.enable_pixel_modular(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True, power_mode=power_mode)
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         threshold_name = scan_name+f'_Pixel_C{col}_R{row}'+attempt
@@ -1190,7 +1209,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
                         if(col_nb==col and row_nb == row): continue
                         i2c_conn.disable_pixel(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         else:
-            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=False, cbWindow=True)
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=False, cbWindow=True, power_mode=power_mode)
         del IPC_queue, process, parser
     if(allon):
         for first_idx in tqdm(range(16), leave=False):
@@ -1301,7 +1320,9 @@ def trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, chip_figna
     del triggerbit_full_Scurve
 
 
-def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3"):
+def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode='low'):
+    if power_mode not in valid_power_modes:
+        power_mode = 'low'
     DAC_scan_max = 1020
     scan_name = chip_figname+"_VRef_SCurve_BinarySearch_TurnOff"
     fpga_time = 3
@@ -1320,7 +1341,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
         if(calibrate):
             i2c_conn.auto_cal_pixel(chip_name=chip_figname, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=None, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
             # i2c_conn.disable_pixel(row, col, verbose=False, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
-        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True, power_mode=power_mode)
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         for QInj in tqdm(QInjEns, desc=f'QInj Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
@@ -1483,7 +1504,7 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     process.join()
 
-def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3"):
+def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low"):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_TDC"
@@ -1501,10 +1522,10 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
     if(allon):
         for first_idx in tqdm(range(16), leave=False):
             for second_idx in range(16):
-                i2c_conn.enable_pixel_modular(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False)
+                i2c_conn.enable_pixel_modular(row=first_idx, col=second_idx, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False, power_mode=power_mode)
 
     for row,col in scan_list:
-        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True)
+        i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True, power_mode=power_mode)
         if(neighbors and (not allon)):
             for first_idx in range(-1,2):
                 row_nb = row+first_idx
@@ -1513,7 +1534,7 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
                     col_nb = col+second_idx
                     if(col_nb>15 or col_nb<0): continue
                     if(col_nb==col and row_nb == row): continue
-                    i2c_conn.enable_pixel_modular(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False)
+                    i2c_conn.enable_pixel_modular(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False, power_mode=power_mode)
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         # for QInj in tqdm(QInjEns, desc=f'QInj Loop for Chip {hex(chip_address)} Pixel ({row},{col})', leave=False):
@@ -1558,7 +1579,7 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
                         if(col_nb==col and row_nb == row): continue
                         i2c_conn.disable_pixel(row=row_nb, col=col_nb, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         else:
-            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False)
+            i2c_conn.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=False, power_mode=power_mode)
     if(allon):
         for first_idx in tqdm(range(16), leave=False):
             for second_idx in range(16):
