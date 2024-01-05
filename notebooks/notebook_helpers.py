@@ -748,22 +748,20 @@ class i2c_connection():
         TH_offset_handle.set(hex(0x0a))  # Offset 10 used to add to the auto BL for real
         QSel_handle.set(hex(0x1b))       # Ensure we inject 27 fC of charge
         DAC_handle.set(hex(0x3ff))
+        enable_TDC_handle.set("1")
         self.set_TDC_window_vars(chip=chip, triggerWindow=triggerWindow, cbWindow=cbWindow)
         if power_mode == "high":
-            IBSel_handle.set("000")
+            IBSel_handle.set(hex(0))
         elif power_mode == "010":
-            IBSel_handle.set("010")
+            IBSel_handle.set(hex(2))
         elif power_mode == "101":
-            IBSel_handle.set("101")
+            IBSel_handle.set(hex(5))
         elif power_mode == "low":
-            IBSel_handle.set("111")
+            IBSel_handle.set(hex(7))
         else:
-            IBSel_handle.set('111')
+            IBSel_handle.set(hex(7))
 
         chip.write_all_block("ETROC2", "Pixel Config")
-
-        enable_TDC_handle.set("1")
-        chip.write_decoded_value("ETROC2", "Pixel Config", "enable_TDC")
 
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
@@ -1279,7 +1277,7 @@ def trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, chip_figna
                 ax0.axvline(BL_map_THCal[row][col], color='k', label=f"AutoBL = {BL_map_THCal[row][col]}", lw=0.7)
                 ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label=f"AutoNW = $\pm${NW_map_THCal[row][col]}", lw=0.7)
                 ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
-            if(gaus or autoBL): plt.legend(loc="upper right", fontsize=6)
+            if(gaus or autoBL): plt.legend(loc="upper right", fontsize=20)
             plt.yscale("log")
             plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Noise Peak"+tag,size=25, loc="right")
             plt.tight_layout()
@@ -1311,7 +1309,7 @@ def trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, chip_figna
                 ax0.axvline(BL_map_THCal[row][col], color='k', label=f"AutoBL = {BL_map_THCal[row][col]}", lw=0.7)
                 ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color='k', ls='--', label=f"AutoNW = $\pm${NW_map_THCal[row][col]}", lw=0.7)
                 ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color='k', ls='--', lw=0.7)
-            if(gaus or autoBL): plt.legend(loc="upper right", fontsize=6)
+            if(gaus or autoBL): plt.legend(loc="upper right", fontsize=20)
             plt.yscale("linear")
             plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Noise Peak"+tag,size=25, loc="right")
             plt.tight_layout()
@@ -1487,7 +1485,7 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
     total_scan_time = timePerPixel + deadTime
 
     parser = parser_arguments.create_parser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --compressed_translation --skip_binary".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --compressed_translation --skip_binary --start_DAQ_pulse --stop_DAQ_pulse --check_valid_data_start".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
@@ -1602,7 +1600,8 @@ def make_scurve_plot(QInjEns, scan_list, array, chip_figtitle, chip_figname, y_l
                 ax0.plot(array[row, col, QInj].keys(), np.array(list(array[row, col, QInj].values())), '.-', label=f"{QInj} fC", color=colors[i],lw=1)
             if(isStd):
                 # ax0.axhline(0.5, color='k', ls='--', label="0.5 LSB", lw=0.5)
-                ax0.set_ylim(top=10.0, bottom=0)
+                # ax0.set_ylim(top=10.0, bottom=0)
+                pass
             ax0.set_xlabel("DAC Value [LSB]")
             ax0.set_ylabel(y_label)
             plt.grid()
@@ -1617,7 +1616,7 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
     if(today==''): today = datetime.date.today().isoformat()
     scan_name = f"*{today}_Array_Test_Results/"+chip_figname+"_VRef_SCurve_TDC"
     root = '../ETROC-Data'
-    file_pattern = "*translated_[1-9]*.nem"
+    file_pattern = "*translated_[0-9]*.nem"
     path_pattern = f"*{scan_name}*"
     file_list = []
     for path, subdirs, files in os.walk(root):
@@ -1644,8 +1643,8 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
 
     total_files = len(file_list)
     for file_index, file_name in enumerate(file_list):
-        col = int(file_name.split('/')[-2].split('_')[-5][1:])
-        row = int(file_name.split('/')[-2].split('_')[-6][1:])
+        col = int(file_name.split('/')[-2].split('_')[-6][1:])
+        row = int(file_name.split('/')[-2].split('_')[-5][1:])
         QInj = int(file_name.split('/')[-2].split('_')[-3])
         DAC = int(file_name.split('/')[-2].split('_')[-1])
         if((row,col) not in scan_list): continue
