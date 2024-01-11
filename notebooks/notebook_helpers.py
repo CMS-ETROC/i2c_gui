@@ -1558,7 +1558,7 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
             if(isinstance(upperlimit_turnoff,dict)):
                 if(turning_point>1000): turning_point = upperlimit_turnoff[QInj]
             # thresholds = np.arange(BL_map_THCal[row][col]+NW_map_THCal[row][col],turning_point,pedestal_scan_step)
-            thresholds = np.arange(BL_map_THCal[row][col],turning_point,pedestal_scan_step)
+            thresholds = np.arange(BL_map_THCal[row][col]+5,turning_point,pedestal_scan_step)
             i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip)
             for DAC in tqdm(thresholds, desc=f'DAC Loop for Pixel ({col},{row}) & Charge {QInj} fC', leave=False):
                 threshold = int(DAC)
