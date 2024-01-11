@@ -1481,12 +1481,12 @@ def charge_peakDAC_plot(i2c_conn, chip_address, chip_figtitle, chip_figname, sca
     plt.close()
     del QInj_Peak_DAC_map
 
-def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_flag, hostname = "192.168.2.3"):
+def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_flag, hostname = "192.168.2.3", run_options="--compressed_translation --skip_binary"):
 
     total_scan_time = timePerPixel + deadTime
 
     parser = parser_arguments.create_parser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --compressed_translation --skip_binary --start_DAQ_pulse --stop_DAQ_pulse --check_valid_data_start".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --start_DAQ_pulse --stop_DAQ_pulse --check_valid_data_start {run_options}".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
@@ -1503,7 +1503,7 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     process.join()
 
-def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low", upperlimit_turnoff=-1,timePerPixel=3, deadTime=0.5):
+def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low", upperlimit_turnoff=-1,timePerPixel=2, deadTime=1):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_TDC"
