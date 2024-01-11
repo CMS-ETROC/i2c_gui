@@ -1356,10 +1356,10 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
             b = DAC_scan_max
             header_max = -1
             while b-a>1:
-                DAC = int(np.floor((a+b)/2))
+                DAC = int(np.floor((a+b)/2.0))
                 # Set the DAC to the value being scanned
                 i2c_conn.pixel_decoded_register_write("DAC", format(DAC, '010b'), chip=chip)
-                (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq --DAC_Val {int(DAC)}".split())
+                (options, args) = parser.parse_args(args=f"--useIPC --hostname {hostname} -o {threshold_name} -v --counter_duration 0x0001 --fpga_data_time_limit {int(fpga_time)} --fpga_data_QInj --nodaq --DAC_Val {DAC}".split())
                 IPC_queue = multiprocessing.Queue()
                 process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'process_outputs/main_process_{QInj}_{DAC}'))
                 process.start()
@@ -1385,7 +1385,8 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                         text_list = last_line.split(',')
                         FPGA_state = text_list[0]
                         line_DAC = int(text_list[-1])
-                        if(FPGA_state==0 or line_DAC!=DAC):
+                        # if(FPGA_state==0 or line_DAC!=DAC):
+                        if(FPGA_state==0 or line_DAC==-1):
                             continue_flag=True
                             continue
                         # Condition handling for Binary Search
@@ -1502,7 +1503,7 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     process.join()
 
-def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low"):
+def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low", upperlimit_turnoff=-1,timePerPixel=3, deadTime=0.5):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_TDC"
@@ -1552,7 +1553,12 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
                     text_list = last_line.split(',')
                     DAC = int(text_list[-1])
                     turning_point = DAC
-            thresholds = np.arange(BL_map_THCal[row][col]+NW_map_THCal[row][col],turning_point,pedestal_scan_step)
+            if(isinstance(upperlimit_turnoff,int) and upperlimit_turnoff>0):
+                if(turning_point>1000): turning_point = upperlimit_turnoff
+            if(isinstance(upperlimit_turnoff,dict)):
+                if(turning_point>1000): turning_point = upperlimit_turnoff[QInj]
+            # thresholds = np.arange(BL_map_THCal[row][col]+NW_map_THCal[row][col],turning_point,pedestal_scan_step)
+            thresholds = np.arange(BL_map_THCal[row][col],turning_point,pedestal_scan_step)
             i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip)
             for DAC in tqdm(thresholds, desc=f'DAC Loop for Pixel ({col},{row}) & Charge {QInj} fC', leave=False):
                 threshold = int(DAC)
@@ -1562,7 +1568,7 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
                 i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip=chip)
                 # TH = i2c_conn.pixel_decoded_register_read("TH", "Status", pixel_connected_chip, need_int=True)
                 threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}_Threshold_{threshold}'+attempt
-                run_daq(timePerPixel=4, deadTime=2, dirname=threshold_name, today=today, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname)
+                run_daq(timePerPixel=timePerPixel, deadTime=deadTime, dirname=threshold_name, today=today, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname)
 
         # Disable
         if(not allon):
