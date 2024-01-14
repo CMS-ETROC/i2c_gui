@@ -38,6 +38,7 @@ from pathlib import Path
 
 def run_auto_calibration(
     chip_name: str,
+    run_str: str,
     comment_str: str,
     port = "/dev/ttyACM2",
     chip_address = 0x60,
@@ -273,6 +274,7 @@ def run_auto_calibration(
         'noise_width': [],
         'timestamp': [],
         'chip_name': [],
+        'note': [],
     }
 
     for this_row in range(16):
@@ -342,6 +344,13 @@ def run_auto_calibration(
             data['timestamp'].append(datetime.datetime.now())
             data['chip_name'].append(chip_name)
 
+            note_for_df = ''
+            if comment_str == '':
+                note_for_df = run_str
+            else:
+                note_for_df = f'{run_str}_{comment_str}'
+            data['note'].append(note_for_df)
+
             # Enable TDC
             enable_TDC_handle.set("1")
 
@@ -386,8 +395,7 @@ def main():
         metavar = 'NAME',
         type = str,
         help = 'Comment string - no special chars',
-        default = '',
-        # required = True,
+        required = True,
         dest = 'comment_str',
     )
     parser.add_argument(
@@ -432,14 +440,16 @@ def main():
         sys.exit(0)
 
     start_time = time.time()
+    count = 0
 
     while True:
-
+        run_str = f"Run{count}"
         signal.signal(signal.SIGINT, signal_handler)
 
         run_auto_calibration(
             chip_name = args.chip_name,
             comment_str = args.comment_str,
+            run_str = run_str,
             disable_all_pixels = args.disable_all_pixels,
         )
         end_time = time.time()
@@ -448,6 +458,7 @@ def main():
             print('Exiting because of time limit')
             sys.exit(0)
 
+        count += 1
         print(f'Sleeping in {args.interval_time}s')
         time.sleep(args.interval_time)
 
