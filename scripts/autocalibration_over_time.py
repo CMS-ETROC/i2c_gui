@@ -327,9 +327,6 @@ def run_auto_calibration(
                 note_for_df = f'{run_str}_{comment_str}'
             data['note'].append(note_for_df)
 
-            # Enable TDC
-            enable_TDC_handle.set("1")
-
             # Disable THCal clock and buffer, enable bypass
             CLKEn_THCal_handle.set("0")
             BufEn_THCal_handle.set("0")
