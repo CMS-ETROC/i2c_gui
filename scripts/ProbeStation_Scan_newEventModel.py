@@ -679,7 +679,7 @@ def run_ProbeStation(
 
         ## Run DAQ
         parser = parser_arguments.create_parser()
-        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 3 -o {qinj_dir} -v -w -s 0x0000 -p {polarity} -d 0x1800 -a 0x0001 --clear_fifo --check_valid_data_start --start_DAQ_pulse --stop_DAQ_pulse".split())
+        (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {fpga_ip} -t 3 -o {comment_str}_{wafer_name}_{chip_name}_R{row}_C{col}_qinj -v -w -s 0x0000 -p {polarity} -d 0x1800 -a 0x0001 --clear_fifo --check_valid_data_start --start_DAQ_pulse --stop_DAQ_pulse".split())
         IPC_queue = multiprocessing.Queue()
         process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, "probe_daq_output"))
         process.start()
@@ -698,7 +698,7 @@ def run_ProbeStation(
         del IPC_queue, process, parser
 
     if do_offline:
-        os.system(f'cat {qinj_dir}/*nem')
+        os.system(f'cat {qinj_dir}/*nem | head -n 5')
 
     # Disconnect chip
     conn.disconnect()
