@@ -240,30 +240,6 @@ def run_auto_calibration(
                     chip.write_all_block("ETROC2", "Pixel Config")
         print(f"Disabled pixels for chip: {hex(chip_address)}")
 
-    chip.read_all_block("ETROC2", "Peripheral Config")
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "EFuse_Prog")           # chip ID
-    handle.set(hex(0x00017f0f))
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "singlePort")           # Set data output to right port only
-    handle.set('1')
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "serRateLeft")          # Set Data Rates to 320 mbps
-    handle.set(hex(0b00))
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "serRateRight")         # ^^
-    handle.set(hex(0b00))
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "onChipL1AConf")        # Switches off the onboard L1A
-    handle.set(hex(0b00))
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "PLL_ENABLEPLL")        # "Enable PLL mode, active high. Debugging use only."
-    handle.set('1')
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "chargeInjectionDelay") # User tunable delay of Qinj pulse
-    handle.set(hex(0x0a))
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "triggerGranularity")   # only for trigger bit
-    handle.set(hex(0x01))
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "fcClkDelayEn")
-    handle.set('1')
-    handle = chip.get_decoded_display_var("ETROC2", "Peripheral Config", "fcDataDelayEn")
-    handle.set('1')
-    chip.write_all_block("ETROC2", "Peripheral Config")
-    print(f"Peripherals set for chip: {hex(chip_address)}")
-
     row_indexer_handle,_,_ = chip.get_indexer("row")
     column_indexer_handle,_,_ = chip.get_indexer("column")
 
