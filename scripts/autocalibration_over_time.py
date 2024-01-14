@@ -70,175 +70,10 @@ def run_auto_calibration(
     # chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
 
     ### Making directories
-    data_dir = Path('../ETROC-Data/') / (datetime.date.today().isoformat() + '_Array_Test_Results')
-    data_dir.mkdir(exist_ok=True)
+    data_dir = Path('../ETROC-Data/')
+    # data_dir = Path('../ETROC-Data/') / (datetime.date.today().isoformat() + '_Array_Test_Results')
+    # data_dir.mkdir(exist_ok=True)
     history_file = data_dir / 'BaselineHistory_TID_Jan2024_CERN.sqlite'
-
-    if disable_all_pixels:
-
-        ### Define handles
-        disDataReadout_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disDataReadout")
-        QInjEn_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "QInjEn")
-        disTrigPath_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disTrigPath")
-        upperTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOATrig")
-        lowerTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOATrig")
-        upperTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOTTrig")
-        lowerTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOTTrig")
-        upperCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCalTrig")
-        lowerCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCalTrig")
-        upperTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOA")
-        lowerTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOA")
-        upperTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOT")
-        lowerTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOT")
-        upperCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCal")
-        lowerCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCal")
-        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
-        TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
-        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
-
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        broadcast_handle,_,_ = chip.get_indexer("broadcast")
-
-        column_indexer_handle.set(0)
-        row_indexer_handle.set(0)
-
-        chip.read_all_block("ETROC2", "Pixel Config")
-        disDataReadout_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disDataReadout")
-        QInjEn_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "QInjEn")
-        disTrigPath_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "disTrigPath")
-        upperTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOATrig")
-        lowerTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOATrig")
-        upperTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOTTrig")
-        lowerTOTTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOTTrig")
-        upperCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCalTrig")
-        lowerCalTrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCalTrig")
-        upperTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOA")
-        lowerTOA_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOA")
-        upperTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOT")
-        lowerTOT_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerTOT")
-        upperCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCal")
-        lowerCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCal")
-        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
-
-        disDataReadout = "1"
-        QInjEn = "0"
-        disTrigPath = "1"
-        upperTOA = hex(0x000)
-        lowerTOA = hex(0x000)
-        upperTOT = hex(0x1ff)
-        lowerTOT = hex(0x1ff)
-        upperCal = hex(0x3ff)
-        lowerCal = hex(0x3ff)
-        enable_TDC = "0"
-
-        disDataReadout_handle.set(disDataReadout)
-        QInjEn_handle.set(QInjEn)
-        disTrigPath_handle.set(disTrigPath)
-        upperTOATrig_handle.set(upperTOA)
-        lowerTOATrig_handle.set(lowerTOA)
-        upperTOTTrig_handle.set(upperTOT)
-        lowerTOTTrig_handle.set(lowerTOT)
-        upperCalTrig_handle.set(upperCal)
-        lowerCalTrig_handle.set(lowerCal)
-        upperTOA_handle.set(upperTOA)
-        lowerTOA_handle.set(lowerTOA)
-        upperTOT_handle.set(upperTOT)
-        lowerTOT_handle.set(lowerTOT)
-        upperCal_handle.set(upperCal)
-        lowerCal_handle.set(lowerCal)
-        enable_TDC_handle.set(enable_TDC)
-
-        broadcast_handle.set(True)
-        chip.write_all_block("ETROC2", "Pixel Config")
-
-        broadcast_ok = True
-        for this_row in range(16):
-            for this_col in range(16):
-                column_indexer_handle.set(this_col)
-                row_indexer_handle.set(this_row)
-
-                chip.read_all_block("ETROC2", "Pixel Config")
-
-                if int(disDataReadout_handle.get(), 0) != int(disDataReadout, 0):
-                    broadcast_ok = False
-                    break
-                if int(QInjEn_handle.get(), 0) != int(QInjEn, 0):
-                    broadcast_ok = False
-                    break
-                if int(disTrigPath_handle.get(), 0) != int(disTrigPath, 0):
-                    broadcast_ok = False
-                    break
-                if int(upperTOATrig_handle.get(), 0) != int(upperTOA, 0):
-                    broadcast_ok = False
-                    break
-                if int(lowerTOATrig_handle.get(), 0) != int(lowerTOA, 0):
-                    broadcast_ok = False
-                    break
-                if int(upperTOTTrig_handle.get(), 0) != int(upperTOT, 0):
-                    broadcast_ok = False
-                    break
-                if int(lowerTOTTrig_handle.get(), 0) != int(lowerTOT, 0):
-                    broadcast_ok = False
-                    break
-                if int(upperCalTrig_handle.get(), 0) != int(upperCal, 0):
-                    broadcast_ok = False
-                    break
-                if int(lowerCalTrig_handle.get(), 0) != int(lowerCal, 0):
-                    broadcast_ok = False
-                    break
-                if int(upperTOA_handle.get(), 0) != int(upperTOA, 0):
-                    broadcast_ok = False
-                    break
-                if int(lowerTOA_handle.get(), 0) != int(lowerTOA, 0):
-                    broadcast_ok = False
-                    break
-                if int(upperTOT_handle.get(), 0) != int(upperTOT, 0):
-                    broadcast_ok = False
-                    break
-                if int(lowerTOT_handle.get(), 0) != int(lowerTOT, 0):
-                    broadcast_ok = False
-                    break
-                if int(upperCal_handle.get(), 0) != int(upperCal, 0):
-                    broadcast_ok = False
-                    break
-                if int(lowerCal_handle.get(), 0) != int(lowerCal, 0):
-                    broadcast_ok = False
-                    break
-                if int(enable_TDC_handle.get(), 0) != int(enable_TDC, 0):
-                    broadcast_ok = False
-                    break
-            if not broadcast_ok:
-                break
-
-        if not broadcast_ok:
-            print("Broadcast failed! \n Will manually disable pixels")
-            for this_row in tqdm(range(16), desc="Disabling row", position=0):
-                for this_col in range(16):
-                    column_indexer_handle.set(this_col)
-                    row_indexer_handle.set(this_row)
-
-                    chip.read_all_block("ETROC2", "Pixel Config")
-
-                    disDataReadout_handle.set(disDataReadout)
-                    QInjEn_handle.set(QInjEn)
-                    disTrigPath_handle.set(disTrigPath)
-                    upperTOATrig_handle.set(upperTOA)
-                    lowerTOATrig_handle.set(lowerTOA)
-                    upperTOTTrig_handle.set(upperTOT)
-                    lowerTOTTrig_handle.set(lowerTOT)
-                    upperCalTrig_handle.set(upperCal)
-                    lowerCalTrig_handle.set(lowerCal)
-                    upperTOA_handle.set(upperTOA)
-                    lowerTOA_handle.set(lowerTOA)
-                    upperTOT_handle.set(upperTOT)
-                    lowerTOT_handle.set(lowerTOT)
-                    upperCal_handle.set(upperCal)
-                    lowerCal_handle.set(lowerCal)
-                    enable_TDC_handle.set(enable_TDC)
-
-                    chip.write_all_block("ETROC2", "Pixel Config")
-        print(f"Disabled pixels for chip: {hex(chip_address)}")
 
     row_indexer_handle,_,_ = chip.get_indexer("row")
     column_indexer_handle,_,_ = chip.get_indexer("column")
@@ -249,16 +84,19 @@ def run_auto_calibration(
         'baseline': [],
         'noise_width': [],
         'timestamp': [],
-        'chip_name': [],
-        'note': [],
     }
 
-    for this_row in range(16):
+    note_for_df = ''
+    if comment_str == '':
+        note_for_df = run_str
+    else:
+        note_for_df = f'{run_str}_{comment_str}'
+
+    for this_row in tqdm(range(16)):
         for this_col in range(16):
 
             row_indexer_handle.set(this_row)
             column_indexer_handle.set(this_col)
-
             enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
             CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
             BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
@@ -304,7 +142,7 @@ def run_auto_calibration(
             # Wait for the calibration to be done correctly
             retry_counter = 0
             chip.read_all_block("ETROC2", "Pixel Status")
-            print("Scan Done Register: ", ScanDone_handle.get())
+            # print("Scan Done Register: ", ScanDone_handle.get())
             while ScanDone_handle.get() != "1":
                 time.sleep(0.01)
                 chip.read_all_block("ETROC2", "Pixel Status")
@@ -312,20 +150,6 @@ def run_auto_calibration(
                 if retry_counter == 5 and ScanDone_handle.get() != "1":
                     print(f"!!!ERROR!!! Scan not done for row {this_row}, col {this_col}!!!")
                     break
-
-            data['row'].append(this_row)
-            data['col'].append(this_col)
-            data['baseline'].append(int(BL_handle.get(), 0))
-            data['noise_width'].append(int(NW_handle.get(), 0))
-            data['timestamp'].append(datetime.datetime.now())
-            data['chip_name'].append(chip_name)
-
-            note_for_df = ''
-            if comment_str == '':
-                note_for_df = run_str
-            else:
-                note_for_df = f'{run_str}_{comment_str}'
-            data['note'].append(note_for_df)
 
             # Disable THCal clock and buffer, enable bypass
             CLKEn_THCal_handle.set("0")
@@ -336,7 +160,15 @@ def run_auto_calibration(
             # Send changes to chip
             chip.write_all_block("ETROC2", "Pixel Config")
 
+            data['row'].append(this_row)
+            data['col'].append(this_col)
+            data['baseline'].append(int(BL_handle.get(), 0))
+            data['noise_width'].append(int(NW_handle.get(), 0))
+            data['timestamp'].append(datetime.datetime.now())
+
     BL_df = pandas.DataFrame(data=data)
+    BL_df['chip_name'] = chip_name
+    BL_df['note'] = note_for_df
 
     with sqlite3.connect(history_file) as sqlconn:
         BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
