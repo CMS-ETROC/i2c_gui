@@ -699,6 +699,8 @@ def run_ProbeStation(
 
     if do_offline:
         os.system(f'cat {qinj_dir}/*nem | head -n 5')
+        print()
+        os.system(f'cat {qinj_dir}/*nem | tail -n 5')
 
     # Disconnect chip
     conn.disconnect()
