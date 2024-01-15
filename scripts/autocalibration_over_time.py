@@ -159,23 +159,18 @@ class Chip_Auto_Cal_Helper:
 
                 # Send changes to chip
                 self.chip.write_all_block("ETROC2", "Pixel Config")
-                time.sleep(0.1)
 
                 # Reset the calibration block (active low)
                 self.RSTn_THCal_handle.set("0")
                 self.chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
-                time.sleep(0.1)
                 self.RSTn_THCal_handle.set("1")
                 self.chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
-                time.sleep(0.1)
 
                 # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
                 self.ScanStart_THCal_handle.set("1")
                 self.chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
-                time.sleep(0.1)
                 self.ScanStart_THCal_handle.set("0")
                 self.chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
-                time.sleep(0.1)
 
                 # Wait for the calibration to be done correctly
                 retry_counter = 0
