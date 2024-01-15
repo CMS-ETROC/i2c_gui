@@ -41,7 +41,7 @@ class Chip_Auto_Cal_Helper:
         self,
         history_filename: str,
         chip_name: str,
-        port: str = "/dev/ttyACM2",
+        port: str = '/dev/ttyACM2',
         chip_address: int = 0x60,
         ws_address: int = None,
         data_dir: Path = Path('../ETROC-Data/'),
@@ -289,12 +289,17 @@ def main():
         print('Please specify the unit of time (h or m or s)')
         sys.exit(0)
 
-    start_time = time.time()
-    count = 0
-
     cal_helper = Chip_Auto_Cal_Helper(
-        history_filename = "BaselineHistory_TID_Jan2024_CERN"
+        history_filename = "BaselineHistory_TID_Jan2024_CERN",
+        chip_name = args.chip_name,
+        port = "/dev/ttyACM2",
+        chip_address = 0x60,
+        ws_address = None,
+        data_dir = Path('../ETROC-Data/')
     )
+
+    count = 0
+    start_time = time.time()
 
     while True:
         run_str = f"Run{count}"
