@@ -120,19 +120,10 @@ class Chip_Auto_Cal_Helper:
 
     def run_auto_calibration(
         self,
-        chip_name: str,
         run_str: str,
         comment_str: str,
-        port = "/dev/ttyACM2",
-        chip_address = 0x60,
-        ws_address = None,
         disable_all_pixels: bool = False,
         ):
-
-        i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
-        i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
-        #i2c_gui.__no_connect_type__ = "check"  # default behaviour
-
         if not self._is_connected:
             self.connect()
 
@@ -153,64 +144,64 @@ class Chip_Auto_Cal_Helper:
         for this_row in tqdm(range(16)):
             for this_col in range(16):
 
-                row_indexer_handle.set(this_row)
-                column_indexer_handle.set(this_col)
-                chip.read_all_block("ETROC2", "Pixel Config")
+                self.row_indexer_handle.set(this_row)
+                self.column_indexer_handle.set(this_col)
+                self.chip.read_all_block("ETROC2", "Pixel Config")
 
                 # Disable TDC
-                enable_TDC_handle.set("0")
+                self.enable_TDC_handle.set("0")
 
                 # Enable THCal clock and buffer, disable bypass
-                CLKEn_THCal_handle.set("1")
-                BufEn_THCal_handle.set("1")
-                Bypass_THCal_handle.set("0")
-                TH_offset_handle.set(hex(0x0a))
+                self.CLKEn_THCal_handle.set("1")
+                self.BufEn_THCal_handle.set("1")
+                self.Bypass_THCal_handle.set("0")
+                self.TH_offset_handle.set(hex(0x0a))
 
                 # Send changes to chip
-                chip.write_all_block("ETROC2", "Pixel Config")
+                self.chip.write_all_block("ETROC2", "Pixel Config")
                 time.sleep(0.1)
 
                 # Reset the calibration block (active low)
-                RSTn_THCal_handle.set("0")
-                chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+                self.RSTn_THCal_handle.set("0")
+                self.chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
                 time.sleep(0.1)
-                RSTn_THCal_handle.set("1")
-                chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+                self.RSTn_THCal_handle.set("1")
+                self.chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
                 time.sleep(0.1)
 
                 # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
-                ScanStart_THCal_handle.set("1")
-                chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+                self.ScanStart_THCal_handle.set("1")
+                self.chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
                 time.sleep(0.1)
-                ScanStart_THCal_handle.set("0")
-                chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+                self.ScanStart_THCal_handle.set("0")
+                self.chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
                 time.sleep(0.1)
 
                 # Wait for the calibration to be done correctly
                 retry_counter = 0
-                chip.read_all_block("ETROC2", "Pixel Status")
+                self.chip.read_all_block("ETROC2", "Pixel Status")
                 # print("Scan Done Register: ", ScanDone_handle.get())
-                while ScanDone_handle.get() != "1":
+                while self.ScanDone_handle.get() != "1":
                     time.sleep(0.01)
-                    chip.read_all_block("ETROC2", "Pixel Status")
+                    self.chip.read_all_block("ETROC2", "Pixel Status")
                     retry_counter += 1
-                    if retry_counter == 5 and ScanDone_handle.get() != "1":
+                    if retry_counter == 5 and self.ScanDone_handle.get() != "1":
                         print(f"!!!ERROR!!! Scan not done for row {this_row}, col {this_col}!!!")
                         break
 
                 # Disable THCal clock and buffer, enable bypass
-                CLKEn_THCal_handle.set("0")
-                BufEn_THCal_handle.set("0")
-                Bypass_THCal_handle.set("1")
-                DAC_handle.set(hex(0x3ff))
+                self.CLKEn_THCal_handle.set("0")
+                self.BufEn_THCal_handle.set("0")
+                self.Bypass_THCal_handle.set("1")
+                self.DAC_handle.set(hex(0x3ff))
 
                 # Send changes to chip
-                chip.write_all_block("ETROC2", "Pixel Config")
+                self.chip.write_all_block("ETROC2", "Pixel Config")
 
                 data['row'].append(this_row)
                 data['col'].append(this_col)
-                data['baseline'].append(int(BL_handle.get(), 0))
-                data['noise_width'].append(int(NW_handle.get(), 0))
+                data['baseline'].append(int(self.BL_handle.get(), 0))
+                data['noise_width'].append(int(self.NW_handle.get(), 0))
                 data['timestamp'].append(datetime.datetime.now())
 
         BL_df = pandas.DataFrame(data=data)
@@ -288,6 +279,11 @@ def main():
     else:
         print('Please specify the unit of time (h or m or s)')
         sys.exit(0)
+
+    # TODO: This could even be moved to the top of the file, outside a function, after the includes
+    i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
+    i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
+    #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
     cal_helper = Chip_Auto_Cal_Helper(
         history_filename = "BaselineHistory_TID_Jan2024_CERN",
