@@ -37,7 +37,21 @@ from i2c_gui.chips.etroc2_chip import register_decoding
 from pathlib import Path
 
 class Chip_Auto_Cal_Helper:
+    def __init__(
+        self,
+        history_filename: str,
+        data_dir: Path = Path('../ETROC-Data/'),
+        ):
+        # TODO: What if data_dir does not exist?
+        # TODO: There is probably a smarter way to handle the file name
+        # TODO: In fact, the best approch would be to put these steps outside
+        # the class and the class only receives one path variable with the
+        # full path to the history file
+        self._data_dir = data_dir
+        self._history_file_path = data_dir / (history_filename + ".sqlite")
+
     def run_auto_calibration(
+        self,
         chip_name: str,
         run_str: str,
         comment_str: str,
@@ -45,7 +59,7 @@ class Chip_Auto_Cal_Helper:
         chip_address = 0x60,
         ws_address = None,
         disable_all_pixels: bool = False,
-    ):
+        ):
 
         i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
         i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
@@ -69,12 +83,6 @@ class Chip_Auto_Cal_Helper:
         chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
         chip.config_i2c_address(chip_address)  # Not needed if you do not access ETROC registers (i.e. only access WS registers)
         # chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
-
-        ### Making directories
-        data_dir = Path('../ETROC-Data/')
-        # data_dir = Path('../ETROC-Data/') / (datetime.date.today().isoformat() + '_Array_Test_Results')
-        # data_dir.mkdir(exist_ok=True)
-        history_file = data_dir / 'BaselineHistory_TID_Jan2024_CERN.sqlite'
 
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
@@ -171,7 +179,7 @@ class Chip_Auto_Cal_Helper:
         BL_df['chip_name'] = chip_name
         BL_df['note'] = note_for_df
 
-        with sqlite3.connect(history_file) as sqlconn:
+        with sqlite3.connect(self._history_file_path) as sqlconn:
             BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
 
         # Disconnect chip
@@ -248,11 +256,15 @@ def main():
     start_time = time.time()
     count = 0
 
+    cal_helper = Chip_Auto_Cal_Helper(
+        history_filename = "BaselineHistory_TID_Jan2024_CERN"
+    )
+
     while True:
         run_str = f"Run{count}"
         signal.signal(signal.SIGINT, signal_handler)
 
-        run_auto_calibration(
+        cal_helper.run_auto_calibration(
             chip_name = args.chip_name,
             comment_str = args.comment_str,
             run_str = run_str,
