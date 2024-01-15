@@ -77,6 +77,17 @@ def run_auto_calibration(
 
     row_indexer_handle,_,_ = chip.get_indexer("row")
     column_indexer_handle,_,_ = chip.get_indexer("column")
+    enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+    CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
+    BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
+    Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
+    TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
+    RSTn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
+    ScanStart_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
+    DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
+    ScanDone_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
+    BL_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
+    NW_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
 
     data = {
         'row': [],
@@ -97,17 +108,6 @@ def run_auto_calibration(
 
             row_indexer_handle.set(this_row)
             column_indexer_handle.set(this_col)
-            enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
-            CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
-            BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
-            Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
-            TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
-            RSTn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
-            ScanStart_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
-            DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
-            ScanDone_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
-            BL_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
-            NW_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
             chip.read_all_block("ETROC2", "Pixel Config")
 
             # Disable TDC
