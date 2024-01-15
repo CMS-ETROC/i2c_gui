@@ -66,7 +66,7 @@ class Chip_Auto_Cal_Helper:
         #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
         ## Logger
-        log_level=30
+        log_level=logging.WARN
         logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
         logger = logging.getLogger("Script_Logger")
         Script_Helper = i2c_gui.ScriptHelper(logger)
