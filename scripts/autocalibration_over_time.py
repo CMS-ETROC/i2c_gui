@@ -184,6 +184,8 @@ class Chip_Auto_Cal_Helper:
                         print(f"!!!ERROR!!! Scan not done for row {this_row}, col {this_col}!!!")
                         break
 
+                if not disable_all_pixels:
+                    self.enable_TDC_handle.set("1")
                 # Disable THCal clock and buffer, enable bypass
                 self.CLKEn_THCal_handle.set("0")
                 self.BufEn_THCal_handle.set("0")
