@@ -40,15 +40,83 @@ class Chip_Auto_Cal_Helper:
     def __init__(
         self,
         history_filename: str,
+        chip_name: str,
+        port: str = "/dev/ttyACM2",
+        chip_address: int = 0x60,
+        ws_address: int = None,
         data_dir: Path = Path('../ETROC-Data/'),
         ):
         # TODO: What if data_dir does not exist?
-        # TODO: There is probably a smarter way to handle the file name
+        # TODO: There is probably a smarter way to handle the hist file name
         # TODO: In fact, the best approch would be to put these steps outside
         # the class and the class only receives one path variable with the
         # full path to the history file
         self._data_dir = data_dir
         self._history_file_path = data_dir / (history_filename + ".sqlite")
+
+        self.chip_name = chip_name
+        self.port = port
+        self.chip_address = chip_address
+        self.ws_address = ws_address
+
+        ## Logger
+        self._log_level=logging.WARN
+        logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
+        self.logger = logging.getLogger("Auto_Cal_Logger")
+
+        ## Script Helper so i2c_gui works well from a script
+        self._script_helper = i2c_gui.ScriptHelper(self.logger)
+
+        self._is_connected = False
+        self.etroc_connected = False
+        self.ws_connected = False
+        self.conn: i2c_gui.Connection_Controller = None
+        self.connect()
+
+    def connect(self):
+        if self._is_connected:
+            self.disconnect()
+
+        self.conn = i2c_gui.Connection_Controller(self._script_helper)
+        self.conn.connection_type = "USB-ISS"
+        self.conn.handle: USB_ISS_Helper
+        self.conn.handle.port = self.port
+        self.conn.handle.clk = 100
+        self.conn.connect()
+        self.logger.setLevel(self._log_level)
+
+        self.chip = i2c_gui.chips.ETROC2_Chip(parent=self._script_helper, i2c_controller=self.conn)
+        if self.chip_address is not None:
+            self.chip.config_i2c_address(self.chip_address)  # Not needed if you do not access ETROC registers (i.e. only access WS registers)
+            self.etroc_connected = True
+        if self.ws_address is not None:
+            self.chip.config_waveform_sampler_i2c_address(self.ws_address)  # Not needed if you do not access WS registers
+            self.ws_connected = True
+
+        self.get_handles()
+
+    def disconnect(self):
+        if self._is_connected:
+            self.conn.disconnect()
+            self._is_connected = False
+            self.etroc_connected = False
+            self.ws_connected = False
+
+    def get_handles(self):
+        if self.etroc_connected:
+            self.row_indexer_handle,_,_ = self.chip.get_indexer("row")
+            self.column_indexer_handle,_,_ = self.chip.get_indexer("column")
+            self.enable_TDC_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+            self.CLKEn_THCal_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
+            self.BufEn_THCal_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
+            self.Bypass_THCal_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
+            self.TH_offset_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
+            self.RSTn_THCal_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
+            self.ScanStart_THCal_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
+            self.DAC_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
+            self.ScanDone_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
+            self.BL_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
+            self.NW_handle = self.chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
 
     def run_auto_calibration(
         self,
@@ -65,38 +133,8 @@ class Chip_Auto_Cal_Helper:
         i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
         #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
-        ## Logger
-        log_level=logging.WARN
-        logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
-        logger = logging.getLogger("Script_Logger")
-        Script_Helper = i2c_gui.ScriptHelper(logger)
-
-        conn = i2c_gui.Connection_Controller(Script_Helper)
-        conn.connection_type = "USB-ISS"
-        conn.handle: USB_ISS_Helper
-        conn.handle.port = port
-        conn.handle.clk = 100
-        conn.connect()
-        logger.setLevel(log_level)
-
-        conn.connect()
-        chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
-        chip.config_i2c_address(chip_address)  # Not needed if you do not access ETROC registers (i.e. only access WS registers)
-        # chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
-
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
-        CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
-        BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
-        Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
-        TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
-        RSTn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
-        ScanStart_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
-        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
-        ScanDone_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
-        BL_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
-        NW_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
+        if not self._is_connected:
+            self.connect()
 
         data = {
             'row': [],
@@ -176,14 +214,12 @@ class Chip_Auto_Cal_Helper:
                 data['timestamp'].append(datetime.datetime.now())
 
         BL_df = pandas.DataFrame(data=data)
-        BL_df['chip_name'] = chip_name
+        BL_df['chip_name'] = self.chip_name
         BL_df['note'] = note_for_df
 
         with sqlite3.connect(self._history_file_path) as sqlconn:
             BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
 
-        # Disconnect chip
-        conn.disconnect()
 
 def main():
     import argparse
