@@ -36,145 +36,146 @@ from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.chips.etroc2_chip import register_decoding
 from pathlib import Path
 
-def run_auto_calibration(
-    chip_name: str,
-    run_str: str,
-    comment_str: str,
-    port = "/dev/ttyACM2",
-    chip_address = 0x60,
-    ws_address = None,
-    disable_all_pixels: bool = False,
-):
+class Chip_Auto_Cal_Helper:
+    def run_auto_calibration(
+        chip_name: str,
+        run_str: str,
+        comment_str: str,
+        port = "/dev/ttyACM2",
+        chip_address = 0x60,
+        ws_address = None,
+        disable_all_pixels: bool = False,
+    ):
 
-    i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
-    i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
-    #i2c_gui.__no_connect_type__ = "check"  # default behaviour
+        i2c_gui.__no_connect__ = False  # Set to fake connecting to an ETROC2 device
+        i2c_gui.__no_connect_type__ = "echo"  # for actually testing readback
+        #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
-    ## Logger
-    log_level=30
-    logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
-    logger = logging.getLogger("Script_Logger")
-    Script_Helper = i2c_gui.ScriptHelper(logger)
+        ## Logger
+        log_level=30
+        logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
+        logger = logging.getLogger("Script_Logger")
+        Script_Helper = i2c_gui.ScriptHelper(logger)
 
-    conn = i2c_gui.Connection_Controller(Script_Helper)
-    conn.connection_type = "USB-ISS"
-    conn.handle: USB_ISS_Helper
-    conn.handle.port = port
-    conn.handle.clk = 100
-    conn.connect()
-    logger.setLevel(log_level)
+        conn = i2c_gui.Connection_Controller(Script_Helper)
+        conn.connection_type = "USB-ISS"
+        conn.handle: USB_ISS_Helper
+        conn.handle.port = port
+        conn.handle.clk = 100
+        conn.connect()
+        logger.setLevel(log_level)
 
-    conn.connect()
-    chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
-    chip.config_i2c_address(chip_address)  # Not needed if you do not access ETROC registers (i.e. only access WS registers)
-    # chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
+        conn.connect()
+        chip = i2c_gui.chips.ETROC2_Chip(parent=Script_Helper, i2c_controller=conn)
+        chip.config_i2c_address(chip_address)  # Not needed if you do not access ETROC registers (i.e. only access WS registers)
+        # chip.config_waveform_sampler_i2c_address(ws_address)  # Not needed if you do not access WS registers
 
-    ### Making directories
-    data_dir = Path('../ETROC-Data/')
-    # data_dir = Path('../ETROC-Data/') / (datetime.date.today().isoformat() + '_Array_Test_Results')
-    # data_dir.mkdir(exist_ok=True)
-    history_file = data_dir / 'BaselineHistory_TID_Jan2024_CERN.sqlite'
+        ### Making directories
+        data_dir = Path('../ETROC-Data/')
+        # data_dir = Path('../ETROC-Data/') / (datetime.date.today().isoformat() + '_Array_Test_Results')
+        # data_dir.mkdir(exist_ok=True)
+        history_file = data_dir / 'BaselineHistory_TID_Jan2024_CERN.sqlite'
 
-    row_indexer_handle,_,_ = chip.get_indexer("row")
-    column_indexer_handle,_,_ = chip.get_indexer("column")
-    enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
-    CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
-    BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
-    Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
-    TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
-    RSTn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
-    ScanStart_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
-    DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
-    ScanDone_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
-    BL_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
-    NW_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+        CLKEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "CLKEn_THCal")
+        BufEn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "BufEn_THCal")
+        Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
+        TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
+        RSTn_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "RSTn_THCal")
+        ScanStart_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "ScanStart_THCal")
+        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
+        ScanDone_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "ScanDone")
+        BL_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "BL")
+        NW_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Status", "NW")
 
-    data = {
-        'row': [],
-        'col': [],
-        'baseline': [],
-        'noise_width': [],
-        'timestamp': [],
-    }
+        data = {
+            'row': [],
+            'col': [],
+            'baseline': [],
+            'noise_width': [],
+            'timestamp': [],
+        }
 
-    note_for_df = ''
-    if comment_str == '':
-        note_for_df = run_str
-    else:
-        note_for_df = f'{run_str}_{comment_str}'
+        note_for_df = ''
+        if comment_str == '':
+            note_for_df = run_str
+        else:
+            note_for_df = f'{run_str}_{comment_str}'
 
-    for this_row in tqdm(range(16)):
-        for this_col in range(16):
+        for this_row in tqdm(range(16)):
+            for this_col in range(16):
 
-            row_indexer_handle.set(this_row)
-            column_indexer_handle.set(this_col)
-            chip.read_all_block("ETROC2", "Pixel Config")
+                row_indexer_handle.set(this_row)
+                column_indexer_handle.set(this_col)
+                chip.read_all_block("ETROC2", "Pixel Config")
 
-            # Disable TDC
-            enable_TDC_handle.set("0")
+                # Disable TDC
+                enable_TDC_handle.set("0")
 
-            # Enable THCal clock and buffer, disable bypass
-            CLKEn_THCal_handle.set("1")
-            BufEn_THCal_handle.set("1")
-            Bypass_THCal_handle.set("0")
-            TH_offset_handle.set(hex(0x0a))
+                # Enable THCal clock and buffer, disable bypass
+                CLKEn_THCal_handle.set("1")
+                BufEn_THCal_handle.set("1")
+                Bypass_THCal_handle.set("0")
+                TH_offset_handle.set(hex(0x0a))
 
-            # Send changes to chip
-            chip.write_all_block("ETROC2", "Pixel Config")
-            time.sleep(0.1)
+                # Send changes to chip
+                chip.write_all_block("ETROC2", "Pixel Config")
+                time.sleep(0.1)
 
-            # Reset the calibration block (active low)
-            RSTn_THCal_handle.set("0")
-            chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
-            time.sleep(0.1)
-            RSTn_THCal_handle.set("1")
-            chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
-            time.sleep(0.1)
+                # Reset the calibration block (active low)
+                RSTn_THCal_handle.set("0")
+                chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+                time.sleep(0.1)
+                RSTn_THCal_handle.set("1")
+                chip.write_decoded_value("ETROC2", "Pixel Config", "RSTn_THCal")
+                time.sleep(0.1)
 
-            # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
-            ScanStart_THCal_handle.set("1")
-            chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
-            time.sleep(0.1)
-            ScanStart_THCal_handle.set("0")
-            chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
-            time.sleep(0.1)
+                # Start and Stop the calibration, (25ns x 2**15 ~ 800 us, ACCumulator max is 2**15)
+                ScanStart_THCal_handle.set("1")
+                chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+                time.sleep(0.1)
+                ScanStart_THCal_handle.set("0")
+                chip.write_decoded_value("ETROC2", "Pixel Config", "ScanStart_THCal")
+                time.sleep(0.1)
 
-            # Wait for the calibration to be done correctly
-            retry_counter = 0
-            chip.read_all_block("ETROC2", "Pixel Status")
-            # print("Scan Done Register: ", ScanDone_handle.get())
-            while ScanDone_handle.get() != "1":
-                time.sleep(0.01)
+                # Wait for the calibration to be done correctly
+                retry_counter = 0
                 chip.read_all_block("ETROC2", "Pixel Status")
-                retry_counter += 1
-                if retry_counter == 5 and ScanDone_handle.get() != "1":
-                    print(f"!!!ERROR!!! Scan not done for row {this_row}, col {this_col}!!!")
-                    break
+                # print("Scan Done Register: ", ScanDone_handle.get())
+                while ScanDone_handle.get() != "1":
+                    time.sleep(0.01)
+                    chip.read_all_block("ETROC2", "Pixel Status")
+                    retry_counter += 1
+                    if retry_counter == 5 and ScanDone_handle.get() != "1":
+                        print(f"!!!ERROR!!! Scan not done for row {this_row}, col {this_col}!!!")
+                        break
 
-            # Disable THCal clock and buffer, enable bypass
-            CLKEn_THCal_handle.set("0")
-            BufEn_THCal_handle.set("0")
-            Bypass_THCal_handle.set("1")
-            DAC_handle.set(hex(0x3ff))
+                # Disable THCal clock and buffer, enable bypass
+                CLKEn_THCal_handle.set("0")
+                BufEn_THCal_handle.set("0")
+                Bypass_THCal_handle.set("1")
+                DAC_handle.set(hex(0x3ff))
 
-            # Send changes to chip
-            chip.write_all_block("ETROC2", "Pixel Config")
+                # Send changes to chip
+                chip.write_all_block("ETROC2", "Pixel Config")
 
-            data['row'].append(this_row)
-            data['col'].append(this_col)
-            data['baseline'].append(int(BL_handle.get(), 0))
-            data['noise_width'].append(int(NW_handle.get(), 0))
-            data['timestamp'].append(datetime.datetime.now())
+                data['row'].append(this_row)
+                data['col'].append(this_col)
+                data['baseline'].append(int(BL_handle.get(), 0))
+                data['noise_width'].append(int(NW_handle.get(), 0))
+                data['timestamp'].append(datetime.datetime.now())
 
-    BL_df = pandas.DataFrame(data=data)
-    BL_df['chip_name'] = chip_name
-    BL_df['note'] = note_for_df
+        BL_df = pandas.DataFrame(data=data)
+        BL_df['chip_name'] = chip_name
+        BL_df['note'] = note_for_df
 
-    with sqlite3.connect(history_file) as sqlconn:
-        BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
+        with sqlite3.connect(history_file) as sqlconn:
+            BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
 
-    # Disconnect chip
-    conn.disconnect()
+        # Disconnect chip
+        conn.disconnect()
 
 def main():
     import argparse
