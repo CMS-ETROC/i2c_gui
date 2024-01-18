@@ -1,0 +1,36 @@
+THURLBY THANDAR, PL303QMD-P, 565122, 3.05-4.08
+THURLBY THANDAR, PL303QMD-P, 450472, 3.02-4.04
+Peripherals set for chip: 0x60
+PLL Calibration for chip: 0x60
+Recalibrated
+!!!ERROR!!! Scan not done for row 7, col 7!!!
+Pixel (7,7) on chip: 0x60  - BL: 0, NW: 0
+Enabled pixel (7,7) for chip: 0x60
+FC Calibration done for chip: 0x60
+Running TDC DAQ with QInj for Selected Pixel...
+ET 727
+EH 0001 728 0 2
+H 0 191 00 719
+T 0 0 0 36
+ET 728
+DAQ is done
+THURLBY THANDAR, PL303QMD-P, 565122, 3.05-4.08
+THURLBY THANDAR, PL303QMD-P, 450472, 3.02-4.04
+THURLBY THANDAR, PL303QMD-P, 565122, 3.05-4.08
+THURLBY THANDAR, PL303QMD-P, 450472, 3.02-4.04
+Peripherals set for chip: 0x60
+PLL Calibration for chip: 0x60
+Recalibrated
+!!!ERROR!!! Scan not done for row 14, col 14!!!
+Pixel (14,14) on chip: 0x60  - BL: 0, NW: 0
+Enabled pixel (14,14) for chip: 0x60
+FC Calibration done for chip: 0x60
+Running TDC DAQ with QInj for Selected Pixel...
+ET 750
+EH 0001 751 0 2
+H 0 108 00 719
+T 0 0 0 131
+ET 751
+DAQ is done
+THURLBY THANDAR, PL303QMD-P, 565122, 3.05-4.08
+THURLBY THANDAR, PL303QMD-P, 450472, 3.02-4.04
