@@ -35,13 +35,14 @@ import i2c_gui.chips
 from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.chips.etroc2_chip import register_decoding
 from pathlib import Path
+import numpy as np
 
 class Chip_Auto_Cal_Helper:
     def __init__(
         self,
         history_filename: str,
         chip_name: str,
-        port: str = '/dev/ttyACM2',
+        port: str = '/dev/ttyACM0',
         chip_address: int = 0x60,
         ws_address: int = None,
         data_dir: Path = Path('../ETROC-Data/'),
@@ -123,6 +124,7 @@ class Chip_Auto_Cal_Helper:
         run_str: str,
         comment_str: str,
         disable_all_pixels: bool = False,
+        scan_list = None # [(8, 2), (8, 8), (8, 14)]
         ):
         if not self._is_connected:
             self.connect()
@@ -141,9 +143,10 @@ class Chip_Auto_Cal_Helper:
         else:
             note_for_df = f'{run_str}_{comment_str}'
 
-        for this_row in tqdm(range(16)):
-            for this_col in range(16):
-
+        if scan_list is None: 
+            col_list, row_list = np.meshgrid(np.arange(16),np.arange(16))
+            scan_list = list(zip(row_list.flatten(),col_list.flatten()))
+        for this_row,this_col in scan_list:
                 self.row_indexer_handle.set(this_row)
                 self.column_indexer_handle.set(this_col)
                 self.chip.read_all_block("ETROC2", "Pixel Config")
@@ -244,6 +247,22 @@ def main():
         dest = 'disable_all_pixels',
     )
     parser.add_argument(
+        '-v',
+        '--verbose',
+        help = 'verbose output',
+        action = 'store_true',
+        dest = 'verbose',
+    )
+    parser.add_argument(
+        '--scan_list',
+        metavar = 'LIST',
+        # type = list,
+        type=lambda a: tuple(map(int, a.split(','))), nargs='+',
+        help = 'define scan list, must include 0,0 at the start, ex: 0,0 8,2 8,8 8,14',
+        default = None,
+        dest = 'scan_list',
+    )
+    parser.add_argument(
         '--interval_time',
         metavar = 'TIME',
         type = int,
@@ -283,10 +302,10 @@ def main():
     #i2c_gui.__no_connect_type__ = "check"  # default behaviour
 
     cal_helper = Chip_Auto_Cal_Helper(
-        history_filename = "BaselineHistory_TID_Jan2024_CERN",
+        history_filename = "BaselineHistory_CC_Jan2024_CERN",
         chip_name = args.chip_name,
         port = "/dev/ttyACM2",
-        chip_address = 0x60,
+        chip_address = 0x61,
         ws_address = None,
         data_dir = Path('../ETROC-Data/')
     )
@@ -299,10 +318,11 @@ def main():
         signal.signal(signal.SIGINT, signal_handler)
 
         cal_helper.run_auto_calibration(
-            chip_name = args.chip_name,
+            # chip_name = args.chip_name,
             comment_str = args.comment_str,
             run_str = run_str,
             disable_all_pixels = args.disable_all_pixels,
+            scan_list = args.scan_list,
         )
         end_time = time.time()
 
@@ -311,7 +331,8 @@ def main():
             sys.exit(0)
 
         count += 1
-        print(f'Sleeping in {args.interval_time}s')
+        if args.verbose:
+            print(f'Sleeping for {args.interval_time}s')
         time.sleep(args.interval_time)
 
 if __name__ == "__main__":
