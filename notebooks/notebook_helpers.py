@@ -369,6 +369,7 @@ class i2c_connection():
         upperCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperCal")
         lowerCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCal")
         enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
+        IBSel_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "IBSel")
 
         disDataReadout = "1"
         QInjEn = "0"
@@ -380,6 +381,7 @@ class i2c_connection():
         upperCal = hex(0x3ff)
         lowerCal = hex(0x3ff)
         enable_TDC = "0"
+        IBSel = hex(7)  ## Low power mode
 
         disDataReadout_handle.set(disDataReadout)
         QInjEn_handle.set(QInjEn)
@@ -397,6 +399,7 @@ class i2c_connection():
         upperCal_handle.set(upperCal)
         lowerCal_handle.set(lowerCal)
         enable_TDC_handle.set(enable_TDC)
+        IBSel_handle.set(IBSel)
 
 
         broadcast_handle.set(True)
@@ -458,6 +461,9 @@ class i2c_connection():
                 if int(enable_TDC_handle.get(), 0) != int(enable_TDC, 0):
                     broadcast_ok = False
                     break
+                if int(IBSel_handle.get(), 0) != int(IBSel, 0):
+                    broadcast_ok = False
+                    break
             if not broadcast_ok:
                 break
 
@@ -486,9 +492,38 @@ class i2c_connection():
                     upperCal_handle.set(upperCal)
                     lowerCal_handle.set(lowerCal)
                     enable_TDC_handle.set(enable_TDC)
+                    IBSel_handle.set(IBSel)
 
                     chip.write_all_block("ETROC2", "Pixel Config")
         print(f"Disabled pixels for chip: {hex(chip_address)}")
+
+    def set_power_mode(self, chip_address: int, row: int, col: int, power_mode: str = 'low', verbose: bool = False):
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
+
+        chip: i2c_gui.chips.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+        
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        column_indexer_handle.set(col)
+        row_indexer_handle.set(row)
+
+        IBSel = hex(7)
+
+        if power_mode == "high":
+            IBSel = hex(0)
+        elif power_mode == "010":
+            IBSel = hex(2)
+        elif power_mode == "101":
+            IBSel = hex(5)
+        elif power_mode == "low":
+            IBSel = hex(7)
+        else:
+            IBSel = hex(7)
+
+        self.pixel_decoded_register_write("IBSel", format(int(IBSel, 0), '03b'), chip=chip)
+
+        if(verbose): print(f"Set pixel ({row},{col}) to power mode: {IBSel}")
 
     def test_broadcast(self, chip_address, chip=None, row=0, col=0):
         if(chip==None):
