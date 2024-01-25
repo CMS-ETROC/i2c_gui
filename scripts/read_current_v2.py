@@ -210,7 +210,8 @@ class DeviceMeasurements():
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
             elif supply_model == "E36312A":
-                pass
+                self._power_supplies[supply]["handle"].query("SYST:RWL")
+                self._power_supplies[supply]["handle"].query("SYST:RWL")
             else:
                 raise RuntimeError("Unknown power supply type for locking the power supply")
 
@@ -293,7 +294,7 @@ class DeviceMeasurements():
             if supply_model == "PL303QMD-P":
                 self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
             elif supply_model == "E36312A":
-                pass
+                self._power_supplies[supply]["handle"].query("SYST:LOC")
             else:
                 raise RuntimeError("Unknown power supply type for releasing the power supply")
 
