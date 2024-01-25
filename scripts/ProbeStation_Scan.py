@@ -312,7 +312,7 @@ def run_ProbeStation(
         chip_name: str,
         comment_str: str,
         fpga_ip = "192.168.2.3",
-        port = "/dev/ttyACM1",
+        port = "/dev/ttyACM2",
         chip_address = 0x60,
         ws_address = None,
         run_name_extra = None,
@@ -484,7 +484,7 @@ def run_ProbeStation(
         selected_peripheralRegisterKeys = [0]
         data = []
         this_log_file = i2c_log_dir / 'Simplei2cCheckPeripheralConsistency.sqlite'
-        peripheral_success = None
+        peripheral_success = True
         for peripheralRegisterKey in selected_peripheralRegisterKeys:
             # Fetch the register
             handle_PeriCfgX = chip.get_display_var("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
@@ -539,6 +539,7 @@ def run_ProbeStation(
         data = []
         this_log_file = i2c_log_dir / 'Simplei2cPixelConsistency.sqlite'
         pixel_success = None
+
         for pixelRegisterKey in selected_pixelRegisterKeys:
                 # Fetch the register
                 handle_PixCfgX = chip.get_indexed_var("ETROC2", "Pixel Config", f"PixCfg{pixelRegisterKey}")
@@ -820,7 +821,7 @@ def run_ProbeStation(
                     i2c_log_dir = i2c_log_dir,
                     file_comment = f"AfterQInj{QInj}DAQ",
                 )
-
+        
         if do_offline:
             os.system(f"python standalone_translate_WaferProbe_etroc2_data.py -d ../ETROC-Data/{datetime.datetime.now().strftime('%Y-%m-%d')}_Array_Test_Results/{savedirname}")
 
