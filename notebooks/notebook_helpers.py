@@ -1317,6 +1317,144 @@ def trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, chip_figna
     plt.close()
     del triggerbit_full_Scurve
 
+def multiple_trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, chip_figname, scan_list, attempts=[], today='', autoBL=False, gaus=True, tags=[], colors = ['k']):
+    root = '../ETROC-Data'
+    file_pattern = "*FPGA_Data.dat"
+    scan_name = chip_figname+"_VRef_SCurve_NoiseOnly"
+    if(autoBL): BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)    
+    # triggerbit_full_Scurve = {row:{col:{} for col in range(16)} for row in range(16)}
+    triggerbit_full_Scurve = {row:{col:{attempt:{} for attempt in attempts} for col in range(16)} for row in range(16)}
+
+    if(today==''): today = datetime.date.today().isoformat()
+    todaystr = root+"/" + today + "_Array_Test_Results/"
+    base_dir = Path(todaystr)
+    base_dir.mkdir(exist_ok=True)
+
+    fig_outdir = Path('../ETROC-figures')
+    fig_outdir = fig_outdir / (today + '_Array_Test_Results')
+    fig_outdir.mkdir(exist_ok=True)
+    fig_path = str(fig_outdir)
+
+    row_list, col_list = zip(*scan_list)
+    u_cl = np.sort(np.unique(col_list))
+    u_rl = np.sort(np.unique(row_list))
+    
+    for row,col in scan_list:
+        for attempt in attempts:
+            path_pattern = f"*_Array_Test_Results/{scan_name}_Pixel_C{col}_R{row}"+attempt
+            file_list = []
+            for path, subdirs, files in os.walk(root):
+                if not fnmatch(path, path_pattern): continue
+                for name in files:
+                    pass
+                    if fnmatch(name, file_pattern):
+                        file_list.append(os.path.join(path, name))
+            for file_index, file_name in enumerate(file_list):
+                with open(file_name) as infile:
+                    for line in infile:
+                        text_list = line.split(',')
+                        FPGA_triggerbit = int(text_list[5])
+                        DAC = int(text_list[-1])
+                        if DAC == -1: continue
+                        triggerbit_full_Scurve[row][col][attempt][DAC] = FPGA_triggerbit
+
+    old_min_x_point = 1000
+    # old_min_y_point = 0
+    old_max_x_point = 0
+    # old_max_y_point = 0
+    fig = plt.figure(dpi=200, figsize=(len(np.unique(u_cl))*16,len(np.unique(u_rl))*10))
+    gs = fig.add_gridspec(len(np.unique(u_rl)),len(np.unique(u_cl)))
+    for ri,row in enumerate(u_rl):
+        for ci,col in enumerate(u_cl):
+            ax0 = fig.add_subplot(gs[len(u_rl)-ri-1,len(u_cl)-ci-1])
+            for attempt, tag, color in zip(attempts, tags, colors):
+                Y = np.array(list(triggerbit_full_Scurve[row][col][attempt].values()))
+                X = np.array(list(triggerbit_full_Scurve[row][col][attempt].keys()))
+                ax0.plot(X, Y, '.-', color=color,lw=1.0,label=tag)
+                ax0.set_xlabel("DAC Value [decimal]")
+                ax0.set_ylabel("Trigger Bit Counts [decimal]")
+                hep.cms.text(loc=0, ax=ax0, text="Preliminary", fontsize=25)
+                # min_y_point = np.amin(Y)
+                min_x_point = X[np.argmin(Y)]
+                max_y_point = np.amax(Y)
+                max_x_point = X[np.argmax(Y)]
+                if(old_max_x_point > max_x_point):
+                    max_x_point = old_max_x_point
+                # if(old_max_y_point > max_y_point):
+                #     max_y_point = old_max_y_point
+                if(old_min_x_point < min_x_point):
+                    min_x_point = old_min_x_point
+                # if(old_min_y_point < min_y_point):
+                #     min_y_point = old_min_y_point
+                fwhm_key_array  = X[Y>.0000037*max_y_point]
+                fwhm_val_array  = Y[Y>.0000037*max_y_point]
+                left_index  = np.argmin(np.where(Y>.0000037*max_y_point,X,np.inf))-1
+                right_index = np.argmax(np.where(Y>.0000037*max_y_point,X,-np.inf))+1
+                ax0.set_xlim(left=min_x_point-20, right=max_x_point+20)
+                if(gaus):
+                    ax0.plot([max_x_point, max_x_point], [0, max_y_point], 'w-', label=f"Max at {max_x_point}", lw=0.7)
+                    ax0.plot([X[left_index], X[right_index]], [Y[left_index], Y[right_index]], color=color, ls='--', label=f"99.9996% width = {(X[right_index]-X[left_index])/2.}", lw=0.7)
+                if(autoBL):
+                    ax0.axvline(BL_map_THCal[row][col], color=color, label=f"AutoBL = {BL_map_THCal[row][col]}", lw=0.7)
+                    ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color=color, ls='--', label=f"AutoNW = $\pm${NW_map_THCal[row][col]}", lw=0.7)
+                    ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color=color, ls='--', lw=0.7)
+                if(gaus or autoBL): plt.legend(loc="upper right", fontsize=20)
+                plt.yscale("log")
+                plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Noise Peak"+tag,size=25, loc="right")
+                plt.tight_layout()
+                plt.legend(loc="lower left", fontsize=14)
+    plt.savefig(fig_path+"/"+chip_figname+"_NoisePeak_Log"+attempts[0]+"_multiple_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+    plt.close()
+
+    old_min_x_point = 1000
+    # old_min_y_point = 0
+    old_max_x_point = 0
+    # old_max_y_point = 0
+    fig = plt.figure(dpi=200, figsize=(len(np.unique(u_cl))*16,len(np.unique(u_rl))*10))
+    gs = fig.add_gridspec(len(np.unique(u_rl)),len(np.unique(u_cl)))
+    for ri,row in enumerate(u_rl):
+        for ci,col in enumerate(u_cl):
+            ax0 = fig.add_subplot(gs[len(u_rl)-ri-1,len(u_cl)-ci-1])
+            for attempt, tag, color in zip(attempts, tags, colors):
+                Y = np.array(list(triggerbit_full_Scurve[row][col][attempt].values()))
+                X = np.array(list(triggerbit_full_Scurve[row][col][attempt].keys()))
+                ax0.plot(X, Y, '.-', color=color,lw=1.0,label=tag)
+                ax0.set_xlabel("DAC Value [decimal]")
+                ax0.set_ylabel("Trigger Bit Counts [decimal]")
+                hep.cms.text(loc=1, ax=ax0, text="Preliminary", fontsize=25)
+                # min_y_point = np.amin(Y)
+                min_x_point = X[np.argmin(Y)]
+                max_y_point = np.amax(Y)
+                max_x_point = X[np.argmax(Y)]
+                if(old_max_x_point > max_x_point):
+                    max_x_point = old_max_x_point
+                # if(old_max_y_point > max_y_point):
+                #     max_y_point = old_max_y_point
+                if(old_min_x_point < min_x_point):
+                    min_x_point = old_min_x_point
+                # if(old_min_y_point < min_y_point):
+                #     min_y_point = old_min_y_point
+                fwhm_key_array  = X[Y>.0000037*max_y_point]
+                fwhm_val_array  = Y[Y>.0000037*max_y_point]
+                left_index  = np.argmin(np.where(Y>.0000037*max_y_point,X,np.inf))-1
+                right_index = np.argmax(np.where(Y>.0000037*max_y_point,X,-np.inf))+1
+                ax0.set_xlim(left=min_x_point-20, right=max_x_point+20)
+                if(gaus):
+                    ax0.plot([max_x_point, max_x_point], [0, max_y_point], 'w-', label=f"Max at {max_x_point}", lw=0.7)
+                    ax0.plot([X[left_index], X[right_index]], [Y[left_index], Y[right_index]], color=color, ls='--', label=f"99.9996% width = {(X[right_index]-X[left_index])/2.}", lw=0.7)
+                if(autoBL):
+                    ax0.axvline(BL_map_THCal[row][col], color=color, label=f"AutoBL = {BL_map_THCal[row][col]}", lw=0.7)
+                    ax0.axvline(BL_map_THCal[row][col]+NW_map_THCal[row][col], color=color, ls='--', label=f"AutoNW = $\pm${NW_map_THCal[row][col]}", lw=0.7)
+                    ax0.axvline(BL_map_THCal[row][col]-NW_map_THCal[row][col], color=color, ls='--', lw=0.7)
+                if(gaus or autoBL): plt.legend(loc="upper right", fontsize=20)
+                plt.yscale("linear")
+                plt.title(f"{chip_figtitle}, Pixel ({row},{col}) Noise Peak"+tag,size=25, loc="right")
+                plt.tight_layout()
+            plt.legend(loc="lower left", fontsize=14)
+    plt.savefig(fig_path+"/"+chip_figname+"_NoisePeak_Linear"+attempts[0]+"_multiple_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+    plt.close()
+    del triggerbit_full_Scurve
+
 
 def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode='low'):
     if power_mode not in valid_power_modes:
@@ -1393,7 +1531,8 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                         # TDC_data = int(text_list[3])
                         # if(TDC_data>=header_max/2.):
                         Triggerbits = int(text_list[-2])
-                        if(Triggerbits>=11224/2.):
+                        # print(a,b,header_max,Triggerbits,Triggerbits>=(header_max/2.),line_DAC)
+                        if(Triggerbits>=(header_max/2.)):
                             a = DAC
                         else:
                             b = DAC
@@ -1503,7 +1642,7 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     process.join()
 
-def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low", upperlimit_turnoff=-1,timePerPixel=2, deadTime=1):
+def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low", upperlimit_turnoff=-1,timePerPixel=2, deadTime=1, run_options="--compressed_translation --skip_binary"):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_TDC"
@@ -1568,7 +1707,7 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
                 i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip=chip)
                 # TH = i2c_conn.pixel_decoded_register_read("TH", "Status", pixel_connected_chip, need_int=True)
                 threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}_Threshold_{threshold}'+attempt
-                run_daq(timePerPixel=timePerPixel, deadTime=deadTime, dirname=threshold_name, today=today, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname)
+                run_daq(timePerPixel=timePerPixel, deadTime=deadTime, dirname=threshold_name, today=today, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname,run_options=run_options)
 
         # Disable
         if(not allon):
@@ -1618,12 +1757,12 @@ def make_scurve_plot(QInjEns, scan_list, array, chip_figtitle, chip_figname, y_l
     plt.savefig(fig_path+"/"+chip_figname+save_name+"_"+datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
     plt.close()
 
-def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
+def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today='',attempt=""):
     if(today==''): today = datetime.date.today().isoformat()
     scan_name = f"*{today}_Array_Test_Results/"+chip_figname+"_VRef_SCurve_TDC"
     root = '../ETROC-Data'
     file_pattern = "*translated_[0-9]*.nem"
-    path_pattern = f"*{scan_name}*"
+    path_pattern = f"*{scan_name}*{attempt}*"
     file_list = []
     for path, subdirs, files in os.walk(root):
         if not fnmatch(path, path_pattern): continue
@@ -1646,13 +1785,15 @@ def process_scurves(chip_figtitle, chip_figname, QInjEns, scan_list, today=''):
     TOA_std = return_empty_list(QInjEns, scan_list)
     TOT_mean = return_empty_list(QInjEns, scan_list)
     TOT_std = return_empty_list(QInjEns, scan_list)
-
+    path_offset = attempt.split("_")
+    path_offset = np.array([len(po) for po in path_offset])
+    path_offset = len(path_offset[path_offset>0])
     total_files = len(file_list)
     for file_index, file_name in enumerate(file_list):
-        col = int(file_name.split('/')[-2].split('_')[-6][1:])
-        row = int(file_name.split('/')[-2].split('_')[-5][1:])
-        QInj = int(file_name.split('/')[-2].split('_')[-3])
-        DAC = int(file_name.split('/')[-2].split('_')[-1])
+        col = int(file_name.split('/')[-2].split('_')[-6-path_offset][1:])
+        row = int(file_name.split('/')[-2].split('_')[-5-path_offset][1:])
+        QInj = int(file_name.split('/')[-2].split('_')[-3-path_offset])
+        DAC = int(file_name.split('/')[-2].split('_')[-1-path_offset])
         if((row,col) not in scan_list): continue
         hit_counts[row, col, QInj][DAC] = 0
         # hit_counts_exc[row, col, QInj][DAC] = 0
