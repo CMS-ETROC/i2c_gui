@@ -86,11 +86,23 @@ class DeviceMeasurements():
 
     def add_instrument(self, name: str, manufacturer: str, model: str, serial: str, config: dict[str, str] = {}):
         self._power_supplies[name] = {
+            "type": "regular",
             "manufacturer": manufacturer,
             "model": model,
             "serial": serial,
             "config": config,
             "resource": None,
+            "handle": None,
+        }
+
+    def add_tcp_instrument(self, resource_str: str, name: str, manufacturer: str, model: str, serial: str, config: dict[str, str] = {}):
+        self._power_supplies[name] = {
+            "type": "tcp",
+            "manufacturer": manufacturer,
+            "model": model,
+            "serial": serial,
+            "config": config,
+            "resource": resource_str,
             "handle": None,
         }
 
@@ -116,13 +128,26 @@ class DeviceMeasurements():
     def set_channel_voltage(self, name: str, channel: int, voltage: float):
         self._channels[name][channel]["Vset"] = voltage
         if self._channels[name][channel]["on"]:
-            self._power_supplies[name]["handle"].write(f"V{channel} {voltage}")
+            supply_model = self._power_supplies[name]["model"]
+            if supply_model == "PL303QMD-P":
+                self._power_supplies[name]["handle"].write(f"V{channel} {voltage}")
+            elif supply_model == "E36312A":
+                self._power_supplies[name]["handle"].write(f"SOUR:VOLT {voltage}, (@{channel})")
+            else:
+                raise RuntimeError("Unknown power supply model for setting voltage")
 
     # TODO: Currently this code is specific for the CERN type of power supply, other types should be implemented here somehow
     def set_channel_current_limit(self, name: str, channel: int, current: float):
         self._channels[name][channel]["Ilimit"] = current
         if self._channels[name][channel]["on"]:
-            self._power_supplies[name]["handle"].write(f"I{channel} {current}")
+            supply_model = self._power_supplies[name]["model"]
+            if supply_model == "PL303QMD-P":
+                self._power_supplies[name]["handle"].write(f"I{channel} {current}")
+            elif supply_model == "E36312A":
+                self._power_supplies[name]["handle"].write(f"SOUR:CURR {current}, (@{channel})")
+            else:
+                raise RuntimeError("Unknown power supply model for setting current")
+
 
     def find_devices(self):
         resources = self._rm.list_resources()
@@ -159,6 +184,7 @@ class DeviceMeasurements():
 
         # This loop separate from above because of the lock
         for supply in self._power_supplies:
+            supply_model = self._power_supplies[supply]["model"]
             self._power_supplies[supply]["handle"] = self._rm.open_resource(self._power_supplies[supply]["resource"])
             self._power_supplies[supply]["handle"].baud_rate = self._baudrate
             self._power_supplies[supply]["handle"].timeout = 5000
@@ -166,8 +192,13 @@ class DeviceMeasurements():
             self._power_supplies[supply]["handle"].read_termination = self._read_termination
 
             for channel in self._channels[supply]:
-                # TODO: Currently this code is specific for the CERN type of power supply, other types should be implemented here somehow
-                state = self._power_supplies[supply]["handle"].query(f"OP{channel}?")
+                if supply_model == "PL303QMD-P":
+                    get_ch_state = f'OP{channel}?'  # For CERN Type of Power supply
+                elif supply_model == "E36312A":
+                    get_ch_state = f'OUTP? (@{channel})'
+                else:
+                    raise RuntimeError("Unknown power supply model for checking channel status")
+                state = self._power_supplies[supply]["handle"].query(get_ch_state)
                 if state == "0":
                     self._channels[supply][channel]['on'] = False
                 elif state == "1":
@@ -175,11 +206,18 @@ class DeviceMeasurements():
                 else:
                     raise RuntimeError(f"An impossible state was found for {supply} channel {channel}: \"{state}\"")
 
-            self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
-            self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
+            if supply_model == "PL303QMD-P":
+                self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
+                self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
+            elif supply_model == "E36312A":
+                pass
+            else:
+                raise RuntimeError("Unknown power supply type for locking the power supply")
 
     def turn_on(self):
         for supply in self._power_supplies:
+            supply_model = self._power_supplies[supply]["model"]
+
             for channel in self._channels[supply]:
                 self._channels[supply][channel]['on'] = True
 
@@ -197,18 +235,32 @@ class DeviceMeasurements():
                         current = 0.01
                 self.set_channel_current_limit(supply, channel, current)
 
-                if 'IRange' not in self._channels[supply][channel]["config"] or self._channels[supply][channel]["config"]["IRange"] == "Low":
-                    self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 1")
-                elif self._channels[supply][channel]["config"]["IRange"] == "High":
-                    self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 0")
-                else:  # TODO: Move the exception to another function (the add channel for instance), to avoid exceptions during config
-                    raise RuntimeError(f'Unknown IRange option: {self._channels[supply][channel]["config"]["IRange"]}')
+                if supply_model == "PL303QMD-P":  # Set IRange for PL303QMD-P power supplies
+                    if 'IRange' not in self._channels[supply][channel]["config"] or self._channels[supply][channel]["config"]["IRange"] == "Low":
+                        self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 1")
+                    elif self._channels[supply][channel]["config"]["IRange"] == "High":
+                        self._power_supplies[supply]["handle"].write(f"IRANGE{channel} 0")
+                    else:  # TODO: Move the exception to another function (the add channel for instance), to avoid exceptions during config
+                        raise RuntimeError(f'Unknown IRange option: {self._channels[supply][channel]["config"]["IRange"]}')
+                elif supply_model == "E36312A":
+                    if 'Mode' not in self._channels[supply][channel]["config"] or self._channels[supply][channel]["config"]["Mode"] == "2Wire":
+                        self._power_supplies[supply]["handle"].write(f"VOLT:SENS:SOUR INT, (@{channel})")
+                    elif self._channels[supply][channel]["config"]["Mode"] == "4Wire":
+                        self._power_supplies[supply]["handle"].write(f"VOLT:SENS:SOUR EXT, (@{channel})")
+                    else:  # TODO: Move the exception to another function (the add channel for instance), to avoid exceptions during config
+                        raise RuntimeError(f'Unknown Mode option: {self._channels[supply][channel]["config"]["Mode"]}')
 
             self._power_supplies[supply]["handle"].write("*CLS")
 
             for channel in self._channels[supply]:
-                self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
                 self.log_action("Power", "On", f"{supply} {channel}")
+                if supply_model == "PL303QMD-P":
+                    self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
+                elif supply_model == "E36312A":
+                    self._power_supplies[supply]["handle"].write(f"OUTP ON, (@{channel})")
+                else:
+                    raise RuntimeError("Unknown power supply type for turning on the power supply")
+
 
     def start_log(self):
         time.sleep(0.5)
@@ -223,14 +275,27 @@ class DeviceMeasurements():
 
     def turn_off(self):
         for supply in self._power_supplies:
+            supply_model = self._power_supplies[supply]["model"]
+
             for channel in self._channels[supply]:
-                self._channels[supply][channel]['on'] = False
-                self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
                 self.log_action("Power", "Off", f"{supply} {channel}")
+                self._channels[supply][channel]['on'] = False
+                if supply_model == "PL303QMD-P":
+                    self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
+                elif supply_model == "E36312A":
+                    self._power_supplies[supply]["handle"].write(f"OUTP OFF, (@{channel})")
+                else:
+                    raise RuntimeError("Unknown power supply type for turning off the power supply")
 
     def release_devices(self):
         for supply in self._power_supplies:
-            self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
+            supply_model = self._power_supplies[supply]["model"]
+            if supply_model == "PL303QMD-P":
+                self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
+            elif supply_model == "E36312A":
+                pass
+            else:
+                raise RuntimeError("Unknown power supply type for releasing the power supply")
 
     def log_action(self, action_system: str, action_type: str, action_message: str):
         log_action_v2(self._outdir, action_system, action_type, action_message)
@@ -266,9 +331,16 @@ class DeviceMeasurements():
         }
 
         for supply in self._power_supplies:
+            supply_model = self._power_supplies[supply]["model"]
             for channel in self._channels[supply]:
-                V = self._power_supplies[supply]["handle"].query(f"V{channel}O?")
-                I = self._power_supplies[supply]["handle"].query(f"I{channel}O?")
+                if supply_model == "PL303QMD-P":
+                    V = self._power_supplies[supply]["handle"].query(f"V{channel}O?")
+                    I = self._power_supplies[supply]["handle"].query(f"I{channel}O?")
+                elif supply_model == "E36312A":
+                    V = self._power_supplies[supply]["handle"].query(f"MEAS:VOLT? (@{channel})")
+                    I = self._power_supplies[supply]["handle"].query(f"MEAS:CURR? (@{channel})")
+                else:
+                    raise RuntimeError("Unknown power supply type for measurements of the power supply")
                 time = datetime.datetime.now().isoformat(sep=' ')
 
                 channel_name = self._channels[supply][channel]["alias"]
@@ -386,6 +458,9 @@ if __name__ == "__main__":
         read_termination = None
 
     # Defaults for CERN power supplies. i.e. THURLBY THANDAR  PL303QMD-P
+    #write_termination = '\n'
+    #read_termination = '\r\n'
+    # Defaults for E36312A power supplies. i.e. the Fermilab power supplies
     #write_termination = '\n'
     #read_termination = '\r\n'
 
