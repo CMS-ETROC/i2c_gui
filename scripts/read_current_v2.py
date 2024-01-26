@@ -153,10 +153,12 @@ class DeviceMeasurements():
         resources = self._rm.list_resources()
 
         for resource in resources:
-            #if 'ASRL/dev/ttyS' in resource.split('::')[0]:
-            #    continue
-            #if '/dev/ttyUSB' in resource.split('::')[0]:
-            #    continue
+            if 'ASRL/dev/ttyS' in resource.split('::')[0]:
+                continue
+            if '/dev/ttyUSB' in resource.split('::')[0]:
+                continue
+            if '/dev/ttyACM' in resource.split('::')[0]:
+                continue
             with self._rm.open_resource(resource) as instrument:
                 try:
                     instrument.baud_rate = self._baudrate
