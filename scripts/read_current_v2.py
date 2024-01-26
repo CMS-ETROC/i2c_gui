@@ -409,7 +409,8 @@ if __name__ == "__main__":
         help = "The termination characters used for writing. CR -> Carriage Return; LF -> Line Feed",
         dest = 'write_termination',
         #default = None,
-        default = "LF",  # For CERN power supplies
+        #default = "LF",  # For CERN power supplies
+        default = "CRLF",  # For E36312A power supplies
         choices = [None, "CR", "LF", "CRLF", "LFCR"],
     )
     parser.add_argument(
@@ -418,7 +419,8 @@ if __name__ == "__main__":
         help = "The termination characters used for reading. CR -> Carriage Return; LF -> Line Feed",
         dest = 'read_termination',
         #default = None,
-        default = "CRLF",  # For CERN power supplies
+        #default = "CRLF",  # For CERN power supplies
+        default = "LF",  # For E36312A power supplies
         choices = [None, "CR", "LF", "CRLF", "LFCR"],
     )
     parser.add_argument(
@@ -443,24 +445,24 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.write_termination == "CR":
-        write_termination = "\r"
+        write_termination = '\r'
     elif args.write_termination == "LF":
-        write_termination = "\n"
+        write_termination = '\n'
     elif args.write_termination == "CRLF":
-        write_termination = "\r\n"
+        write_termination = '\r\n'
     elif args.write_termination == "LFCR":
-        write_termination = "\n\r"
+        write_termination = '\n\r'
     else:
         write_termination = None
 
     if args.read_termination == "CR":
-        read_termination = "\r"
+        read_termination = '\r'
     elif args.read_termination == "LF":
-        read_termination = "\n"
+        read_termination = '\n'
     elif args.read_termination == "CRLF":
-        read_termination = "\r\n"
+        read_termination = '\r\n'
     elif args.read_termination == "LFCR":
-        read_termination = "\n\r"
+        read_termination = '\n\r'
     else:
         read_termination = None
 
@@ -468,8 +470,8 @@ if __name__ == "__main__":
     #write_termination = '\n'
     #read_termination = '\r\n'
     # Defaults for E36312A power supplies. i.e. the Fermilab power supplies
-    #write_termination = '\n'
-    #read_termination = '\r\n'
+    #write_termination = '\r\n'
+    #read_termination = '\n'
 
     if args.list:
         rm = pyvisa.ResourceManager()
