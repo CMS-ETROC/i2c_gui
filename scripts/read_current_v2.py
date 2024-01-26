@@ -530,8 +530,8 @@ if __name__ == "__main__":
         #                                                        }
         #)
 
-        device_meas.add_tcp_instrument("TCPIP0::192.168.3.1::5025::SOCKET", "Power1", "Keysight", "E36312A", "Serial")
-        device_meas.add_tcp_instrument("TCPIP0::192.168.3.2::5025::SOCKET", "Power2", "Keysight", "E36312A", "Serial")
+        device_meas.add_tcp_instrument("TCPIP0::192.168.3.1::5025::SOCKET", "Power1", "Keysight Technologies", "E36312A", "Serial")
+        device_meas.add_tcp_instrument("TCPIP0::192.168.3.2::5025::SOCKET", "Power2", "Keysight Technologies", "E36312A", "Serial")
 
         device_meas.add_channel("Power1", 1, "Analog1", config = {
             "Vset": 1.38,
