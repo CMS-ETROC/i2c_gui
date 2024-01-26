@@ -191,6 +191,9 @@ class DeviceMeasurements():
             self._power_supplies[supply]["handle"].write_termination = self._write_termination
             self._power_supplies[supply]["handle"].read_termination = self._read_termination
 
+            self._power_supplies[supply]["handle"].write("*CLS")
+            self._power_supplies[supply]["handle"].write("*RST?")
+
             for channel in self._channels[supply]:
                 if supply_model == "PL303QMD-P":
                     get_ch_state = f'OP{channel}?'  # For CERN Type of Power supply
@@ -198,7 +201,8 @@ class DeviceMeasurements():
                     get_ch_state = f'OUTP? (@{channel})'
                 else:
                     raise RuntimeError("Unknown power supply model for checking channel status")
-                state = self._power_supplies[supply]["handle"].query(get_ch_state)
+                state: str = self._power_supplies[supply]["handle"].query(get_ch_state)
+                state = state.strip()
                 if state == "0":
                     self._channels[supply][channel]['on'] = False
                 elif state == "1":
@@ -210,8 +214,8 @@ class DeviceMeasurements():
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
             elif supply_model == "E36312A":
-                self._power_supplies[supply]["handle"].query("SYST:RWL")
-                self._power_supplies[supply]["handle"].query("SYST:RWL")
+                self._power_supplies[supply]["handle"].write("SYST:RWL")
+                self._power_supplies[supply]["handle"].write("SYST:RWL")
             else:
                 raise RuntimeError("Unknown power supply type for locking the power supply")
 
@@ -294,7 +298,7 @@ class DeviceMeasurements():
             if supply_model == "PL303QMD-P":
                 self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
             elif supply_model == "E36312A":
-                self._power_supplies[supply]["handle"].query("SYST:LOC")
+                self._power_supplies[supply]["handle"].write("SYST:LOC")
             else:
                 raise RuntimeError("Unknown power supply type for releasing the power supply")
 
@@ -496,33 +500,68 @@ if __name__ == "__main__":
                                          )
 
         # TODO: Parse instruments and channels from a config file so that the code does not change from setup to setup, there would be a config file for each setup
-        device_meas.add_instrument("Power", "THURLBY THANDAR", "PL303QMD-P", "506013")  # TID Top
-        device_meas.add_instrument("WS Power", "THURLBY THANDAR", "PL303QMD-P", "521246")  # TID Bottom
+        #device_meas.add_instrument("Power", "THURLBY THANDAR", "PL303QMD-P", "506013")  # TID Top
+        #device_meas.add_instrument("WS Power", "THURLBY THANDAR", "PL303QMD-P", "521246")  # TID Bottom
 
-        device_meas.add_channel("Power", 1, "Analog", config = {
-                                                                "Vset": 1.2 + 0.04,
-                                                                "Ilimit": 0.5,
-                                                                "IRange": "Low",  # Alternative "High"
-                                                                }
-        )
-        device_meas.add_channel("Power", 2, "Digital", config = {
-                                                                "Vset": 1.2 + 0.09,
-                                                                "Ilimit": 0.4,
-                                                                "IRange": "Low",  # Alternative "High"
-                                                                }
-        )
-        device_meas.add_channel("WS Power", 1, "Analog", config = {
-                                                                "Vset": 1.2 + 0.01,
-                                                                "Ilimit": 0.03,
-                                                                "IRange": "Low",  # Alternative "High"
-                                                                }
-        )
-        device_meas.add_channel("WS Power", 2, "Digital", config = {
-                                                                "Vset": 1.2 + 0.01,
-                                                                "Ilimit": 0.1,
-                                                                "IRange": "Low",  # Alternative "High"
-                                                                }
-        )
+        #device_meas.add_channel("Power", 1, "Analog", config = {
+        #                                                        "Vset": 1.2 + 0.04,
+        #                                                        "Ilimit": 0.5,
+        #                                                        "IRange": "Low",  # Alternative "High"
+        #                                                        }
+        #)
+        #device_meas.add_channel("Power", 2, "Digital", config = {
+        #                                                        "Vset": 1.2 + 0.09,
+        #                                                        "Ilimit": 0.4,
+        #                                                        "IRange": "Low",  # Alternative "High"
+        #                                                        }
+        #)
+        #device_meas.add_channel("WS Power", 1, "Analog", config = {
+        #                                                        "Vset": 1.2 + 0.01,
+        #                                                        "Ilimit": 0.03,
+        #                                                        "IRange": "Low",  # Alternative "High"
+        #                                                        }
+        #)
+        #device_meas.add_channel("WS Power", 2, "Digital", config = {
+        #                                                        "Vset": 1.2 + 0.01,
+        #                                                        "Ilimit": 0.1,
+        #                                                        "IRange": "Low",  # Alternative "High"
+        #                                                        }
+        #)
+
+        device_meas.add_tcp_instrument("TCPIP0::192.168.3.1::5025::SOCKET", "Power1", "Keysight", "E36312A", "Serial")
+        device_meas.add_tcp_instrument("TCPIP0::192.168.3.2::5025::SOCKET", "Power2", "Keysight", "E36312A", "Serial")
+
+        device_meas.add_channel("Power1", 1, "Analog1", config = {
+            "Vset": 1.38,
+            "Ilimit": 0.7,
+            "Mode": "2Wire",
+        })
+        device_meas.add_channel("Power1", 2, "Digital1", config = {
+            "Vset": 1.251,
+            "Ilimit": 0.7,
+            "Mode": "2Wire",
+        })
+        device_meas.add_channel("Power1", 3, "WS", config = {
+            "Vset": 1.2,
+            "Ilimit": 0.1,
+            "Mode": "2Wire",
+        })
+
+        device_meas.add_channel("Power2", 1, "Analog2", config = {
+            "Vset": 1.381,
+            "Ilimit": 0.7,
+            "Mode": "2Wire",
+        })
+        device_meas.add_channel("Power2", 2, "Digital2", config = {
+            "Vset": 1.25,
+            "Ilimit": 0.7,
+            "Mode": "2Wire",
+        })
+        device_meas.add_channel("Power2", 3, "VRef", config = {
+            "Vset": 1,
+            "Ilimit": 0.5,
+            "Mode": "2Wire",
+        })
 
         device_meas.find_devices()
 
