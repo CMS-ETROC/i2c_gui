@@ -204,7 +204,7 @@ class DeviceMeasurements():
                 else:
                     raise RuntimeError("Unknown power supply model for checking channel status")
                 state: str = self._power_supplies[supply]["handle"].query(get_ch_state)
-                state = state.strip()
+                #state = state.strip()
                 if state == "0":
                     self._channels[supply][channel]['on'] = False
                 elif state == "1":
