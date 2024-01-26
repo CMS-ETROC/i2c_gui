@@ -127,7 +127,8 @@ class I2C_Connection_Helper(GUI_Helper):
                 if thisTime - lastUpdateTime > 0.2 * 10**9:
                     self.display_progress("Reading:", i*100./seq_calls)
                     #self._frame.update_idletasks()
-                    self._frame.update()
+                    if self._frame is not None:
+                        self._frame.update()
 
                 this_block_address = memory_address + i*self._max_seq_byte
                 bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
