@@ -562,7 +562,7 @@ class i2c_connection():
             chip: i2c_gui.chips.ETROC2_Chip = self.get_chip_i2c_connection(address)
 
             chip.read_all()
-            chip.save_config(base_dir / f"{datetime.date.today().isoformat()}_{name}_{title}.pckl")
+            chip.save_config(base_dir / f"{datetime.datetime.now().isoformat()}_{name}_{title}.pckl")
 
 
     def test_broadcast(self, chip_address, chip=None, row=0, col=0):
