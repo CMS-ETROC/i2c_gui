@@ -404,6 +404,8 @@ class i2c_connection():
 
         broadcast_handle.set(True)
         chip.write_all_block("ETROC2", "Pixel Config")
+        print(f"Disabled pixels for chip: {hex(chip_address)}")
+        return
 
         broadcast_ok = True
         for row in range(16):
