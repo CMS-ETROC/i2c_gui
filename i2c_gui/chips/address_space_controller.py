@@ -549,7 +549,19 @@ class Address_Space_Controller(GUI_Helper):
 
         for i in range(data_size):
             self._memory[address+i] = int(self._display_vars[address+i].get(), 0)
-        self._i2c_controller.write_device_memory(self._i2c_address, address, self._memory[address:address+data_size], self._register_bits)
+
+        if write_bytes == 1:
+            tmp = self._memory[address:address+data_size]
+        else:
+            tmp = [None for i in range(data_size * write_bytes)]
+            for idx in range(data_size):
+                for i in range(write_bytes):
+                    if self._endianness == 'little':
+                        tmp[idx*write_bytes + i] = (self._memory[idx] >> (8 * i)) & 0xff
+                    else:
+                        tmp[idx*write_bytes + i] = (self._memory[idx] >> (8 * (write_bytes - 1 - i))) & 0xff
+
+        self._i2c_controller.write_device_memory(self._i2c_address, address, tmp, self._register_bits)
 
         if write_check:
             #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
