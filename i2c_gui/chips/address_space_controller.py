@@ -477,12 +477,27 @@ class Address_Space_Controller(GUI_Helper):
             self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
             return
 
-        self._logger.info("Reading a block of {} bytes starting at address {} in the address space '{}'".format(data_size, address, self._name))
+        from math import ceil
 
-        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size, self._register_bits)
+        read_bytes = ceil(int(self._register_length)/8)
+
+        self._logger.info("Reading a block of {} registers ({} bytes each) starting at address {} in the address space '{}'".format(data_size, read_bytes, address, self._name))
+
+        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size*read_bytes, self._register_bits)
         for i in range(data_size):
-            self._memory[address+i] = tmp[i]
-            self._display_vars[address+i].set(hex_0fill(tmp[i], self._register_length))
+            if read_bytes == 1:
+                self._memory[address+i] = tmp[i]
+            else:
+                value = 0
+                base_idx = i * read_bytes
+                if self._endianness == 'little':
+                    for idx in range(read_bytes):
+                        value = (value << 8) | tmp[base_idx + read_bytes - 1 - idx]
+                else:
+                    for idx in range(read_bytes):
+                        value = (value << 8) | tmp[base_idx + idx]
+                self._memory[address+i] = value
+            self._display_vars[address+i].set(hex_0fill(self._memory[address+i], self._register_length))
 
         self._parent.update_whether_modified()
 
