@@ -44,7 +44,8 @@ class Address_Space_Controller(GUI_Helper):
         decoded_registers,
         register_bits: int = 16,
         register_length: int = 8,
-        readback_delay_us : int = 1000,
+        readback_delay_us: int = 1000,
+        endianness: str = 'little',
     ):
         super().__init__(parent, None, parent._logger)
 
@@ -57,6 +58,10 @@ class Address_Space_Controller(GUI_Helper):
         self._register_bits = register_bits
         self._register_length = register_length
         self._readback_delay_us = readback_delay_us
+
+        if endianness not in ['little', 'big']:
+            raise RuntimeError("Unknown endianness type")
+        self._endianness = endianness
 
         self._not_read = True
 
@@ -386,6 +391,31 @@ class Address_Space_Controller(GUI_Helper):
 
         return True
 
+    def _read_memory_address_with_endian(self, address):
+        if self._i2c_address is None:
+            self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
+            return
+
+        from math import ceil
+
+        read_bytes = ceil(int(self._register_length)/8)
+        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, read_bytes, self._register_bits)
+
+        if read_bytes == 1:
+            return tmp[0]
+
+        value = 0
+        if self._endianness == 'little':
+            for i in range(len(tmp)):
+                value = (value << 8) | tmp[len(tmp) - i - 1]
+        else:
+            for i in range(len(tmp)):
+                value = (value << 8) | tmp[i]
+
+        #TODO: Add a compensation scheme for when the number of bits in a register is not an exact multiple of 8
+
+        return value
+
     def read_memory_register(self, address):
         if self._i2c_address is None:
             self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
@@ -393,9 +423,8 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Reading register at address {} in the address space '{}'".format(address, self._name))
 
-        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1, self._register_bits)
-        self._memory[address] = tmp[0]
-        self._display_vars[address].set(hex_0fill(tmp[0], self._register_length))
+        self._memory[address] = self._read_memory_address_with_endian(address)
+        self._display_vars[address].set(hex_0fill(self._memory[address], self._register_length))
 
         self._parent.update_whether_modified()
 
@@ -416,13 +445,13 @@ class Address_Space_Controller(GUI_Helper):
         if write_check:
             #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
 
-            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1, self._register_bits)
-            if self._memory[address] != tmp[0]:
+            tmp = self._read_memory_address_with_endian(address)
+            if self._memory[address] != tmp:
                 self.send_message("Failure to write register at address 0x{:0x} in the {} address space (I2C address 0x{:0x})".format(address, self._name, self._i2c_address),
                                   status="Error"
                 )
-                self._memory[address] = tmp[0]
-                # self._display_vars[address].set(hex_0fill(tmp[0], self._register_length))
+                self._memory[address] = tmp
+                # self._display_vars[address].set(hex_0fill(tmp, self._register_length))
 
                 self._parent.update_whether_modified()
 
