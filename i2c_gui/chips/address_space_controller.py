@@ -543,6 +543,10 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Writing a block of {} bytes starting at address {} in the address space '{}'".format(data_size, address, self._name))
 
+        from math import ceil
+
+        write_bytes = ceil(int(self._register_length)/8)
+
         for i in range(data_size):
             self._memory[address+i] = int(self._display_vars[address+i].get(), 0)
         self._i2c_controller.write_device_memory(self._i2c_address, address, self._memory[address:address+data_size], self._register_bits)
@@ -550,7 +554,23 @@ class Address_Space_Controller(GUI_Helper):
         if write_check:
             #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
 
-            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size, self._register_bits)
+            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size*write_bytes, self._register_bits)
+            if write_bytes != 1:
+                read_tmp = tmp
+                tmp = [None for i in range(data_size)]
+
+                for base_idx in range(data_size):
+                    value = 0
+                    if self._endianness == 'little':
+                        for i in range(write_bytes):
+                            value = (value << 8) | read_tmp[(base_idx + 1) * write_bytes - 1 - i]
+                    else:
+                        for i in range(write_bytes):
+                            value = (value << 8) | read_tmp[base_idx * write_bytes + i]
+                    tmp[base_idx] = value
+
+                    del read_tmp
+
             failed = []
             for i in range(data_size):
                 if self._memory[address+i] != tmp[i]:
