@@ -43,6 +43,7 @@ class Address_Space_Controller(GUI_Helper):
         register_map,
         decoded_registers,
         register_bits: int = 16,
+        register_length: int = 8,
         readback_delay_us : int = 1000,
     ):
         super().__init__(parent, None, parent._logger)
@@ -54,6 +55,7 @@ class Address_Space_Controller(GUI_Helper):
         self._blocks = {}
         self._register_map_metadata = register_map
         self._register_bits = register_bits
+        self._register_length = register_length
         self._readback_delay_us = readback_delay_us
 
         self._not_read = True
@@ -79,7 +81,7 @@ class Address_Space_Controller(GUI_Helper):
                         read_only = register_map[block_name]["Registers"][register]['read_only']
                     full_address = base_address + offset
                     self._register_map[block_name + "/" + register] = full_address
-                    self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], 8))
+                    self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], self._register_length))
                     self._read_only_map[full_address] = read_only
             elif "Indexer" in register_map[block_name]:
                 indexer_info = register_map[block_name]['Indexer']
@@ -107,7 +109,7 @@ class Address_Space_Controller(GUI_Helper):
                             read_only = register_map[block_name]["Registers"][register]['read_only']
                         full_register_name = base_name + "/" + register
                         self._register_map[full_register_name] = full_address
-                        self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], 8))
+                        self._display_vars[full_address].set(hex_0fill(register_map[block_name]["Registers"][register]['default'], self._register_length))
                         self._read_only_map[full_address] = read_only
             else:
                 self._logger.error("An impossible condition occured, there was a memory block defined which does not have a base address and does not have an indexer")
@@ -248,7 +250,7 @@ class Address_Space_Controller(GUI_Helper):
         register_repr = ''.join(register_repr)
 
         register_repr = '0b' + register_repr
-        self._display_vars[self._register_map[block + "/" + position[0]]].set(hex_0fill(int(register_repr, 0), 8))
+        self._display_vars[self._register_map[block + "/" + position[0]]].set(hex_0fill(int(register_repr, 0), self._register_length))
 
         del self._updating_from_decoded_value
 
@@ -342,7 +344,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._memory = self._i2c_controller.read_device_memory(self._i2c_address, 0, self._memory_size, self._register_bits)
         for idx in range(self._memory_size):
-            self._display_vars[idx].set(hex_0fill(self._memory[idx], 8))
+            self._display_vars[idx].set(hex_0fill(self._memory[idx], self._register_length))
         self._not_read = False
 
         self._parent.update_whether_modified()
@@ -370,7 +372,7 @@ class Address_Space_Controller(GUI_Helper):
             for i in range(self._memory_size):
                 if self._memory[i] != int(self._display_vars[i].get(), 0):
                     failed += [i]
-                    # self._display_vars[i].set(hex_0fill(self._memory[i], 8))
+                    # self._display_vars[i].set(hex_0fill(self._memory[i], self._register_length))
             if len(failed) != 0:
                 failed = ["0x{:0x}".format(i) for i in failed]
                 self.send_message("Failure to write the full {} address space (I2C address 0x{:0x}). The following register addresses failed to write: {}".format(self._name, self._i2c_address, ', '.join(failed)),
@@ -393,7 +395,7 @@ class Address_Space_Controller(GUI_Helper):
 
         tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, 1, self._register_bits)
         self._memory[address] = tmp[0]
-        self._display_vars[address].set(hex_0fill(tmp[0], 8))
+        self._display_vars[address].set(hex_0fill(tmp[0], self._register_length))
 
         self._parent.update_whether_modified()
 
@@ -420,7 +422,7 @@ class Address_Space_Controller(GUI_Helper):
                                   status="Error"
                 )
                 self._memory[address] = tmp[0]
-                # self._display_vars[address].set(hex_0fill(tmp[0], 8))
+                # self._display_vars[address].set(hex_0fill(tmp[0], self._register_length))
 
                 self._parent.update_whether_modified()
 
@@ -440,7 +442,7 @@ class Address_Space_Controller(GUI_Helper):
         tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size, self._register_bits)
         for i in range(data_size):
             self._memory[address+i] = tmp[i]
-            self._display_vars[address+i].set(hex_0fill(tmp[i], 8))
+            self._display_vars[address+i].set(hex_0fill(tmp[i], self._register_length))
 
         self._parent.update_whether_modified()
 
@@ -499,7 +501,7 @@ class Address_Space_Controller(GUI_Helper):
                 if self._memory[address+i] != tmp[i]:
                     failed += [address+i]
                     self._memory[address+i] = tmp[i]
-                    # self._display_vars[address+i].set(hex_0fill(tmp[i], 8))
+                    # self._display_vars[address+i].set(hex_0fill(tmp[i], self._register_length))
             if len(failed) != 0:
                 failed = ["0x{:0x}".format(i) for i in failed]
                 self.send_message("Failure to write memory block at address 0x{:0x} with length {} in the {} address space (I2C address 0x{:0x}). The following register addresses failed to write: {}".format(address, data_size, self._name, self._i2c_address, ', '.join(failed)),
@@ -574,7 +576,7 @@ class Address_Space_Controller(GUI_Helper):
             block_name = block_info[0]
 
             default_value = self._register_map_metadata[block_name]["Registers"][register_name]['default']
-            self._display_vars[full_address].set(hex_0fill(default_value, 8))
+            self._display_vars[full_address].set(hex_0fill(default_value, self._register_length))
             count += 1
         self.clear_progress()
 
@@ -589,5 +591,5 @@ class Address_Space_Controller(GUI_Helper):
                 self._parent._parent._frame.update()
 
             if self._memory[idx] is not None:
-                self._display_vars[idx].set(hex_0fill(self._memory[idx], 8))
+                self._display_vars[idx].set(hex_0fill(self._memory[idx], self._register_length))
         self.clear_progress()
