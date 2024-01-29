@@ -439,8 +439,19 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Writing register at address {} in the address space '{}'".format(address, self._name))
 
+        from math import ceil
+        write_bytes = ceil(int(self._register_length)/8)
+        register_bytes = []
+
         self._memory[address] = int(self._display_vars[address].get(), 0)
-        self._i2c_controller.write_device_memory(self._i2c_address, address, [self._memory[address]], self._register_bits)
+        tmp = self._memory[address]
+        for idx in range(write_bytes):
+            register_bytes += [tmp & 0xff]
+            tmp = tmp >> 8
+        if self._endianness == "big":
+            register_bytes.reverse()
+
+        self._i2c_controller.write_device_memory(self._i2c_address, address, register_bytes, self._register_bits)
 
         if write_check:
             #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
