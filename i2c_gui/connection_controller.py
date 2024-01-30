@@ -25,11 +25,16 @@ from __future__ import annotations
 from .gui_helper import GUI_Helper
 from .base_gui import Base_GUI
 from .functions import hex_0fill
+from .functions import validate_bit_length
+from .functions import validate_variable_bit_register
+
+from math import ceil
 
 import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 import time
+import re
 
 from .usb_iss_helper import USB_ISS_Helper
 from .fpga_eth_helper import FPGA_ETH_Helper
@@ -87,6 +92,12 @@ class Connection_Controller(GUI_Helper):
         self._i2c_window_register_value_var = tk.StringVar()
         self._i2c_window_block_size_var = tk.StringVar()
 
+        self._i2c_window_register_length_var = tk.StringVar(value="8")
+        self._i2c_window_register_length_var.trace_add("write", self._changed_register_length)
+
+        self._i2c_window_register_address_length_var = tk.StringVar(value="16")
+        self._i2c_window_register_address_length_var.trace_add("write", self._changed_register_address_length)
+
         self._enable_readback_var = tk.BooleanVar(value=True)
         self._enable_readback_var.trace_add("write", self._toggle_enable_readback)
 
@@ -116,6 +127,28 @@ class Connection_Controller(GUI_Helper):
     def _toggle_enable_readback(self, var=None, index=None, mode=None):
         value = self._enable_readback_var.get()
         self._parent.set_enable_readback(value)
+
+    def _changed_register_length(self, var=None, index=None, mode=None):
+        string = self._i2c_window_register_length_var.get()
+
+        if validate_bit_length(string):
+            if hasattr(self, "_i2c_window_register_value_entry"):
+                if not hasattr(self, f'_register_{string}_validate_cmd'):
+                    setattr(self, f'_register_{string}_validate_cmd', (self._frame.register(lambda string_v : validate_variable_bit_register(string_v, int(string, 10))), '%P'))
+
+                func = getattr(self, f'_register_{string}_validate_cmd')
+                self._i2c_window_register_value_entry.config(validate='key', validatecommand=func, invalidcommand=self._invalid_register_value_cmd)
+
+    def _changed_register_address_length(self, var=None, index=None, mode=None):
+        string = self._i2c_window_register_address_length_var.get()
+
+        if validate_bit_length(string):
+            if hasattr(self, "_i2c_window_register_value_entry"):
+                if not hasattr(self, f'_register_{string}_validate_cmd'):
+                    setattr(self, f'_register_{string}_validate_cmd', (self._frame.register(lambda string_v : validate_variable_bit_register(string_v, int(string, 10))), '%P'))
+
+                func = getattr(self, f'_register_{string}_validate_cmd')
+                self._i2c_window_register_entry.config(validate='key', validatecommand=func, invalidcommand=self._invalid_register_address_cmd)
 
     def _update_connection_type(self, var=None, index=None, mode=None):
         connection_type = self._i2c_connection_type_var.get()
@@ -350,13 +383,13 @@ class Connection_Controller(GUI_Helper):
 
 
         from .functions import validate_8bit_register
-        from .functions import validate_variable_bit_register
         from .functions import validate_i2c_address
         from .functions import validate_num
         self._register_8_validate_cmd = (self._frame.register(validate_8bit_register), '%P')
         self._register_16_validate_cmd = (self._frame.register(lambda string : validate_variable_bit_register(string, 16)), '%P')
         self._address_validate_cmd = (self._frame.register(validate_i2c_address), '%P')
         self._block_size_cmd = (self._frame.register(validate_num), '%P')
+        self._bit_length_validate_cmd = (self._frame.register(validate_bit_length), '%P')
 
         ###################################################
         # Main controls to send/receive I2C info
@@ -400,6 +433,24 @@ class Connection_Controller(GUI_Helper):
         self._invalid_block_size_cmd  = (self._frame.register(lambda string : self.send_message("Invalid block size trying to be set in I2C monitor: {}".format(string), "Warning")), '%P')
         self._i2c_window_block_size_entry.config(validate='key', validatecommand=self._block_size_cmd, invalidcommand=self._invalid_block_size_cmd)
 
+        self._i2c_window_register_length_label = ttk.Label(self._i2c_window_input_frame, text="Register Length:")
+        self._i2c_window_register_length_label.grid(column=100, row=500, padx=(0,5), sticky=(tk.E))
+        self._i2c_window_register_length_entry = ttk.Entry(self._i2c_window_input_frame, textvariable=self._i2c_window_register_length_var, width=6)
+        self._i2c_window_register_length_entry.grid(column=200, row=500)
+
+        # Validate the register length
+        self._invalid_register_length_cmd = (self._frame.register(self._invalid_register_length), '%P')
+        self._i2c_window_register_length_entry.config(validate='focusout', validatecommand=self._bit_length_validate_cmd, invalidcommand=self._invalid_register_length_cmd)
+
+        self._i2c_window_register_address_length_label = ttk.Label(self._i2c_window_input_frame, text="Register Address Length:")
+        self._i2c_window_register_address_length_label.grid(column=100, row=600, padx=(0,5), sticky=(tk.E))
+        self._i2c_window_register_address_length_entry = ttk.Entry(self._i2c_window_input_frame, textvariable=self._i2c_window_register_address_length_var, width=6)
+        self._i2c_window_register_address_length_entry.grid(column=200, row=600)
+
+        # Validate the register address length
+        self._invalid_register_address_length_cmd = (self._frame.register(self._invalid_register_address_length), '%P')
+        self._i2c_window_register_address_length_entry.config(validate='focusout', validatecommand=self._bit_length_validate_cmd, invalidcommand=self._invalid_register_address_length_cmd)
+
         self._i2c_window_button_frame = ttk.Frame(self._i2c_window_connection_control_frame, padding="0 0 0 0")
         self._i2c_window_button_frame.grid(column=100, row=200, sticky=(tk.N, tk.W, tk.E, tk.S))
         self._i2c_window_button_frame.columnconfigure(0, weight=1)
@@ -421,6 +472,30 @@ class Connection_Controller(GUI_Helper):
 
         self._i2c_window.update()
         self._i2c_window.minsize(self._i2c_window.winfo_width(), self._i2c_window.winfo_height())
+
+    def _invalid_register_length(self, string: str):
+        self.send_message("Invalid register length trying to be set in I2C monitor: {}".format(string), "Warning")
+
+        length = 8
+        if string != "":
+            digit_regex = r"\d+"
+
+            if re.fullmatch(digit_regex, string) is not None:
+                length = ceil(int(string, 10)/8)*8
+
+        self._i2c_window_register_length_var.set(length)
+
+    def _invalid_register_address_length(self, string: str):
+        self.send_message("Invalid register address length trying to be set in I2C monitor: {}".format(string), "Warning")
+
+        length = 8
+        if string != "":
+            digit_regex = r"\d+"
+
+            if re.fullmatch(digit_regex, string) is not None:
+                length = ceil(int(string, 10)/8)*8
+
+        self._i2c_window_register_address_length_var.set(length)
 
     def close_i2c_window(self):
         if not hasattr(self, "_i2c_window"):
