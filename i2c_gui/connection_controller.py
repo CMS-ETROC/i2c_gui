@@ -260,7 +260,7 @@ class Connection_Controller(GUI_Helper):
         if hasattr(self, "_i2c_scan_window"):
             self._toggle_logging_button.config(state='disabled')
 
-    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits = 16):
+    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits: int = 16, register_length: int = 8):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to read registers from it")
 
@@ -288,9 +288,9 @@ class Connection_Controller(GUI_Helper):
                 self._logger.error("Massive error, no connect was set, but an incorrect no connect type was chosen, so the I2C emulation behaviour is unknown")
             return retVal
 
-        return self._i2c_connection.read_device_memory(device_address, memory_address, byte_count, register_bits)
+        return self._i2c_connection.read_device_memory(device_address, memory_address, byte_count, register_bits, register_length)
 
-    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits = 16):
+    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits: int = 16, register_length: int = 8):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to write registers to it")
 
@@ -311,7 +311,7 @@ class Connection_Controller(GUI_Helper):
                 self._previous_write_value = data[len(data)-1]
             return
 
-        self._i2c_connection.write_device_memory(device_address, memory_address, data, register_bits)
+        self._i2c_connection.write_device_memory(device_address, memory_address, data, register_bits, register_length)
 
     def display_i2c_window(self):
         if hasattr(self, "_i2c_window"):
@@ -530,32 +530,67 @@ class Connection_Controller(GUI_Helper):
     def read_i2c_device_register(self):
         self._normalize_i2c_address()
         self._normalize_register_address()
+        self._normalize_register_length()
+        self._normalize_register_address_length()
+
+        register_length = int(self._i2c_window_register_length_var.get(), 0)
+        byte_count = ceil(register_length/8)
+        register_address_length = int(self._i2c_window_register_address_length_var.get(), 0)
 
         self._i2c_connection.read_device_memory(
             int(self._i2c_window_address_var.get(), 0),
             int(self._i2c_window_register_var.get(), 0),
+            byte_count = byte_count,
+            register_bits = register_address_length,
+            register_length = register_length,
         )
 
     def write_i2c_device_register(self):
         self._normalize_i2c_address()
         self._normalize_register_address()
         self._normalize_register_value()
+        self._normalize_register_length()
+        self._normalize_register_address_length()
+
+        register_length = int(self._i2c_window_register_length_var.get(), 0)
+        byte_count = ceil(register_length/8)
+        register_address_length = int(self._i2c_window_register_address_length_var.get(), 0)
+
+        if byte_count == 1:
+            data = [int(self._i2c_window_register_value_var.get(), 0)]
+        else:
+            # Assuming fixed little endian
+            data = [None for i in range(byte_count)]
+            tmp = int(self._i2c_window_register_value_var.get(), 0)
+            for i in range(byte_count):
+                data[i] = tmp & 0xff
+                tmp = tmp >> 8
 
         self._i2c_connection.write_device_memory(
             int(self._i2c_window_address_var.get(), 0),
             int(self._i2c_window_register_var.get(), 0),
-            [int(self._i2c_window_register_value_var.get(), 0)],
+            data,
+            register_bits = register_address_length,
+            register_length = register_length,
         )
 
     def read_i2c_device_block(self):
         self._normalize_i2c_address()
         self._normalize_register_address()
         self._normalize_block_size()
+        self._normalize_register_length()
+        self._normalize_register_address_length()
+
+        register_length = int(self._i2c_window_register_length_var.get(), 0)
+        byte_count = ceil(register_length/8)
+        register_address_length = int(self._i2c_window_register_address_length_var.get(), 0)
 
         self._i2c_connection.read_device_memory(
             int(self._i2c_window_address_var.get(), 0),
             int(self._i2c_window_register_var.get(), 0),
-            int(self._i2c_window_block_size_var.get(), 0),
+            int(self._i2c_window_block_size_var.get(), 0) * byte_count,
+            register_bits = register_address_length,
+            register_length = register_length,
         )
 
     def write_i2c_device_block(self):
@@ -563,14 +598,36 @@ class Connection_Controller(GUI_Helper):
         self._normalize_register_address()
         self._normalize_register_value()
         self._normalize_block_size()
+        self._normalize_register_length()
+        self._normalize_register_address_length()
+
+        register_length = int(self._i2c_window_register_length_var.get(), 0)
+        byte_count = ceil(register_length/8)
+        register_address_length = int(self._i2c_window_register_address_length_var.get(), 0)
 
         block_size = int(self._i2c_window_block_size_var.get(), 0)
-        data = [int(self._i2c_window_register_value_var.get(), 0) for i in range(block_size)]
+
+        if byte_count == 1:
+            data = [int(self._i2c_window_register_value_var.get(), 0) for i in range(block_size)]
+        else:
+            # Assuming fixed little endian
+            tmp_data = [None for i in range(byte_count)]
+            tmp = int(self._i2c_window_register_value_var.get(), 0)
+            for i in range(byte_count):
+                tmp_data[i] = tmp & 0xff
+                tmp = tmp >> 8
+
+            data = []
+            for i in range(block_size):
+                data += tmp_data
+
 
         self._i2c_connection.write_device_memory(
             int(self._i2c_window_address_var.get(), 0),
             int(self._i2c_window_register_var.get(), 0),
             data,
+            register_bits = register_address_length,
+            register_length = register_length,
         )
 
     @property

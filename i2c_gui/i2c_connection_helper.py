@@ -88,7 +88,7 @@ class I2C_Connection_Helper(GUI_Helper):
         high_byte = tmp[-4:-2]
         return int("0x" + low_byte + high_byte, 16)
 
-    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits: int = 16):
+    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits: int = 16, register_length: int = 8):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to read registers from it")
 
@@ -96,7 +96,9 @@ class I2C_Connection_Helper(GUI_Helper):
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
-        if byte_count == 1:
+        register_bytes = ceil(register_length/8)
+
+        if byte_count <= register_bytes:
             self._parent.send_i2c_logging_message("Trying to read the register 0x{:04x} of the I2C device with address 0x{:02x}:".format(memory_address, device_address))
         else:
             self._parent.send_i2c_logging_message("Trying to read a register block with size {} starting at register 0x{:04x} of the I2C device with address 0x{:02x}:".format(byte_count, memory_address, device_address))
@@ -130,7 +132,7 @@ class I2C_Connection_Helper(GUI_Helper):
                     if self._frame is not None:
                         self._frame.update()
 
-                this_block_address = memory_address + i*self._max_seq_byte
+                this_block_address = memory_address + i*self._max_seq_byte/register_bytes
                 bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
                 self._parent.send_i2c_logging_message("      Read operation {}: reading {} bytes starting from 0x{:04x}".format(i, bytes_to_read, this_block_address))
 
@@ -146,7 +148,7 @@ class I2C_Connection_Helper(GUI_Helper):
             self._parent.send_i2c_logging_message("   Full data:\n      {}\n".format(repr(data)))
         return data
 
-    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits: int = 16):
+    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits: int = 16, register_length: int = 8):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to write registers to it")
 
@@ -154,9 +156,10 @@ class I2C_Connection_Helper(GUI_Helper):
         if not validate_i2c_address(hex(device_address)):
             raise RuntimeError("Invalid I2C address received: {}".format(hex(device_address)))
 
+        register_bytes = ceil(register_length/8)
         byte_count = len(data)
 
-        if byte_count == 1:
+        if byte_count <= register_bytes:
             self._parent.send_i2c_logging_message("Trying to write the value 0x{:02x} to the register 0x{:04x} of the I2C device with address 0x{:02x}:".format(data[0], memory_address, device_address))
         else:
             self._parent.send_i2c_logging_message("Trying to write a register block with size {} starting at register 0x{:04x} of the I2C device with address 0x{:02x}:\n   Writing the value array: {}".format(byte_count, memory_address, device_address, repr(data)))
@@ -185,7 +188,7 @@ class I2C_Connection_Helper(GUI_Helper):
                     if self._frame is not None:
                         self._frame.update()
 
-                this_block_address = memory_address + i*self._max_seq_byte
+                this_block_address = memory_address + i*self._max_seq_byte/register_bytes
                 bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
                 self._parent.send_i2c_logging_message("      Write operation {}: writing {} bytes starting from 0x{:04x}".format(i, bytes_to_write, this_block_address))
 
