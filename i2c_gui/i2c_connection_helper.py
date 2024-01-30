@@ -136,7 +136,7 @@ class I2C_Connection_Helper(GUI_Helper):
                     if self._frame is not None:
                         self._frame.update()
 
-                this_block_address = memory_address + i*self._max_seq_byte/register_bytes
+                this_block_address = int(memory_address + i*self._max_seq_byte/register_bytes)
                 bytes_to_read = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
                 self._parent.send_i2c_logging_message("      Read operation {}: reading {} bytes starting from 0x{:04x}".format(i, bytes_to_read, this_block_address))
 
@@ -194,7 +194,7 @@ class I2C_Connection_Helper(GUI_Helper):
                     if self._frame is not None:
                         self._frame.update()
 
-                this_block_address = memory_address + i*self._max_seq_byte/register_bytes
+                this_block_address = int(memory_address + i*self._max_seq_byte/register_bytes)
                 bytes_to_write = min(self._max_seq_byte, byte_count - i*self._max_seq_byte)
                 self._parent.send_i2c_logging_message("      Write operation {}: writing {} bytes starting from 0x{:04x}".format(i, bytes_to_write, this_block_address))
 
