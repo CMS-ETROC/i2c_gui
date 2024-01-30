@@ -372,7 +372,7 @@ class Address_Space_Controller(GUI_Helper):
 
         from math import ceil
 
-        read_bytes = ceil(int(self._register_length)/8)
+        read_bytes = ceil(self._register_length/8)
         tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, read_bytes, self._register_bits)
 
         if read_bytes == 1:
@@ -414,7 +414,7 @@ class Address_Space_Controller(GUI_Helper):
         self._logger.info("Writing register at address {} in the address space '{}'".format(address, self._name))
 
         from math import ceil
-        write_bytes = ceil(int(self._register_length)/8)
+        write_bytes = ceil(self._register_length/8)
         register_bytes = []
 
         self._memory[address] = int(self._display_vars[address].get(), 0)
@@ -453,7 +453,7 @@ class Address_Space_Controller(GUI_Helper):
 
         from math import ceil
 
-        read_bytes = ceil(int(self._register_length)/8)
+        read_bytes = ceil(self._register_length/8)
 
         self._logger.info("Reading a block of {} registers ({} bytes each) starting at address {} in the address space '{}'".format(data_size, read_bytes, address, self._name))
 
@@ -521,7 +521,7 @@ class Address_Space_Controller(GUI_Helper):
 
         from math import ceil
 
-        write_bytes = ceil(int(self._register_length)/8)
+        write_bytes = ceil(self._register_length/8)
 
         for i in range(data_size):
             self._memory[address+i] = int(self._display_vars[address+i].get(), 0)
