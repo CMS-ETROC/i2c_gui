@@ -63,22 +63,32 @@ class USB_ISS_Helper(I2C_Connection_Helper):
     def _check_i2c_device(self, address: int):
         return self._iss.i2c.test(address)
 
-    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16):
-        if register_bits == 16:
-            self._iss.i2c.write_ad2(address, memory_address, data)
-        elif register_bits == 8:
-            self._iss.i2c.write_ad1(address, memory_address, data)
+    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16, write_type: str = 'Normal'):
+        if write_type == 'Normal':
+            if register_bits == 16:
+                self._iss.i2c.write_ad2(address, memory_address, data)
+            elif register_bits == 8:
+                self._iss.i2c.write_ad1(address, memory_address, data)
+            else:
+                self.send_message("Unknown bit size trying to be sent", "Error")
+        elif write_type == "Repeated Start":
+            pass
         else:
-            self.send_message("Unknown bit size trying to be sent", "Error")
+            raise RuntimeError("Unknown write type chosen for the USB ISS")
 
-    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16) -> list[int]:
-        if register_bits == 16:
-            return self._iss.i2c.read_ad2(address, memory_address, byte_count)
-        if register_bits == 8:
-            return self._iss.i2c.read_ad1(address, memory_address, byte_count)
+    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16, read_type: str = 'Normal') -> list[int]:
+        if read_type == 'Normal':
+            if register_bits == 16:
+                return self._iss.i2c.read_ad2(address, memory_address, byte_count)
+            if register_bits == 8:
+                return self._iss.i2c.read_ad1(address, memory_address, byte_count)
+            else:
+                self.send_message("Unknown bit size trying to be sent", "Error")
+                return []
+        elif read_type == "Repeated Start":
+            pass
         else:
-            self.send_message("Unknown bit size trying to be sent", "Error")
-            return []
+            raise RuntimeError("Unknown read type chosen for the USB ISS")
 
     def display_in_frame(self, frame: ttk.Frame):
         if hasattr(self, '_frame') and self._frame is not None:

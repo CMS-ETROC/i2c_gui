@@ -52,10 +52,10 @@ class I2C_Connection_Helper(GUI_Helper):
     def _check_i2c_device(self, address: int):
         raise RuntimeError("Derived classes must implement the individual device access functions: check_device")
 
-    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16):
+    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16, write_type: str = 'Normal'):
         raise RuntimeError("Derived classes must implement the individual device access functions: _write_device_memory")
 
-    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16) -> list[int]:
+    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16, read_type: str = 'Normal') -> list[int]:
         raise RuntimeError("Derived classes must implement the individual device access functions: _read_device_memory")
 
     def display_in_frame(self, frame: ttk.Frame):

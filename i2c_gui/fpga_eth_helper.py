@@ -74,17 +74,20 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
         ack_error = self._read_fpga_status_register(0) & 0x0100  # the 9th bit of status register is ACK_ERROR
         return (ack_error == 0)  # if no error, return true
 
-    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16):
+    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16, write_type: str = 'Normal'):
         for index in range(len(data)):
             self._write_i2c_device_register(
                 i2c_address = address,
                 memory_address = memory_address + index,
                 data = data[index],
                 addressing_mode = register_bits,
+                write_type = write_type,
             )
         return
 
-    def _write_i2c_device_register(self, i2c_address: int, memory_address: int, data: int, addressing_mode: int = 16):
+    def _write_i2c_device_register(self, i2c_address: int, memory_address: int, data: int, addressing_mode: int = 16, write_type: str = 'Normal'):
+        if write_type != 'Normal':
+            raise RuntimeError("The FPGA ETH interface does not support write types which are not of the normal type")
         wr = 0  # Operation is a write
         if addressing_mode == 8 :
             mode = 1  # Send an I2C message where 2 bytes are acted on
@@ -109,17 +112,20 @@ class FPGA_ETH_Helper(I2C_Connection_Helper):
             self.send_message("Unknown adressing mode for writing an i2c device register", "Error")
         return
 
-    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16) -> list[int]:
+    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16, read_type: str = 'Normal') -> list[int]:
         retVal = []
         for index in range(byte_count):
             retVal += [self._read_i2c_device_register(
                 i2c_address = address,
                 memory_address = memory_address + index,
                 addressing_mode = register_bits,
+                read_type = read_type,
             )]
         return retVal
 
-    def _read_i2c_device_register(self, i2c_address: int, memory_address: int, addressing_mode: int = 16) -> int:
+    def _read_i2c_device_register(self, i2c_address: int, memory_address: int, addressing_mode: int = 16, read_type: str = 'Normal') -> int:
+        if read_type != 'Normal':
+            raise RuntimeError("The FPGA ETH interface does not support read types which are not of the normal type")
         if addressing_mode == 8 :
             mode = 0  # Send an I2C message where 1 byte is acted on
             wr = 0  # Operation is a write
