@@ -46,6 +46,7 @@ class Address_Space_Controller(GUI_Helper):
         register_length: int = 8,
         readback_delay_us: int = 1000,
         endianness: str = 'little',
+        read_type: str = 'Normal',
     ):
         super().__init__(parent, None, parent._logger)
 
@@ -62,6 +63,10 @@ class Address_Space_Controller(GUI_Helper):
         if endianness not in ['little', 'big']:
             raise RuntimeError("Unknown endianness type")
         self._endianness = endianness
+
+        if read_type not in ['Normal', 'Repeated Start']:
+            raise RuntimeError('Unknown read type')
+        self._read_type = read_type
 
         self._not_read = True
 
