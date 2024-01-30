@@ -135,6 +135,14 @@ class Base_Chip(GUI_Helper):
             bits = address_space_model["Register Bits"]
         else:
             bits = 16
+        if "Register Length" in address_space_model:
+            length = address_space_model["Register Length"]
+        else:
+            length = 8
+        if "Endianness" in address_space_model:
+            endianness = address_space_model["Endianness"]
+        else:
+            endianness = "little"
         decoded_registers = None
         if register_decoding is not None:
             decoded_registers = register_decoding["Register Blocks"]
@@ -147,6 +155,8 @@ class Base_Chip(GUI_Helper):
             register_map=address_space_model["Register Blocks"],
             decoded_registers=decoded_registers,
             register_bits=bits,
+            register_length=length,
+            endianness=endianness,
         )
 
     def _build_indexer_vars(self, indexer_info):
@@ -507,6 +517,10 @@ class Base_Chip(GUI_Helper):
                               ):
         from ..register_block_interface import Register_Block_Interface
 
+        register_length = 8
+        if "Register Length" in self._register_model[address_space]:
+            register_length = self._register_model[address_space]["Register Length"]
+
         retVal = Register_Block_Interface(
             self,
             address_space=address_space,
@@ -515,6 +529,7 @@ class Base_Chip(GUI_Helper):
             button_title=button_title,
             register_model=self._register_model[address_space]["Register Blocks"][block]["Registers"],
             read_only=read_only,
+            register_length=register_length,
         )
 
         retVal.prepare_display(element, col, row, register_columns=register_columns)
@@ -588,8 +603,13 @@ class Base_Chip(GUI_Helper):
                                     row: int,
                                     register_columns: int,
                                     read_only: bool = False,
+                                    register_length: int = 8,
                                     ):
         from ..register_block_array_interface import Register_Block_Array_Interface
+
+        register_length = 8
+        if "Register Length" in self._register_model[address_space]:
+            register_length = self._register_model[address_space]["Register Length"]
 
         retVal = Register_Block_Array_Interface(
             self,
@@ -599,6 +619,7 @@ class Base_Chip(GUI_Helper):
             button_title=button_title,
             register_model=self._register_model[address_space]["Register Blocks"][block]["Registers"],
             read_only=read_only,
+            register_length=register_length,
         )
 
         retVal.prepare_display(element, col, row, register_columns=register_columns)
