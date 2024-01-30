@@ -230,8 +230,10 @@ class Base_Chip(GUI_Helper):
             address_space: Address_Space_Controller = self._address_space[address_space_name]
             size = address_space._memory_size
 
+            length = address_space._register_length
+
             for idx in range(size):
-                address_space._display_vars[idx].set(hex_0fill(info[address_space_name][idx], 8))
+                address_space._display_vars[idx].set(hex_0fill(info[address_space_name][idx], length))
 
         self.update_whether_modified()
 
@@ -603,7 +605,6 @@ class Base_Chip(GUI_Helper):
                                     row: int,
                                     register_columns: int,
                                     read_only: bool = False,
-                                    register_length: int = 8,
                                     ):
         from ..register_block_array_interface import Register_Block_Array_Interface
 
