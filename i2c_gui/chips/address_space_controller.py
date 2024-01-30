@@ -347,10 +347,8 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Reading the full '{}' address space".format(self._name))
 
-        self._memory = self._i2c_controller.read_device_memory(self._i2c_address, 0, self._memory_size, self._register_bits)
-        for idx in range(self._memory_size):
-            self._display_vars[idx].set(hex_0fill(self._memory[idx], self._register_length))
-        self._not_read = False
+        if self.read_memory_block(0, self._memory_size):
+            self._not_read = False
 
         self._parent.update_whether_modified()
 
@@ -475,7 +473,7 @@ class Address_Space_Controller(GUI_Helper):
     def read_memory_block(self, address, data_size):
         if self._i2c_address is None:
             self.send_message("Unable to read address space '{}' because the i2c address is not set".format(self._name), "Error")
-            return
+            return False
 
         from math import ceil
 
@@ -500,6 +498,8 @@ class Address_Space_Controller(GUI_Helper):
             self._display_vars[address+i].set(hex_0fill(self._memory[address+i], self._register_length))
 
         self._parent.update_whether_modified()
+
+        return True
 
     def write_memory_block_with_split_for_read_only(self, address, data_size, write_check: bool = True):
         start_address = None
