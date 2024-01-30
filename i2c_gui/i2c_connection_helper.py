@@ -25,6 +25,8 @@ from __future__ import annotations
 from .gui_helper import GUI_Helper
 from .base_gui import Base_GUI
 
+from math import ceil
+
 import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
@@ -98,10 +100,13 @@ class I2C_Connection_Helper(GUI_Helper):
 
         register_bytes = ceil(register_length/8)
 
+        #reg_chars = ceil(register_length/4)
+        addr_chars = ceil(register_bits/4)
+
         if byte_count <= register_bytes:
-            self._parent.send_i2c_logging_message("Trying to read the register 0x{:04x} of the I2C device with address 0x{:02x}:".format(memory_address, device_address))
+            self._parent.send_i2c_logging_message((f"Trying to read the register 0x{{:0{addr_chars}x}} of the I2C device with address 0x{{:02x}}:").format(memory_address, device_address))
         else:
-            self._parent.send_i2c_logging_message("Trying to read a register block with size {} starting at register 0x{:04x} of the I2C device with address 0x{:02x}:".format(byte_count, memory_address, device_address))
+            self._parent.send_i2c_logging_message((f"Trying to read a register block with size {{}} starting at register 0x{{:0{addr_chars}x}} of the I2C device with address 0x{{:02x}}:").format(byte_count, memory_address, device_address))
 
         data = []
         if self._no_connect:
@@ -117,7 +122,6 @@ class I2C_Connection_Helper(GUI_Helper):
             data = self._read_i2c_device_memory(device_address, memory_address, byte_count, register_bits)
             self._parent.send_i2c_logging_message("   {}\n".format(repr(data)))
         else:
-            from math import ceil
             from time import sleep
             data = []
             seq_calls = ceil(byte_count/self._max_seq_byte)
@@ -159,10 +163,13 @@ class I2C_Connection_Helper(GUI_Helper):
         register_bytes = ceil(register_length/8)
         byte_count = len(data)
 
+        reg_chars = ceil(register_length/4)
+        addr_chars = ceil(register_bits/4)
+
         if byte_count <= register_bytes:
-            self._parent.send_i2c_logging_message("Trying to write the value 0x{:02x} to the register 0x{:04x} of the I2C device with address 0x{:02x}:".format(data[0], memory_address, device_address))
+            self._parent.send_i2c_logging_message((f"Trying to write the value 0x{{:0{reg_chars}x}} to the register 0x{{:0{addr_chars}x}} of the I2C device with address 0x{{:02x}}:").format(data[0], memory_address, device_address))
         else:
-            self._parent.send_i2c_logging_message("Trying to write a register block with size {} starting at register 0x{:04x} of the I2C device with address 0x{:02x}:\n   Writing the value array: {}".format(byte_count, memory_address, device_address, repr(data)))
+            self._parent.send_i2c_logging_message((f"Trying to write a register block with size {{}} starting at register 0x{{:0{addr_chars}x}} of the I2C device with address 0x{{:02x}}:\n   Writing the value array: {{}}").format(byte_count, memory_address, device_address, repr(data)))
 
         if self._no_connect:
             self._parent.send_i2c_logging_message("   Software emulation (no connect) is enabled, so no write action is taken.\n")
@@ -174,7 +181,6 @@ class I2C_Connection_Helper(GUI_Helper):
                 memory_address = self.swap_endian_16bit(memory_address)
             self._write_i2c_device_memory(device_address, memory_address, data, register_bits)
         else:
-            from math import ceil
             from time import sleep
             seq_calls = ceil(byte_count/self._max_seq_byte)
             self._parent.send_i2c_logging_message("   Breaking the write into {} individual writes of {} bytes:".format(seq_calls, self._max_seq_byte))

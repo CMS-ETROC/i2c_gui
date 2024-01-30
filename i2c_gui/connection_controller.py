@@ -658,10 +658,12 @@ class Connection_Controller(GUI_Helper):
         self._i2c_window_address_var.set(hex_0fill(self._i2c_window_address_var.get(), 7))
 
     def _normalize_register_address(self):
-        self._i2c_window_register_var.set(hex_0fill(self._i2c_window_register_var.get(), 16))
+        length = int(self._i2c_window_register_address_length_var.get(), 0)
+        self._i2c_window_register_var.set(hex_0fill(self._i2c_window_register_var.get(), length))
 
     def _normalize_register_value(self):
-        self._i2c_window_register_value_var.set(hex_0fill(self._i2c_window_register_value_var.get(), 8))
+        length = int(self._i2c_window_register_length_var.get(), 0)
+        self._i2c_window_register_value_var.set(hex_0fill(self._i2c_window_register_value_var.get(), length))
 
     def _normalize_block_size(self):
         value = self._i2c_window_block_size_var.get()
@@ -672,10 +674,10 @@ class Connection_Controller(GUI_Helper):
         self._i2c_window_block_size_var.set(value)
 
     def _normalize_register_length(self):
-        self._i2c_window_register_length_var.set(str(self._i2c_window_register_length_var.get(), 0))
+        self._i2c_window_register_length_var.set(str(int(self._i2c_window_register_length_var.get(), 0)))
 
     def _normalize_register_address_length(self):
-        self._i2c_window_register_address_length_var.set(str(self._i2c_window_register_address_length_var.get(), 0))
+        self._i2c_window_register_address_length_var.set(str(int(self._i2c_window_register_address_length_var.get(), 0)))
 
     def send_i2c_logging_message(self, message: str):
         if not self.is_logging_i2c:
