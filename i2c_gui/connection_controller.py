@@ -260,7 +260,7 @@ class Connection_Controller(GUI_Helper):
         if hasattr(self, "_i2c_scan_window"):
             self._toggle_logging_button.config(state='disabled')
 
-    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits: int = 16, register_length: int = 8):
+    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits: int = 16, register_length: int = 8, read_type: str = 'Normal'):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to read registers from it")
 
@@ -288,9 +288,9 @@ class Connection_Controller(GUI_Helper):
                 self._logger.error("Massive error, no connect was set, but an incorrect no connect type was chosen, so the I2C emulation behaviour is unknown")
             return retVal
 
-        return self._i2c_connection.read_device_memory(device_address, memory_address, byte_count, register_bits, register_length)
+        return self._i2c_connection.read_device_memory(device_address, memory_address, byte_count, register_bits, register_length, read_type)
 
-    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits: int = 16, register_length: int = 8):
+    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits: int = 16, register_length: int = 8, write_type: str = 'Normal'):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to write registers to it")
 
@@ -311,7 +311,7 @@ class Connection_Controller(GUI_Helper):
                 self._previous_write_value = data[len(data)-1]
             return
 
-        self._i2c_connection.write_device_memory(device_address, memory_address, data, register_bits, register_length)
+        self._i2c_connection.write_device_memory(device_address, memory_address, data, register_bits, register_length, write_type)
 
     def display_i2c_window(self):
         if hasattr(self, "_i2c_window"):
