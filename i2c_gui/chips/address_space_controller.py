@@ -47,6 +47,7 @@ class Address_Space_Controller(GUI_Helper):
         readback_delay_us: int = 1000,
         endianness: str = 'little',
         read_type: str = 'Normal',
+        write_type: str = 'Normal',
     ):
         super().__init__(parent, None, parent._logger)
 
@@ -67,6 +68,10 @@ class Address_Space_Controller(GUI_Helper):
         if read_type not in ['Normal', 'Repeated Start']:
             raise RuntimeError('Unknown read type')
         self._read_type = read_type
+
+        if write_type not in ['Normal']:  # , 'Repeated Start']:
+            raise RuntimeError('Unknown write type')
+        self._write_type = write_type
 
         self._not_read = True
 
@@ -378,7 +383,7 @@ class Address_Space_Controller(GUI_Helper):
         from math import ceil
 
         read_bytes = ceil(self._register_length/8)
-        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, read_bytes, self._register_bits, self._register_length)
+        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, read_bytes, self._register_bits, self._register_length, self._read_type)
 
         if read_bytes == 1:
             return tmp[0]
@@ -430,7 +435,7 @@ class Address_Space_Controller(GUI_Helper):
         if self._endianness == "big":
             register_bytes.reverse()
 
-        self._i2c_controller.write_device_memory(self._i2c_address, address, register_bytes, self._register_bits, self._register_length)
+        self._i2c_controller.write_device_memory(self._i2c_address, address, register_bytes, self._register_bits, self._register_length, self._write_type)
 
         if write_check:
             #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
@@ -462,7 +467,7 @@ class Address_Space_Controller(GUI_Helper):
 
         self._logger.info("Reading a block of {} registers ({} bytes each) starting at address {} in the address space '{}'".format(data_size, read_bytes, address, self._name))
 
-        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size*read_bytes, self._register_bits, self._register_length)
+        tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size*read_bytes, self._register_bits, self._register_length, self._read_type)
         for i in range(data_size):
             if read_bytes == 1:
                 self._memory[address+i] = tmp[i]
@@ -542,12 +547,12 @@ class Address_Space_Controller(GUI_Helper):
                     else:
                         tmp[idx*write_bytes + i] = (self._memory[idx] >> (8 * (write_bytes - 1 - i))) & 0xff
 
-        self._i2c_controller.write_device_memory(self._i2c_address, address, tmp, self._register_bits, self._register_length)
+        self._i2c_controller.write_device_memory(self._i2c_address, address, tmp, self._register_bits, self._register_length, self._write_type)
 
         if write_check:
             #time.sleep(self._readback_delay_us/10E6)  # because sleep accepts seconds
 
-            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size*write_bytes, self._register_bits, self._register_length)
+            tmp = self._i2c_controller.read_device_memory(self._i2c_address, address, data_size*write_bytes, self._register_bits, self._register_length, self._read_type)
             if write_bytes != 1:
                 read_tmp = tmp
                 tmp = [None for i in range(data_size)]
