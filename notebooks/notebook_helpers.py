@@ -71,7 +71,7 @@ valid_power_modes = ['low', '010', '101', 'high']
 class i2c_connection():
     _chips = None
 
-    def __init__(self, port, chip_addresses,ws_addresses, chip_names, chip_fc_delays):
+    def __init__(self, port, chip_addresses, ws_addresses, chip_names, chip_fc_delays):
         self.chip_addresses = chip_addresses
         self.ws_addresses = ws_addresses
         self.chip_names = chip_names
@@ -96,10 +96,12 @@ class i2c_connection():
 
         self.BL_map_THCal = {}
         self.NW_map_THCal = {}
+        self.BLOffset_map = {}
         self.BL_df = {}
         for chip_address in chip_addresses:
             self.BL_map_THCal[chip_address] = np.zeros((16,16))
             self.NW_map_THCal[chip_address] = np.zeros((16,16))
+            self.BLOffset_map[chip_address] = np.zeros((16,16))
             self.BL_df[chip_address] = []
 
     # func_string is an 8-bit binary number, LSB->MSB is function 0->7
@@ -113,35 +115,8 @@ class i2c_connection():
             if(int(func_string[-4])): self.disable_all_pixels(chip_address, chip)
             if(int(func_string[-5])): self.auto_calibration(chip_address, chip_name, chip)
             if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip_name, chip)
-            if(int(func_string[-7])): pass
+            if(int(func_string[-7])): self.set_chip_offsets(chip_address, chip_name, offset=10, chip)
             if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
-
-    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=True, specified_addresses=[], power_mode="low"):
-        if power_mode not in valid_power_modes:
-            power_mode = "low"
-        if(len(specified_addresses)==0):
-            full_list = self.chip_addresses
-        else:
-            full_list = specified_addresses
-        for chip_address in full_list:
-            chip = self.get_chip_i2c_connection(chip_address)
-            row_indexer_handle,_,_ = chip.get_indexer("row")
-            column_indexer_handle,_,_ = chip.get_indexer("column")
-            for row,col in pixel_list:
-                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
-        del full_list
-
-    def enable_all_pixels(self, chip_address, chip=None, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, verbose=False, power_mode="low"):
-        if power_mode not in valid_power_modes:
-            power_mode = "low"
-        if(chip==None):
-            chip = self.get_chip_i2c_connection(chip_address)
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        for row in tqdm(range(16), desc="Enabling row", position=0):
-            for col in range(16):
-                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
-        print(f"Enabled pixels for chip: {hex(chip_address)}")
 
     def __del__(self):
         self.conn.disconnect()
@@ -226,9 +201,9 @@ class i2c_connection():
         chip.read_decoded_value("Waveform Sampler", f"Status", decodedRegisterName)
         if(need_int): return int(handle.get(), base=16)
         else: return handle.get()
-    #--------------------------------------------------------------------------#
 
     #--------------------------------------------------------------------------#
+    ## Function to get cached chip objects
     def get_chip_i2c_connection(self, chip_address, ws_address=None):
         if self._chips is None:
             self._chips = {}
@@ -248,9 +223,9 @@ class i2c_connection():
         row_indexer_handle.set(row)
         column_indexer_handle.set(col)
         return chip
-    #--------------------------------------------------------------------------#
 
     #--------------------------------------------------------------------------#
+    ## Library of basic config functions
     # Function 0
     def pixel_check(self, chip_address, chip=None):
         if(chip==None):
@@ -381,7 +356,7 @@ class i2c_connection():
         upperCal = hex(0x3ff)
         lowerCal = hex(0x3ff)
         enable_TDC = "0"
-        IBSel = hex(7)  ## Low power mode
+        IBSel = hex(0)  ## High power mode
 
         disDataReadout_handle.set(disDataReadout)
         QInjEn_handle.set(QInjEn)
@@ -497,9 +472,80 @@ class i2c_connection():
                     IBSel_handle.set(IBSel)
 
                     chip.write_all_block("ETROC2", "Pixel Config")
-        print(f"Disabled pixels for chip: {hex(chip_address)}")
+        print(f"Disabled pixels (no change in DAC) for chip: {hex(chip_address)}")
 
-    def set_power_mode(self, chip_address: int, row: int, col: int, power_mode: str = 'low', verbose: bool = False):
+    # Function 4
+    def auto_calibration(self, chip_address, chip_name, chip=None):
+        if(chip==None):
+            chip = self.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        data = []
+        # Loop for threshold calibration
+        for row in tqdm(range(16), desc="Calibrating row", position=0):
+            for col in range(16):
+                self.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=data, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        BL_df = pandas.DataFrame(data = data)
+        self.BL_df[chip_address] = BL_df
+        # Delete created components
+        del data
+        print(f"Auto calibration finished for chip: {hex(chip_address)}")
+
+    # Function 5
+    def auto_calibration_and_disable(self, chip_address, chip_name, chip=None):
+        if(chip==None):
+            chip = self.get_chip_i2c_connection(chip_address)
+        self.disable_all_pixels(chip_address=chip_address, chip=chip)
+        self.auto_calibration(chip_address, chip_name, chip)
+
+    # Function 6
+    def set_chip_offsets(self, chip_address, chip_name, offset, chip=None, pixel_list=None, verbose=False):
+        if(chip==None):
+            chip = self.get_chip_i2c_connection(chip_address)
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        if(pixel_list is not None):
+            for row in tqdm(range(16), desc="Setting Offsets for row", position=0):
+                for col in range(16):
+                    self.set_pixel_offsets(chip_address=chip_address, chip_name=chip_name, row=row, col=col, offset=offset, chip=chip, verbose=verbose, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        else:
+            for row,col in pixel_list:
+                self.set_pixel_offsets(chip_address=chip_address, chip_name=chip_name, row=row, col=col, offset=offset, chip=chip, verbose=verbose, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+        print(f"Offset set to {hex(offset)} for chip: {hex(chip_address)}")
+
+    # Function 7
+    def prepare_ws_testing(self, chip_address, ws_address, chip=None):
+        if(chip==None and chip_address!=None and ws_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address, ws_address)
+        elif(chip==None and (chip_address==None or ws_address==None)): print("Need either a chip or chip+ws address to access registers!")
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        row = 0
+        col = 14
+        column_indexer_handle.set(col)
+        row_indexer_handle.set(row)
+        ### WS and pixel initialization
+        self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="low")
+        self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip=chip)  # Offset used to add to the auto BL for real triggering
+        self.pixel_decoded_register_write("RFSel", format(0x00, '02b'), chip=chip)      # Set Largest feedback resistance -> maximum gain
+        self.pixel_decoded_register_write("QSel", format(0x1e, '05b'), chip=chip)       # Ensure we inject 30 fC of charge
+        print(f"WS Pixel (R0,C14) TH_Offset, RFSel, QSel Initialized for chip: {hex(chip_address)}")
+        regOut1F_handle = chip.get_display_var("Waveform Sampler", "Config", "regOut1F")
+        regOut1F_handle.set("0x22")
+        chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        regOut1F_handle.set("0x0b")
+        chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
+        # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
+        # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
+        self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)             # Time Skew Calibration set to 0
+        self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)           # CTRL default = 0x10 for regOut0D
+        self.ws_decoded_register_write("comp_cali", format(0, '03b'), chip=chip)        # Comparator calibration should be off
+        print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
+
+    #--------------------------------------------------------------------------#
+    ## Power Mode Functions
+    def set_power_mode(self, chip_address: int, row: int, col: int, power_mode: str = 'high', verbose: bool = False):
         if power_mode not in valid_power_modes:
             power_mode = "low"
 
@@ -527,7 +573,7 @@ class i2c_connection():
 
         if(verbose): print(f"Set pixel ({row},{col}) to power mode: {IBSel}")
 
-    def set_power_mode_scan_list(self, chip_address: int, scan_list: list[tuple], power_mode: str = 'low', verbose: bool = False):
+    def set_power_mode_scan_list(self, chip_address: int, scan_list: list[tuple], power_mode: str = 'high', verbose: bool = False):
         if power_mode not in valid_power_modes:
             power_mode = "low"
 
@@ -557,6 +603,8 @@ class i2c_connection():
 
             if(verbose): print(f"Set pixel ({row},{col}) to power mode: {IBSel}")
 
+    #--------------------------------------------------------------------------#
+    ## I2C Dump Config Functions
     def dump_config(self, base_dir: Path, title: str):
         for idx in range(len(self.chip_addresses)):
             address = self.chip_addresses[idx]
@@ -566,7 +614,8 @@ class i2c_connection():
             chip.read_all()
             chip.save_config(base_dir / f"{datetime.datetime.now().isoformat()}_{name}_{title}.pckl")
 
-
+    #--------------------------------------------------------------------------#
+    ## Broadcast Utils
     def test_broadcast(self, chip_address, chip=None, row=0, col=0):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
@@ -617,25 +666,10 @@ class i2c_connection():
         else:
             print(f"Broadcast worked for pixel ({row},{col})")
 
-    # Function 4
-    def auto_calibration(self, chip_address, chip_name, chip=None):
-        if(chip==None):
-            chip = self.get_chip_i2c_connection(chip_address)
-        row_indexer_handle,_,_ = chip.get_indexer("row")
-        column_indexer_handle,_,_ = chip.get_indexer("column")
-        data = []
-        # Loop for threshold calibration
-        for row in tqdm(range(16), desc="Calibrating row", position=0):
-            for col in range(16):
-                self.auto_cal_pixel(chip_name=chip_name, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=data, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
-        BL_df = pandas.DataFrame(data = data)
-        self.BL_df[chip_address] = BL_df
-        # Delete created components
-        del data
-        print(f"Auto calibration finished for chip: {hex(chip_address)}")
-
+    #--------------------------------------------------------------------------#
+    ## Functions relating to fetching or saving the BL/NW/Offset Maps
     def get_auto_cal_maps(self, chip_address):
-        return self.BL_map_THCal[chip_address],self.NW_map_THCal[chip_address],self.BL_df[chip_address]
+        return self.BL_map_THCal[chip_address],self.NW_map_THCal[chip_address],self.BL_df[chip_address],self.BLOffset_map[chip_address]
 
     def save_auto_cal_BL_map(self, chip_address, chip_name, user_path=""):
         outdir = Path('../ETROC-Data/'+(datetime.date.today().isoformat() + '_Array_Test_Results/')+user_path)
@@ -686,45 +720,36 @@ class i2c_connection():
         self.load_auto_cal_NW_map(chip_address, chip_name, user_path)
         self.load_auto_cal_BL_df(chip_address, chip_name, user_path)
 
-    # Function 5
-    def auto_calibration_and_disable(self, chip_address, chip_name, chip=None):
+    #--------------------------------------------------------------------------#
+    ## Bulk Pixel Enable Functions
+    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True, verbose=True, specified_addresses=[], power_mode="high"):
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
+        if(len(specified_addresses)==0):
+            full_list = self.chip_addresses
+        else:
+            full_list = specified_addresses
+        for chip_address in full_list:
+            chip = self.get_chip_i2c_connection(chip_address)
+            row_indexer_handle,_,_ = chip.get_indexer("row")
+            column_indexer_handle,_,_ = chip.get_indexer("column")
+            for row,col in pixel_list:
+                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
+        del full_list
+
+    def enable_all_pixels(self, chip_address, chip=None, QInjEn=True, Bypass_THCal=True, triggerWindow=True, cbWindow=True, verbose=False, power_mode="high"):
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        self.disable_all_pixels(chip_address=chip_address, chip=chip)
-        self.auto_calibration(chip_address, chip_name, chip)
-
-    # Function 7
-    def prepare_ws_testing(self, chip_address, ws_address, chip=None):
-        if(chip==None and chip_address!=None and ws_address!=None):
-            chip = self.get_chip_i2c_connection(chip_address, ws_address)
-        elif(chip==None and (chip_address==None or ws_address==None)): print("Need either a chip or chip+ws address to access registers!")
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
-        row = 0
-        col = 14
-        column_indexer_handle.set(col)
-        row_indexer_handle.set(row)
-        ### WS and pixel initialization
-        self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="low")
-        self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip=chip)  # Offset used to add to the auto BL for real triggering
-        self.pixel_decoded_register_write("RFSel", format(0x00, '02b'), chip=chip)      # Set Largest feedback resistance -> maximum gain
-        self.pixel_decoded_register_write("QSel", format(0x1e, '05b'), chip=chip)       # Ensure we inject 30 fC of charge
-        print(f"WS Pixel (R0,C14) TH_Offset, RFSel, QSel Initialized for chip: {hex(chip_address)}")
-        regOut1F_handle = chip.get_display_var("Waveform Sampler", "Config", "regOut1F")
-        regOut1F_handle.set("0x22")
-        chip.write_register("Waveform Sampler", "Config", "regOut1F")
-        regOut1F_handle.set("0x0b")
-        chip.write_register("Waveform Sampler", "Config", "regOut1F")
-        # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
-        # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
-        # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
-        self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)             # Time Skew Calibration set to 0
-        self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)           # CTRL default = 0x10 for regOut0D
-        self.ws_decoded_register_write("comp_cali", format(0, '03b'), chip=chip)        # Comparator calibration should be off
-        print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
-
+        for row in tqdm(range(16), desc="Enabling row", position=0):
+            for col in range(16):
+                self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
+        print(f"Enabled pixels for chip: {hex(chip_address)}")
     #--------------------------------------------------------------------------#
-
+    ## Single Pixel Operation Functions
     def disable_pixel(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
@@ -787,9 +812,9 @@ class i2c_connection():
 
         chip.write_all_block("ETROC2", "Pixel Config")
 
-        if(verbose): print(f"Disabled pixel ({row},{col}) for chip: {hex(chip_address)}")
+        if(verbose): print(f"Disabled pixel (no change in IBSel or DAC) ({row},{col}) for chip: {hex(chip_address)}")
 
-    def enable_pixel_modular(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None, QInjEn=False, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode = "low"):
+    def enable_pixel_modular(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None, QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True, power_mode = "high"):
         if power_mode not in valid_power_modes:
             power_mode = "low"
         if(chip==None and chip_address!=None):
@@ -951,7 +976,6 @@ class i2c_connection():
             row_indexer_handle,_,_ = chip.get_indexer("row")
         if(column_indexer_handle==None):
             column_indexer_handle,_,_ = chip.get_indexer("column")
-        # BL_map_THCal, NW_map_THCal, BL_df = self.get_auto_cal_maps(chip_address)
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
 
@@ -1003,9 +1027,9 @@ class i2c_connection():
                 print(f"!!!ERROR!!! Scan not done for row {row}, col {col}!!!")
                 break
 
-
         self.BL_map_THCal[chip_address][row, col] = int(BL_handle.get(), 0)
         self.NW_map_THCal[chip_address][row, col] = int(NW_handle.get(), 0)
+        self.BLOffset_map[chip_address][row, col] = 0
         if(data != None):
             data += [{
                 'col': col,
@@ -1016,18 +1040,41 @@ class i2c_connection():
                 'chip_name': chip_name,
             }]
 
-        # Enable TDC
-        enable_TDC_handle.set("1")
-        # Disable THCal clock and buffer, enable bypass
+        # Disable TDC
+        enable_TDC_handle.set("0")
+        # Disable THCal clock and buffer 
         CLKEn_THCal_handle.set("0")
         BufEn_THCal_handle.set("0")
+        # Enable bypass and set the BL to the DAC 
         Bypass_THCal_handle.set("1")
-        DAC_handle.set(hex(0x3ff))
+        DAC_handle.set(hex(self.BL_map_THCal[chip_address][row, col]))
 
         # Send changes to chip
         chip.write_all_block("ETROC2", "Pixel Config")
 
-        if(verbose): print(f"Auto calibration finished for pixel ({row},{col}) on chip: {hex(chip_address)}")
+        if(verbose): print(f"Auto calibration done (TDC=0 + DAC=BL) for pixel ({row},{col}) on chip: {hex(chip_address)}")
+
+    def set_pixel_offsets(self, chip_address, chip_name, row, col, offset, chip=None, verbose=False, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle):
+        if(chip==None and chip_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address)
+        elif(chip==None and chip_address==None):
+            print("Need chip address to make a new chip in disable pixel!")
+            return
+        if(row_indexer_handle==None):
+            row_indexer_handle,_,_ = chip.get_indexer("row")
+        if(column_indexer_handle==None):
+            column_indexer_handle,_,_ = chip.get_indexer("column")
+        column_indexer_handle.set(col)
+        row_indexer_handle.set(row)
+        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
+        chip.read_all_block("ETROC2", "Pixel Config")
+        old_DAC = int(DAC_handle.get(), 0)
+        DAC_handle.set(hex(self.BL_map_THCal[chip_address][row, col]+offset))
+        chip.write_all_block("ETROC2", "Pixel Config")
+        chip.read_all_block("ETROC2", "Pixel Config")
+        new_DAC = int(DAC_handle.get(), 0)
+        self.BLOffset_map[chip_address][row, col] = offset
+        if(verbose): print(f"Offset set to {hex(offset)} (DAC from {old_DAC} to {new_DAC}) for pixel ({row},{col}) (BL={self.BL_map_THCal[chip_address][row, col]}) for chip: {hex(chip_address)}")
 
     def set_TDC_window_vars(self, chip, triggerWindow=True, cbWindow=True):
         upperTOATrig_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "upperTOATrig")
@@ -1085,7 +1132,7 @@ class i2c_connection():
         print(f"Closed TDC for pixels for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-
+    ## Chip Calibration Util Functions
     def onchipL1A(self, chip_address, chip=None, comm='00'):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
@@ -1118,12 +1165,14 @@ class i2c_connection():
         time.sleep(0.2)
         self.peripheral_decoded_register_write("asyStartCalibration", "1", chip=chip)
         print(f"PLL Calibrated for chip: {hex(chip_address)}")
+    
+    #--------------------------------------------------------------------------#
     #--------------------------------------------------------------------------#
 
 #--------------------------------------------------------------------------#
 #  Functions separate from the i2c_conn class
 
-def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode="low"):
+def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode="high"):
     scan_name = chip_figname+"_VRef_SCurve_BinarySearch_TurnOn"
     fpga_time = 3
 
@@ -1136,7 +1185,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
     row_indexer_handle,_,_ = chip.get_indexer("row")
     column_indexer_handle,_,_ = chip.get_indexer("column")
 
-    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
     for row, col in tqdm(scan_list, leave=False):
         turnon_point = -1
         if(calibrate):
@@ -1200,7 +1249,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
         if(verbose): print(f"Turn-On point for Pixel ({row},{col}) for chip {hex(chip_address)} is found to be DAC:{turnon_point}")
         del IPC_queue, process, parser
 
-def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3", override_baseline=None, power_mode="low"):
+def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3", override_baseline=None, power_mode="high"):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     thresholds = np.arange(-10,20,pedestal_scan_step) # relative to BL
@@ -1210,7 +1259,7 @@ def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, 
     todaystr = root+"/" + today + "_Array_Test_Results/"
     base_dir = Path(todaystr)
     base_dir.mkdir(exist_ok=True)
-    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
     chip = i2c_conn.get_chip_i2c_connection(chip_address)
     row_indexer_handle,_,_ = chip.get_indexer("row")
     column_indexer_handle,_,_ = chip.get_indexer("column")
@@ -1295,7 +1344,7 @@ def trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, chip_figna
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_NoiseOnly"
-    if(autoBL): BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    if(autoBL): BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
     triggerbit_full_Scurve = {row:{col:{} for col in range(16)} for row in range(16)}
 
     if(today==''): today = datetime.date.today().isoformat()
@@ -1398,7 +1447,7 @@ def multiple_trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, c
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_NoiseOnly"
-    if(autoBL): BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)    
+    if(autoBL): BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)    
     # triggerbit_full_Scurve = {row:{col:{} for col in range(16)} for row in range(16)}
     triggerbit_full_Scurve = {row:{col:{attempt:{} for attempt in attempts} for col in range(16)} for row in range(16)}
 
@@ -1533,7 +1582,7 @@ def multiple_trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, c
     del triggerbit_full_Scurve
 
 
-def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode='low'):
+def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode='high'):
     if power_mode not in valid_power_modes:
         power_mode = 'low'
     DAC_scan_max = 1020
@@ -1549,7 +1598,7 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
     row_indexer_handle,_,_ = chip.get_indexer("row")
     column_indexer_handle,_,_ = chip.get_indexer("column")
 
-    BL_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    BL_map_THCal,_,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
     for row, col in scan_list:
         if(calibrate):
             i2c_conn.auto_cal_pixel(chip_name=chip_figname, row=row, col=col, verbose=False, chip_address=chip_address, chip=chip, data=None, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
@@ -1622,7 +1671,7 @@ def charge_peakDAC_plot(i2c_conn, chip_address, chip_figtitle, chip_figname, sca
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_BinarySearch_TurnOff"
-    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
     QInj_Peak_DAC_map = {row:{col:{q:0 for q in QInjEns} for col in range(16)} for row in range(16)}
 
     if(today==''): today = datetime.date.today().isoformat()
@@ -1719,11 +1768,11 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     process.join()
 
-def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="low", upperlimit_turnoff=-1,timePerPixel=2, deadTime=1, run_options="--compressed_translation --skip_binary"):
+def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="high", upperlimit_turnoff=-1,timePerPixel=2, deadTime=1, run_options="--compressed_translation --skip_binary"):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_TDC"
-    BL_map_THCal,NW_map_THCal,_ = i2c_conn.get_auto_cal_maps(chip_address)
+    BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
 
     if(today==''): today = datetime.date.today().isoformat()
     todaystr = root+"/" + today + "_Array_Test_Results/"
