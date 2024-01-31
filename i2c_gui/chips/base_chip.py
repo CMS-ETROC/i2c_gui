@@ -147,6 +147,10 @@ class Base_Chip(GUI_Helper):
             read_type = address_space_model["Read Type"]
         else:
             read_type = "Normal"
+        if "Write Type" in address_space_model:
+            write_type = address_space_model["Write Type"]
+        else:
+            write_type = "Normal"
         decoded_registers = None
         if register_decoding is not None:
             decoded_registers = register_decoding["Register Blocks"]
@@ -162,6 +166,7 @@ class Base_Chip(GUI_Helper):
             register_length=length,
             endianness=endianness,
             read_type=read_type,
+            write_type=write_type,
         )
 
     def _build_indexer_vars(self, indexer_info):
