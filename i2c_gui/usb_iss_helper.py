@@ -37,6 +37,7 @@ class USB_ISS_Helper(I2C_Connection_Helper):
         super().__init__(parent, max_seq_byte, swap_endian)
 
         self._iss = UsbIss()
+        #self._iss = UsbIss(verbose=True)
 
         self._port_var = tk.StringVar()
         self._port_var.set("COM3")
@@ -197,6 +198,7 @@ class USB_ISS_Helper(I2C_Connection_Helper):
         if hasattr(self, "_clk_option"):
             self._clk_option.config(state="disabled")
         self.send_message("Connected to I2C bus with a bitrate of {} kHz through port {}".format(self.clk, self.port))
+        #print(self._iss.read_fw_version())
         return True
 
     def disconnect(self):
