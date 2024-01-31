@@ -90,7 +90,7 @@ class I2C_Connection_Helper(GUI_Helper):
         high_byte = tmp[-4:-2]
         return int("0x" + low_byte + high_byte, 16)
 
-    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits: int = 16, register_length: int = 8):
+    def read_device_memory(self, device_address: int, memory_address: int, byte_count: int = 1, register_bits: int = 16, register_length: int = 8, read_type: str = 'Normal'):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to read registers from it")
 
@@ -119,7 +119,7 @@ class I2C_Connection_Helper(GUI_Helper):
         elif self._max_seq_byte is None:
             if self._swap_endian and register_bits == 16:
                 memory_address = self.swap_endian_16bit(memory_address)
-            data = self._read_i2c_device_memory(device_address, memory_address, byte_count, register_bits)
+            data = self._read_i2c_device_memory(device_address, memory_address, byte_count, register_bits, read_type)
             self._parent.send_i2c_logging_message("   {}\n".format(repr(data)))
         else:
             from time import sleep
@@ -142,7 +142,7 @@ class I2C_Connection_Helper(GUI_Helper):
 
                 if self._swap_endian and register_bits == 16:
                     this_block_address = self.swap_endian_16bit(this_block_address)
-                this_data = self._read_i2c_device_memory(device_address, this_block_address, bytes_to_read, register_bits)
+                this_data = self._read_i2c_device_memory(device_address, this_block_address, bytes_to_read, register_bits, read_type)
                 self._parent.send_i2c_logging_message("         {}".format(repr(this_data)))
 
                 data += this_data
@@ -152,7 +152,7 @@ class I2C_Connection_Helper(GUI_Helper):
             self._parent.send_i2c_logging_message("   Full data:\n      {}\n".format(repr(data)))
         return data
 
-    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits: int = 16, register_length: int = 8):
+    def write_device_memory(self, device_address: int, memory_address: int, data: list[int], register_bits: int = 16, register_length: int = 8, write_type: str = 'Normal'):
         if not self.is_connected:
             raise RuntimeError("You must first connect to a device before trying to write registers to it")
 
@@ -179,7 +179,7 @@ class I2C_Connection_Helper(GUI_Helper):
             self._parent.send_i2c_logging_message("   Writing the full block at once\n")
             if self._swap_endian and register_bits == 16:
                 memory_address = self.swap_endian_16bit(memory_address)
-            self._write_i2c_device_memory(device_address, memory_address, data, register_bits)
+            self._write_i2c_device_memory(device_address, memory_address, data, register_bits, write_type)
         else:
             from time import sleep
             seq_calls = ceil(byte_count/self._max_seq_byte)
@@ -203,7 +203,7 @@ class I2C_Connection_Helper(GUI_Helper):
 
                 if self._swap_endian and register_bits == 16:
                     this_block_address = self.swap_endian_16bit(this_block_address)
-                self._write_i2c_device_memory(device_address, this_block_address, this_data, register_bits)
+                self._write_i2c_device_memory(device_address, this_block_address, this_data, register_bits, write_type)
 
                 sleep(self.successive_i2c_delay_us*10**-6)
             self._parent.send_i2c_logging_message("")
