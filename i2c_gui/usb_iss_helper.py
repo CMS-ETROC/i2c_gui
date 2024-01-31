@@ -30,7 +30,7 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 import time
 
-from usb_iss import UsbIss
+from usb_iss import UsbIss, defs
 
 class USB_ISS_Helper(I2C_Connection_Helper):
     def __init__(self, parent: Base_GUI, max_seq_byte: int = 8, swap_endian: bool = True):
@@ -71,8 +71,8 @@ class USB_ISS_Helper(I2C_Connection_Helper):
                 self._iss.i2c.write_ad1(address, memory_address, data)
             else:
                 self.send_message("Unknown bit size trying to be sent", "Error")
-        elif write_type == "Repeated Start":
-            pass
+        #elif write_type == "Repeated Start":
+        #    pass
         else:
             raise RuntimeError("Unknown write type chosen for the USB ISS")
 
@@ -86,7 +86,53 @@ class USB_ISS_Helper(I2C_Connection_Helper):
                 self.send_message("Unknown bit size trying to be sent", "Error")
                 return []
         elif read_type == "Repeated Start":
-            pass
+            direct_msg = [defs.I2CDirect.START]
+
+            device_address_byte = address << 1
+            if register_bits == 8:
+                direct_msg += [
+                    defs.I2CDirect.WRITE2,
+                    device_address_byte,
+                    memory_address & 0xff,
+                ]
+            elif register_bits == 16:
+                direct_msg += [
+                    defs.I2CDirect.WRITE3,
+                    device_address_byte,
+                    (memory_address >> 8) & 0xff,
+                    memory_address & 0xff,
+                ]
+            else:
+                self.send_message("Unknown bit size trying to be sent", "Error")
+                return []
+
+            direct_msg += [
+                defs.I2CDirect.RESTART,
+                defs.I2CDirect.WRITE1,
+                device_address_byte | 0x01,
+            ]
+
+            #byte_count += 1  # Why do I need to do this... maybe something is misconfigured
+            if byte_count <= 16:
+                if byte_count > 1:
+                    direct_msg += [
+                        getattr(defs.I2CDirect, f"READ{byte_count-1}"),
+                    ]
+            else:
+                raise RuntimeError("USB ISS does not support a block read of more than 16 bytes")
+
+            direct_msg += [
+                defs.I2CDirect.NACK,
+                defs.I2CDirect.READ1,
+                defs.I2CDirect.STOP,
+            ]
+
+            retVal = self._iss.i2c.direct(direct_msg)
+
+            if len(retVal) != byte_count:
+                raise RuntimeError(f"Did not receive the expected number of bytes")
+            else:
+                return retVal
         else:
             raise RuntimeError("Unknown read type chosen for the USB ISS")
 
