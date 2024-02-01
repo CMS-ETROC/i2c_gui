@@ -93,6 +93,7 @@ class i2c_connection():
         self.conn.handle.clk = 100
         self.conn.connect()
         logger.setLevel(log_level)
+        self.offsets = [10]
 
         self.BL_map_THCal = {}
         self.NW_map_THCal = {}
@@ -107,7 +108,7 @@ class i2c_connection():
     # func_string is an 8-bit binary number, LSB->MSB is function 0->7
     # "0" means don't call the corr function, and vice-versa
     def config_chips(self, func_string = '00000000'):
-        for chip_address, chip_name, chip_fc_delay, ws_address in zip(self.chip_addresses, self.chip_names, self.chip_fc_delays, self.ws_addresses):
+        for chip_address, chip_name, chip_fc_delay, ws_address, offset in zip(self.chip_addresses, self.chip_names, self.chip_fc_delays, self.ws_addresses, self.offsets):
             chip = self.get_chip_i2c_connection(chip_address, ws_address)
             if(int(func_string[-1])): self.pixel_check(chip_address, chip)
             if(int(func_string[-2])): self.basic_peripheral_register_check(chip_address, chip)
@@ -115,7 +116,7 @@ class i2c_connection():
             if(int(func_string[-4])): self.disable_all_pixels(chip_address, chip)
             if(int(func_string[-5])): self.auto_calibration(chip_address, chip_name, chip)
             if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip_name, chip)
-            if(int(func_string[-7])): self.set_chip_offsets(chip_address, chip_name, offset=10, chip)
+            if(int(func_string[-7])): self.set_chip_offsets(chip_address, chip_name, offset, chip)
             if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
 
     def __del__(self):
@@ -1054,7 +1055,7 @@ class i2c_connection():
 
         if(verbose): print(f"Auto calibration done (TDC=0 + DAC=BL) for pixel ({row},{col}) on chip: {hex(chip_address)}")
 
-    def set_pixel_offsets(self, chip_address, chip_name, row, col, offset, chip=None, verbose=False, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle):
+    def set_pixel_offsets(self, chip_address, chip_name, row, col, offset=10, chip=None, verbose=False, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
             chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None):
