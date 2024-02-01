@@ -1048,7 +1048,7 @@ class i2c_connection():
         BufEn_THCal_handle.set("0")
         # Enable bypass and set the BL to the DAC 
         Bypass_THCal_handle.set("1")
-        DAC_handle.set(hex(self.BL_map_THCal[chip_address][row, col]))
+        DAC_handle.set(hex(int(self.BL_map_THCal[chip_address][row, col])))
 
         # Send changes to chip
         chip.write_all_block("ETROC2", "Pixel Config")
@@ -1070,7 +1070,7 @@ class i2c_connection():
         DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
         chip.read_all_block("ETROC2", "Pixel Config")
         old_DAC = int(DAC_handle.get(), 0)
-        DAC_handle.set(hex(self.BL_map_THCal[chip_address][row, col]+offset))
+        DAC_handle.set(hex(int(self.BL_map_THCal[chip_address][row, col]+offset)))
         chip.write_all_block("ETROC2", "Pixel Config")
         chip.read_all_block("ETROC2", "Pixel Config")
         new_DAC = int(DAC_handle.get(), 0)
