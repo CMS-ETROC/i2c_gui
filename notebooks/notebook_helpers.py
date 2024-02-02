@@ -504,7 +504,7 @@ class i2c_connection():
             chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
-        if(pixel_list is not None):
+        if(pixel_list is None):
             for row in tqdm(range(16), desc="Setting Offsets for row", position=0):
                 for col in range(16):
                     self.set_pixel_offsets(chip_address=chip_address, chip_name=chip_name, row=row, col=col, offset=offset, chip=chip, verbose=verbose, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
