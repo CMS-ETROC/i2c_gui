@@ -748,6 +748,7 @@ class i2c_connection():
             for col in range(16):
                 self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
         print(f"Enabled pixels for chip: {hex(chip_address)}")
+
     #--------------------------------------------------------------------------#
     ## Single Pixel Operation Functions
     def disable_pixel(self, row, col, verbose=False, chip_address=None, chip:i2c_gui.chips.ETROC2_Chip=None, row_indexer_handle=None, column_indexer_handle=None):
