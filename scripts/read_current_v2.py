@@ -536,12 +536,12 @@ if __name__ == "__main__":
         device_meas.add_tcp_instrument("TCPIP0::192.168.3.2::5025::SOCKET", "Power2", "Keysight Technologies", "E36312A", "Serial")
 
         device_meas.add_channel("Power1", 1, "Analog1", config = {
-            "Vset": 1.38,
+            "Vset": 1.28,
             "Ilimit": 0.7,
             "Mode": "2Wire",
         })
         device_meas.add_channel("Power1", 2, "Digital1", config = {
-            "Vset": 1.251,
+            "Vset": 1.23,
             "Ilimit": 0.7,
             "Mode": "2Wire",
         })
@@ -552,12 +552,12 @@ if __name__ == "__main__":
         })
 
         device_meas.add_channel("Power2", 1, "Analog2", config = {
-            "Vset": 1.381,
+            "Vset": 1.27,
             "Ilimit": 0.7,
             "Mode": "2Wire",
         })
         device_meas.add_channel("Power2", 2, "Digital2", config = {
-            "Vset": 1.25,
+            "Vset": 1.22,
             "Ilimit": 0.7,
             "Mode": "2Wire",
         })
