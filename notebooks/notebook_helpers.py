@@ -56,6 +56,8 @@ import i2c_gui.chips
 from i2c_gui.usb_iss_helper import USB_ISS_Helper
 from i2c_gui.fpga_eth_helper import FPGA_ETH_Helper
 from i2c_gui.chips.etroc2_chip import register_decoding
+from numpy import savetxt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 #========================================================================================#
 '''
 @author: Zach Flowers, Murtaza Safdari
@@ -112,9 +114,9 @@ class i2c_connection():
             if(int(func_string[-1])): self.pixel_check(chip_address, chip)
             if(int(func_string[-2])): self.basic_peripheral_register_check(chip_address, chip)
             if(int(func_string[-3])): self.set_chip_peripherals(chip_address, chip_fc_delay, chip)
-            if(int(func_string[-4])): self.disable_all_pixels(chip_address, chip)
+            if(int(func_string[-4])): self.disable_all_pixels(chip_address, chip, check_broadcast=True)
             if(int(func_string[-5])): self.auto_calibration(chip_address, chip_name, chip)
-            if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip_name, chip)
+            if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=True)
             if(int(func_string[-7])): self.set_chip_offsets(chip_address, chip_name, offset=10, chip=chip)
             if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
 
@@ -317,7 +319,7 @@ class i2c_connection():
         print(f"Peripherals set for chip: {hex(chip_address)}")
 
     # Function 3
-    def disable_all_pixels(self, chip_address, chip:i2c_gui.chips.ETROC2_Chip=None):
+    def disable_all_pixels(self, chip_address, chip:i2c_gui.chips.ETROC2_Chip=None, check_broadcast=False):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
@@ -380,7 +382,8 @@ class i2c_connection():
         broadcast_handle.set(True)
         chip.write_all_block("ETROC2", "Pixel Config")
         print(f"Disabled pixels for chip: {hex(chip_address)}")
-        return
+        if(check_broadcast):
+            return
 
         broadcast_ok = True
         for row in range(16):
@@ -492,10 +495,10 @@ class i2c_connection():
         print(f"Auto calibration finished for chip: {hex(chip_address)}")
 
     # Function 5
-    def auto_calibration_and_disable(self, chip_address, chip_name, chip=None):
+    def auto_calibration_and_disable(self, chip_address, chip_name, chip=None, check_broadcast=False):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
-        self.disable_all_pixels(chip_address=chip_address, chip=chip)
+        self.disable_all_pixels(chip_address=chip_address, chip=chip, check_broadcast=check_broadcast)
         self.auto_calibration(chip_address, chip_name, chip)
 
     # Function 6
@@ -544,6 +547,67 @@ class i2c_connection():
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
+    def save_baselines(self,chip_fignames,fig_path="",histfile=""):
+        if(histfile == ""):
+            histdir = Path('../ETROC-History')
+            histdir.mkdir(exist_ok=True)
+            histfile = histdir / 'BaselineHistory.sqlite'
+
+        for chip_address, chip_figname, chip_figtitle in zip(self.chip_addresses,chip_fignames,chip_fignames):
+            BL_map_THCal,NW_map_THCal,BL_df,offset_map = self.get_auto_cal_maps(chip_address)
+            fig = plt.figure(dpi=200, figsize=(20,10))
+            gs = fig.add_gridspec(1,2)
+
+            ax0 = fig.add_subplot(gs[0,0])
+            ax0.set_title(f"{chip_figtitle}: BL (DAC LSB)", size=17, loc="right")
+            img0 = ax0.imshow(BL_map_THCal, interpolation='none')
+            ax0.set_aspect("equal")
+            ax0.invert_xaxis()
+            ax0.invert_yaxis()
+            plt.xticks(range(16), range(16), rotation="vertical")
+            plt.yticks(range(16), range(16))
+            hep.cms.text(loc=0, ax=ax0, fontsize=17, text="Preliminary")
+            divider = make_axes_locatable(ax0)
+            cax = divider.append_axes('right', size="5%", pad=0.05)
+            fig.colorbar(img0, cax=cax, orientation="vertical")
+
+            ax1 = fig.add_subplot(gs[0,1])
+            ax1.set_title(f"{chip_figtitle}: NW (DAC LSB)", size=17, loc="right")
+            img1 = ax1.imshow(NW_map_THCal, interpolation='none')
+            ax1.set_aspect("equal")
+            ax1.invert_xaxis()
+            ax1.invert_yaxis()
+            plt.xticks(range(16), range(16), rotation="vertical")
+            plt.yticks(range(16), range(16))
+            hep.cms.text(loc=0, ax=ax1, fontsize=17, text="Preliminary")
+            divider = make_axes_locatable(ax1)
+            cax = divider.append_axes('right', size="5%", pad=0.05)
+            fig.colorbar(img1, cax=cax, orientation="vertical")
+
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+            for x in range(16):
+                for y in range(16):
+                    ax0.text(x,y,f"{BL_map_THCal.T[x,y]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
+                    ax1.text(x,y,f"{NW_map_THCal.T[x,y]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
+            plt.tight_layout()
+            if(fig_path == ""):
+                fig_outdir = Path('../ETROC-figures')
+                fig_outdir = fig_outdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
+                fig_outdir.mkdir(exist_ok=True)
+                fig_path = str(fig_outdir)
+            plt.savefig(fig_path+"/BL_NW_"+chip_figname+"_"+timestamp+".png")
+            plt.show()
+
+            with sqlite3.connect(histfile) as sqlconn:
+                BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
+
+            savetxt(histdir / f'{chip_figname}_BL_{timestamp}.csv', BL_map_THCal, delimiter=',')
+            savetxt(histdir / f'{chip_figname}_NW_{timestamp}.csv', NW_map_THCal, delimiter=',')
+
+    #--------------------------------------------------------------------------#
+
+
     ## Power Mode Functions
     def set_power_mode(self, chip_address: int, row: int, col: int, power_mode: str = 'high', verbose: bool = False):
         if power_mode not in valid_power_modes:
@@ -1000,7 +1064,7 @@ class i2c_connection():
         CLKEn_THCal_handle.set("1")
         BufEn_THCal_handle.set("1")
         Bypass_THCal_handle.set("0")
-        TH_offset_handle.set(hex(0x0a))
+        # TH_offset_handle.set(hex(0x0a))
 
         # Send changes to chip
         chip.write_all_block("ETROC2", "Pixel Config")
