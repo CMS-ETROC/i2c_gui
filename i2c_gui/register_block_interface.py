@@ -153,7 +153,7 @@ class Register_Block_Interface(Base_Interface):
 
         if first_register is not None:
             self._frame.update_idletasks()
-            self._register_orig_size = self._register_handle[first_register].get_size()
+            self._register_orig_size = self._register_handle[first_register].get_required_size()
             self._current_displayed_columns = register_columns
             element.bind("<Configure>", self._check_for_resize, add='+')
 
