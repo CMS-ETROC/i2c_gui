@@ -547,11 +547,12 @@ class i2c_connection():
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-    def save_baselines(self,chip_fignames,fig_path="",histfile=""):
+    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile=""):
         if(histfile == ""):
             histdir = Path('../ETROC-History')
             histdir.mkdir(exist_ok=True)
             histfile = histdir / 'BaselineHistory.sqlite'
+        
 
         for chip_address, chip_figname, chip_figtitle in zip(self.chip_addresses,chip_fignames,chip_fignames):
             BL_map_THCal,NW_map_THCal,BL_df,offset_map = self.get_auto_cal_maps(chip_address)
