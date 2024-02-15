@@ -599,7 +599,6 @@ class i2c_connection():
                 fig_path = str(fig_outdir)
             plt.savefig(fig_path+"/BL_NW_"+chip_figname+"_"+timestamp+".png")
             plt.show()
-
             with sqlite3.connect(histfile) as sqlconn:
                 BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
 
