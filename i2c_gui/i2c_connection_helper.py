@@ -33,8 +33,6 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 import time
 
-from enum import Enum
-
 class I2C_Connection_Helper(GUI_Helper):
     _parent: Base_GUI
     def __init__(
