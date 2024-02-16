@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from .gui_helper import GUI_Helper
 from .base_gui import Base_GUI
+from .i2c_messages import I2CMessages
 
 from math import ceil
 
@@ -33,45 +34,6 @@ import logging
 import time
 
 from enum import Enum
-
-class I2CMessages(Enum):
-    # nb: using same IDs as defined for the USB-ISS
-    START   = 0x01
-    RESTART = 0x02
-    STOP    = 0x03
-    NACK    = 0x04  #  NACK after next read
-    READ1   = 0x20
-    READ2   = 0x21
-    READ3   = 0x22
-    READ4   = 0x23
-    READ5   = 0x24
-    READ6   = 0x25
-    READ7   = 0x26
-    READ8   = 0x27
-    READ9   = 0x28
-    READ10  = 0x29
-    READ11  = 0x2a
-    READ12  = 0x2b
-    READ13  = 0x2c
-    READ14  = 0x2d
-    READ15  = 0x2e
-    READ16  = 0x2f
-    WRITE1  = 0x30
-    WRITE2  = 0x31
-    WRITE3  = 0x32
-    WRITE4  = 0x33
-    WRITE5  = 0x34
-    WRITE6  = 0x35
-    WRITE7  = 0x36
-    WRITE8  = 0x37
-    WRITE9  = 0x38
-    WRITE10 = 0x39
-    WRITE11 = 0x3a
-    WRITE12 = 0x3b
-    WRITE13 = 0x3c
-    WRITE14 = 0x3d
-    WRITE15 = 0x3e
-    WRITE16 = 0x3f
 
 class I2C_Connection_Helper(GUI_Helper):
     _parent: Base_GUI
