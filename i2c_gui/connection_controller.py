@@ -630,6 +630,15 @@ class Connection_Controller(GUI_Helper):
             register_length = register_length,
         )
 
+    def direct_i2c(self, commands: list[int]):
+        this_time = time.time_ns()
+        if this_time - self._time_last_i2c_command < self._successive_i2c_delay_us * 1000:
+            time.sleep(self._successive_i2c_delay_us/10E6)
+            this_time = time.time_ns()
+        self._time_last_i2c_command = this_time
+
+        return self._i2c_connection._direct_i2c(commands)
+
     @property
     def is_logging_i2c(self):
         return self._do_logging_i2c
