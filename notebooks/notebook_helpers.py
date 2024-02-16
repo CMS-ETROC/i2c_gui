@@ -116,7 +116,11 @@ class i2c_connection():
             if(int(func_string[-3])): self.set_chip_peripherals(chip_address, chip_fc_delay, chip)
             if(int(func_string[-4])): self.disable_all_pixels(chip_address, chip, check_broadcast=True)
             if(int(func_string[-5])): self.auto_calibration(chip_address, chip_name, chip)
-            if(int(func_string[-6])): self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=True)
+            if(int(func_string[-6])):
+                if(int(func_string[-4])):
+                    self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=True)
+                else:
+                    self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=False)
             if(int(func_string[-7])): self.set_chip_offsets(chip_address, chip_name, offset=10, chip=chip)
             if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
 
