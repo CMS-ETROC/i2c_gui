@@ -141,8 +141,8 @@ class USB_ISS_Helper(I2C_Connection_Helper):
     def _direct_i2c(self, commands: list[int]) -> list[int]:
         direct_msg = []
 
-        print("Got commands:")
-        print(commands)
+        #print("Got commands:")
+        #print(commands)
 
         idx = 0
         while True:
@@ -325,8 +325,8 @@ class USB_ISS_Helper(I2C_Connection_Helper):
             else:
                 idx += 1
 
-        print("Translated commands:")
-        print(direct_msg)
+        #print("Translated commands:")
+        #print(direct_msg)
 
         return self._iss.i2c.direct(direct_msg)
 
