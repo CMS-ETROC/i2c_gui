@@ -551,7 +551,7 @@ class i2c_connection():
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile=""):
+    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile="",show_BLs=True):
         if(histfile == ""):
             histdir = Path('../ETROC-History')
             histdir.mkdir(exist_ok=True)
@@ -608,6 +608,8 @@ class i2c_connection():
 
             savetxt(histdir / f'{chip_figname}_BL_{timestamp}.csv', BL_map_THCal, delimiter=',')
             savetxt(histdir / f'{chip_figname}_NW_{timestamp}.csv', NW_map_THCal, delimiter=',')
+            if not show_BLs:
+                plt.close()
 
     #--------------------------------------------------------------------------#
 
@@ -1116,12 +1118,12 @@ class i2c_connection():
         BufEn_THCal_handle.set("0")
         # Enable bypass and set the BL to the DAC 
         Bypass_THCal_handle.set("1")
-        DAC_handle.set(hex(int(self.BL_map_THCal[chip_address][row, col])))
+        DAC_handle.set(hex(0x3ff))
 
         # Send changes to chip
         chip.write_all_block("ETROC2", "Pixel Config")
 
-        if(verbose): print(f"Auto calibration done (TDC=0 + DAC=BL) for pixel ({row},{col}) on chip: {hex(chip_address)}")
+        if(verbose): print(f"Auto calibration done (enTDC=0 + DAC=1023) for pixel ({row},{col}) on chip: {hex(chip_address)}")
 
     def set_pixel_offsets(self, chip_address, chip_name, row, col, offset=10, chip=None, verbose=False, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
