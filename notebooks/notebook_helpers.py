@@ -733,7 +733,7 @@ class i2c_connection():
             chip = self.get_chip_i2c_connection(chip_address)
             row_indexer_handle,_,_ = chip.get_indexer("row")
             column_indexer_handle,_,_ = chip.get_indexer("column")
-            for row,col in pixel_list:
+            for row,col in tqdm(pixel_list):
                 self.enable_pixel_modular(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, triggerWindow=triggerWindow, cbWindow=cbWindow, power_mode=power_mode)
         del full_list
 
@@ -1056,7 +1056,7 @@ class i2c_connection():
 
     def set_pixel_offsets(self, chip_address, chip_name, row, col, offset=10, chip=None, verbose=False, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
-            chip = self.get_chip_i2c_connection(chip_address)
+            chip: i2c_gui.chips.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None):
             print("Need chip address to make a new chip in disable pixel!")
             return
@@ -1067,11 +1067,10 @@ class i2c_connection():
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
         DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
-        chip.read_all_block("ETROC2", "Pixel Config")
+        chip.read_decoded_value("ETROC2", "Pixel Config", "DAC")
         old_DAC = int(DAC_handle.get(), 0)
         DAC_handle.set(hex(int(self.BL_map_THCal[chip_address][row, col]+offset)))
-        chip.write_all_block("ETROC2", "Pixel Config")
-        chip.read_all_block("ETROC2", "Pixel Config")
+        chip.write_decoded_value("ETROC2", "Pixel Config", "DAC")
         new_DAC = int(DAC_handle.get(), 0)
         self.BLOffset_map[chip_address][row, col] = offset
         if(verbose): print(f"Offset set to {hex(offset)} (DAC from {old_DAC} to {new_DAC}) for pixel ({row},{col}) (BL={self.BL_map_THCal[chip_address][row, col]}) for chip: {hex(chip_address)}")
