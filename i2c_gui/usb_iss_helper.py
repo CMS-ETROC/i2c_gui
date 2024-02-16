@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 from .i2c_connection_helper import I2C_Connection_Helper
+from .i2c_messages import I2CMessages
 from .base_gui import Base_GUI
 
 import tkinter as tk
@@ -136,6 +137,198 @@ class USB_ISS_Helper(I2C_Connection_Helper):
                 return retVal
         else:
             raise RuntimeError("Unknown read type chosen for the USB ISS")
+
+    def _direct_i2c(self, commands: list[int]) -> list[int]:
+        direct_msg = []
+
+        print("Got commands:")
+        print(commands)
+
+        idx = 0
+        while True:
+            if idx >= len(commands):
+                break
+
+            command = commands[idx]
+            if command not in I2CMessages:
+                raise RuntimeError("Unknown I2C command")
+
+            direct_msg += [command.value]
+            if command == I2CMessages.WRITE1:
+                direct_msg += [commands[idx+1]]
+                idx += 2
+            elif command == I2CMessages.WRITE2:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                idx += 3
+            elif command == I2CMessages.WRITE3:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                idx += 4
+            elif command == I2CMessages.WRITE4:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                idx += 5
+            elif command == I2CMessages.WRITE5:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                idx += 6
+            elif command == I2CMessages.WRITE6:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                idx += 7
+            elif command == I2CMessages.WRITE7:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                idx += 8
+            elif command == I2CMessages.WRITE8:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                idx += 9
+            elif command == I2CMessages.WRITE9:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                idx += 10
+            elif command == I2CMessages.WRITE10:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                idx += 11
+            elif command == I2CMessages.WRITE11:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                idx += 12
+            elif command == I2CMessages.WRITE12:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                idx += 13
+            elif command == I2CMessages.WRITE13:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                idx += 14
+            elif command == I2CMessages.WRITE14:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                direct_msg += [commands[idx+14]]
+                idx += 15
+            elif command == I2CMessages.WRITE15:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                direct_msg += [commands[idx+14]]
+                direct_msg += [commands[idx+15]]
+                idx += 16
+            elif command == I2CMessages.WRITE16:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                direct_msg += [commands[idx+14]]
+                direct_msg += [commands[idx+15]]
+                direct_msg += [commands[idx+16]]
+                idx += 17
+            else:
+                idx += 1
+
+        print("Translated commands:")
+        print(direct_msg)
+
+        return self._iss.i2c.direct(direct_msg)
 
     def display_in_frame(self, frame: ttk.Frame):
         if hasattr(self, '_frame') and self._frame is not None:
