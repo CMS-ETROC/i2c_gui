@@ -135,6 +135,22 @@ class Base_Chip(GUI_Helper):
             bits = address_space_model["Register Bits"]
         else:
             bits = 16
+        if "Register Length" in address_space_model:
+            length = address_space_model["Register Length"]
+        else:
+            length = 8
+        if "Endianness" in address_space_model:
+            endianness = address_space_model["Endianness"]
+        else:
+            endianness = "little"
+        if "Read Type" in address_space_model:
+            read_type = address_space_model["Read Type"]
+        else:
+            read_type = "Normal"
+        if "Write Type" in address_space_model:
+            write_type = address_space_model["Write Type"]
+        else:
+            write_type = "Normal"
         decoded_registers = None
         if register_decoding is not None:
             decoded_registers = register_decoding["Register Blocks"]
@@ -147,6 +163,10 @@ class Base_Chip(GUI_Helper):
             register_map=address_space_model["Register Blocks"],
             decoded_registers=decoded_registers,
             register_bits=bits,
+            register_length=length,
+            endianness=endianness,
+            read_type=read_type,
+            write_type=write_type,
         )
 
     def _build_indexer_vars(self, indexer_info):
@@ -220,8 +240,10 @@ class Base_Chip(GUI_Helper):
             address_space: Address_Space_Controller = self._address_space[address_space_name]
             size = address_space._memory_size
 
+            length = address_space._register_length
+
             for idx in range(size):
-                address_space._display_vars[idx].set(hex_0fill(info[address_space_name][idx], 8))
+                address_space._display_vars[idx].set(hex_0fill(info[address_space_name][idx], length))
 
         self.update_whether_modified()
 
@@ -507,6 +529,10 @@ class Base_Chip(GUI_Helper):
                               ):
         from ..register_block_interface import Register_Block_Interface
 
+        register_length = 8
+        if "Register Length" in self._register_model[address_space]:
+            register_length = self._register_model[address_space]["Register Length"]
+
         retVal = Register_Block_Interface(
             self,
             address_space=address_space,
@@ -515,6 +541,7 @@ class Base_Chip(GUI_Helper):
             button_title=button_title,
             register_model=self._register_model[address_space]["Register Blocks"][block]["Registers"],
             read_only=read_only,
+            register_length=register_length,
         )
 
         retVal.prepare_display(element, col, row, register_columns=register_columns)
@@ -591,6 +618,10 @@ class Base_Chip(GUI_Helper):
                                     ):
         from ..register_block_array_interface import Register_Block_Array_Interface
 
+        register_length = 8
+        if "Register Length" in self._register_model[address_space]:
+            register_length = self._register_model[address_space]["Register Length"]
+
         retVal = Register_Block_Array_Interface(
             self,
             address_space=address_space,
@@ -599,6 +630,7 @@ class Base_Chip(GUI_Helper):
             button_title=button_title,
             register_model=self._register_model[address_space]["Register Blocks"][block]["Registers"],
             read_only=read_only,
+            register_length=register_length,
         )
 
         retVal.prepare_display(element, col, row, register_columns=register_columns)

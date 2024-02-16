@@ -29,12 +29,14 @@ import tkinter as tk
 import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to the elements)
 import logging
 
+from math import ceil
+
 class Register_Display(GUI_Helper):
     _parent: GUI_Helper
     _display_var: tk.StringVar
     _shadow_var: tk.Variable
 
-    def __init__(self, parent: GUI_Helper, register_name: str, display_var: tk.StringVar, read_only: bool = False):
+    def __init__(self, parent: GUI_Helper, register_name: str, display_var: tk.StringVar, read_only: bool = False, register_length: int = 8):
         super().__init__(parent, None, parent._logger)
 
         self._name = register_name
@@ -43,6 +45,7 @@ class Register_Display(GUI_Helper):
         self._callback_update_shadow_var = self._display_var.trace_add('write', self._update_shadow_var)
         self._shadow_var = None
         self._read_only = read_only
+        self._register_length = register_length
 
     @property
     def shadow_var(self):
@@ -111,12 +114,13 @@ class Register_Display(GUI_Helper):
         value_state = state
         if not self._read_only:
             value_state = 'disabled'
-        self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=value_state, width=5)
+        width = ceil(self._register_length/4) + 3
+        self._value_entry = ttk.Entry(self._frame, textvariable=self._display_var, state=value_state, width=width)
         self._value_entry.grid(column=200, row=100, sticky=tk.W)
 
         if not self._read_only:
-            from .functions import validate_8bit_register
-            self._register_validate_cmd = (self._frame.register(validate_8bit_register), '%P')
+            from .functions import validate_variable_bit_register
+            self._register_validate_cmd = (self._frame.register(lambda string : validate_variable_bit_register(string, self._register_length)), '%P')
             self._register_invalid_cmd  = (self._frame.register(self.invalid_register_value), '%P')
             self._value_entry.config(validate='key', validatecommand=self._register_validate_cmd, invalidcommand=self._register_invalid_cmd)
 
@@ -132,39 +136,12 @@ class Register_Display(GUI_Helper):
         self._value_binary_prefix = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0b")
         self._value_binary_prefix.grid(column=100, row=100)
 
-        self._value_binary_bit7 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit7.grid(column=200, row=100)
-
-        self._value_binary_bit6 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit6.grid(column=300, row=100)
-
-        self._value_binary_bit5 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit5.grid(column=400, row=100)
-
-        self._value_binary_bit4 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit4.grid(column=500, row=100)
-
-        self._value_binary_bit3 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit3.grid(column=600, row=100)
-
-        self._value_binary_bit2 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit2.grid(column=700, row=100)
-
-        self._value_binary_bit1 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit1.grid(column=800, row=100)
-
-        self._value_binary_bit0 = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
-        self._value_binary_bit0.grid(column=900, row=100)
-
-        if not self._read_only:
-            self._value_binary_bit7.bind("<Button-1>", lambda e:self._toggle_bit(7))
-            self._value_binary_bit6.bind("<Button-1>", lambda e:self._toggle_bit(6))
-            self._value_binary_bit5.bind("<Button-1>", lambda e:self._toggle_bit(5))
-            self._value_binary_bit4.bind("<Button-1>", lambda e:self._toggle_bit(4))
-            self._value_binary_bit3.bind("<Button-1>", lambda e:self._toggle_bit(3))
-            self._value_binary_bit2.bind("<Button-1>", lambda e:self._toggle_bit(2))
-            self._value_binary_bit1.bind("<Button-1>", lambda e:self._toggle_bit(1))
-            self._value_binary_bit0.bind("<Button-1>", lambda e:self._toggle_bit(0))
+        for bit_idx in range(self._register_length):
+            bit_num = self._register_length - 1 - bit_idx
+            bit_label = ttk.Label(self._value_binary_frame, font='TkFixedFont', text="0")
+            bit_label.grid(column = (2+bit_idx)*100, row=100)
+            bit_label.bind("<Button-1>", lambda e, bit=bit_num:self._toggle_bit(bit))
+            setattr(self, f'_value_binary_bit{bit_num}', bit_label)
         self._callback_update_binary_repr = self._display_var.trace_add('write', self._update_binary_repr)
 
 
@@ -193,7 +170,7 @@ class Register_Display(GUI_Helper):
     def _toggle_bit(self, bit_idx):
         if self._enabled:
             value = int(self._display_var.get(), 0)
-            self._display_var.set(hex_0fill(value ^ (1 << bit_idx), 8))
+            self._display_var.set(hex_0fill(value ^ (1 << bit_idx), self._register_length))
 
     def _update_display_var(self, var=None, index=None, mode=None):
         self._logger.detailed_trace("Attempting to update display var from shadow var for {}".format(self._name))
@@ -224,14 +201,16 @@ class Register_Display(GUI_Helper):
             del self._updating_from_display_var
 
     def _update_binary_repr(self, var=None, index=None, mode=None):
-        binary_string = "00000000"
+        binary_string = ""
+        for i in range(self._register_length):
+            binary_string += "0"
         if self._display_var.get() != '' and self._display_var.get() != '0x':  # If value is set, decode the binary string
             binary_string = format(int(self._display_var.get(), 0), 'b')
-            if len(binary_string) < 8:
-                prepend = '0'*(8-len(binary_string))
+            if len(binary_string) < self._register_length:
+                prepend = '0'*(self._register_length-len(binary_string))
                 binary_string = prepend + binary_string
-        for bit in range(8):
-            value = binary_string[7-bit]
+        for bit in range(self._register_length):
+            value = binary_string[self._register_length-1-bit]
             getattr(self, "_value_binary_bit{}".format(bit)).config(text=value)
 
         self._parent.update_whether_modified()
@@ -242,5 +221,5 @@ class Register_Display(GUI_Helper):
     def validate_register(self):
         if self._display_var.get() == "" or self._display_var.get() == "0x":
             return False
-        self._display_var.set(hex_0fill(int(self._display_var.get(), 0), 8))
+        self._display_var.set(hex_0fill(int(self._display_var.get(), 0), self._register_length))
         return True

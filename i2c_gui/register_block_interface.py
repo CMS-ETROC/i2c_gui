@@ -36,7 +36,7 @@ from .base_interface import Base_Interface
 
 class Register_Block_Interface(Base_Interface):
     _parent: Base_Chip
-    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, register_model, read_only: bool = False):
+    def __init__(self, parent: Base_Chip, address_space: str, block_name: str, block_title: str, button_title: str, register_model, read_only: bool = False, register_length: int = 8):
         super().__init__(parent, False, False)
 
         self._address_space = address_space
@@ -45,6 +45,7 @@ class Register_Block_Interface(Base_Interface):
         self._button_title = button_title
         self._register_model = register_model
         self._read_only = read_only
+        self._register_length = register_length
 
     def update_whether_modified(self):
         self._parent.update_whether_modified()
@@ -138,6 +139,7 @@ class Register_Block_Interface(Base_Interface):
                 register_name=register,
                 display_var=display_var,
                 read_only=read_only,
+                register_length=self._register_length,
             )
             handle.prepare_display(
                 self._register_frame,
@@ -151,7 +153,7 @@ class Register_Block_Interface(Base_Interface):
 
         if first_register is not None:
             self._frame.update_idletasks()
-            self._register_orig_size = self._register_handle[first_register].get_size()
+            self._register_orig_size = self._register_handle[first_register].get_required_size()
             self._current_displayed_columns = register_columns
             element.bind("<Configure>", self._check_for_resize, add='+')
 

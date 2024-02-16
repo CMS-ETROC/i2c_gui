@@ -195,3 +195,14 @@ def validate_pixel_index(string: str):
             return True
 
     return False
+
+def validate_bit_length(string: str):
+    if string == "":
+        return False
+    digit_regex = r"\d+"
+
+    if re.fullmatch(digit_regex, string) is not None:
+        if int(string, 10)%8 == 0:
+            return True
+
+    return False

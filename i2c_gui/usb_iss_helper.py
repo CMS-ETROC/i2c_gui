@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 from .i2c_connection_helper import I2C_Connection_Helper
+from .i2c_messages import I2CMessages
 from .base_gui import Base_GUI
 
 import tkinter as tk
@@ -30,13 +31,14 @@ import tkinter.ttk as ttk  # For themed widgets (gives a more native visual to t
 import logging
 import time
 
-from usb_iss import UsbIss
+from usb_iss import UsbIss, defs
 
 class USB_ISS_Helper(I2C_Connection_Helper):
     def __init__(self, parent: Base_GUI, max_seq_byte: int = 8, swap_endian: bool = True):
         super().__init__(parent, max_seq_byte, swap_endian)
 
         self._iss = UsbIss()
+        #self._iss = UsbIss(verbose=True)
 
         self._port_var = tk.StringVar()
         self._port_var.set("COM3")
@@ -63,22 +65,270 @@ class USB_ISS_Helper(I2C_Connection_Helper):
     def _check_i2c_device(self, address: int):
         return self._iss.i2c.test(address)
 
-    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16):
-        if register_bits == 16:
-            self._iss.i2c.write_ad2(address, memory_address, data)
-        elif register_bits == 8:
-            self._iss.i2c.write_ad1(address, memory_address, data)
+    def _write_i2c_device_memory(self, address: int, memory_address: int, data: list[int], register_bits: int = 16, write_type: str = 'Normal'):
+        if write_type == 'Normal':
+            if register_bits == 16:
+                self._iss.i2c.write_ad2(address, memory_address, data)
+            elif register_bits == 8:
+                self._iss.i2c.write_ad1(address, memory_address, data)
+            else:
+                self.send_message("Unknown bit size trying to be sent", "Error")
+        #elif write_type == "Repeated Start":
+        #    pass
         else:
-            self.send_message("Unknown bit size trying to be sent", "Error")
+            raise RuntimeError("Unknown write type chosen for the USB ISS")
 
-    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16) -> list[int]:
-        if register_bits == 16:
-            return self._iss.i2c.read_ad2(address, memory_address, byte_count)
-        if register_bits == 8:
-            return self._iss.i2c.read_ad1(address, memory_address, byte_count)
+    def _read_i2c_device_memory(self, address: int, memory_address: int, byte_count: int, register_bits: int = 16, read_type: str = 'Normal') -> list[int]:
+        if read_type == 'Normal':
+            if register_bits == 16:
+                return self._iss.i2c.read_ad2(address, memory_address, byte_count)
+            if register_bits == 8:
+                return self._iss.i2c.read_ad1(address, memory_address, byte_count)
+            else:
+                self.send_message("Unknown bit size trying to be sent", "Error")
+                return []
+        elif read_type == "Repeated Start":
+            direct_msg = [defs.I2CDirect.START]
+
+            device_address_byte = address << 1
+            if register_bits == 8:
+                direct_msg += [
+                    defs.I2CDirect.WRITE2,
+                    device_address_byte,
+                    memory_address & 0xff,
+                ]
+            elif register_bits == 16:
+                direct_msg += [
+                    defs.I2CDirect.WRITE3,
+                    device_address_byte,
+                    (memory_address >> 8) & 0xff,
+                    memory_address & 0xff,
+                ]
+            else:
+                self.send_message("Unknown bit size trying to be sent", "Error")
+                return []
+
+            direct_msg += [
+                defs.I2CDirect.RESTART,
+                defs.I2CDirect.WRITE1,
+                device_address_byte | 0x01,
+            ]
+
+            #byte_count += 1  # Why do I need to do this... maybe something is misconfigured
+            if byte_count <= 16:
+                if byte_count > 1:
+                    direct_msg += [
+                        getattr(defs.I2CDirect, f"READ{byte_count-1}"),
+                    ]
+            else:
+                raise RuntimeError("USB ISS does not support a block read of more than 16 bytes")
+
+            direct_msg += [
+                defs.I2CDirect.NACK,
+                defs.I2CDirect.READ1,
+                defs.I2CDirect.STOP,
+            ]
+
+            retVal = self._iss.i2c.direct(direct_msg)
+
+            if len(retVal) != byte_count:
+                raise RuntimeError(f"Did not receive the expected number of bytes")
+            else:
+                return retVal
         else:
-            self.send_message("Unknown bit size trying to be sent", "Error")
-            return []
+            raise RuntimeError("Unknown read type chosen for the USB ISS")
+
+    def _direct_i2c(self, commands: list[int]) -> list[int]:
+        direct_msg = []
+
+        #print("Got commands:")
+        #print(commands)
+
+        idx = 0
+        while True:
+            if idx >= len(commands):
+                break
+
+            command = commands[idx]
+            if command not in I2CMessages:
+                raise RuntimeError("Unknown I2C command")
+
+            direct_msg += [command.value]
+            if command == I2CMessages.WRITE1:
+                direct_msg += [commands[idx+1]]
+                idx += 2
+            elif command == I2CMessages.WRITE2:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                idx += 3
+            elif command == I2CMessages.WRITE3:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                idx += 4
+            elif command == I2CMessages.WRITE4:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                idx += 5
+            elif command == I2CMessages.WRITE5:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                idx += 6
+            elif command == I2CMessages.WRITE6:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                idx += 7
+            elif command == I2CMessages.WRITE7:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                idx += 8
+            elif command == I2CMessages.WRITE8:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                idx += 9
+            elif command == I2CMessages.WRITE9:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                idx += 10
+            elif command == I2CMessages.WRITE10:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                idx += 11
+            elif command == I2CMessages.WRITE11:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                idx += 12
+            elif command == I2CMessages.WRITE12:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                idx += 13
+            elif command == I2CMessages.WRITE13:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                idx += 14
+            elif command == I2CMessages.WRITE14:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                direct_msg += [commands[idx+14]]
+                idx += 15
+            elif command == I2CMessages.WRITE15:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                direct_msg += [commands[idx+14]]
+                direct_msg += [commands[idx+15]]
+                idx += 16
+            elif command == I2CMessages.WRITE16:
+                direct_msg += [commands[idx+1]]
+                direct_msg += [commands[idx+2]]
+                direct_msg += [commands[idx+3]]
+                direct_msg += [commands[idx+4]]
+                direct_msg += [commands[idx+5]]
+                direct_msg += [commands[idx+6]]
+                direct_msg += [commands[idx+7]]
+                direct_msg += [commands[idx+8]]
+                direct_msg += [commands[idx+9]]
+                direct_msg += [commands[idx+10]]
+                direct_msg += [commands[idx+11]]
+                direct_msg += [commands[idx+12]]
+                direct_msg += [commands[idx+13]]
+                direct_msg += [commands[idx+14]]
+                direct_msg += [commands[idx+15]]
+                direct_msg += [commands[idx+16]]
+                idx += 17
+            else:
+                idx += 1
+
+        #print("Translated commands:")
+        #print(direct_msg)
+
+        return self._iss.i2c.direct(direct_msg)
 
     def display_in_frame(self, frame: ttk.Frame):
         if hasattr(self, '_frame') and self._frame is not None:
@@ -141,6 +391,7 @@ class USB_ISS_Helper(I2C_Connection_Helper):
         if hasattr(self, "_clk_option"):
             self._clk_option.config(state="disabled")
         self.send_message("Connected to I2C bus with a bitrate of {} kHz through port {}".format(self.clk, self.port))
+        #print(self._iss.read_fw_version())
         return True
 
     def disconnect(self):

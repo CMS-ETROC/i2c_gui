@@ -149,15 +149,14 @@ class Register_Block_Decoded_Interface(Base_Interface):
         # Not currently working
         if first_value is not None:
             self._frame.update_idletasks()
-            self._value_orig_size = self._value_handle[first_value].get_size()
+            self._value_orig_size = self._value_handle[first_value].get_required_size()
             self._current_displayed_columns = value_columns
-            # TODO: fix the below
-            #element.bind("<Configure>", self._check_for_resize, add='+')
+            element.bind("<Configure>", self._check_for_resize, add='+')
 
     def _check_for_resize(self, event):
         from math import floor
         size_in_values = self._value_frame.winfo_width()/(self._value_orig_size[0]+10)  # Add 10 because that is the total padding that the register adds, 5 to each side
-        print(size_in_values)
+        #print(size_in_values)
         if floor(size_in_values) != self._current_displayed_columns:
             values = list(self._decoding_info.keys())
 
