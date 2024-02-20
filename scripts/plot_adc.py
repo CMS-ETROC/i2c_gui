@@ -26,6 +26,7 @@ import pandas
 import datetime
 import matplotlib.pyplot as plt
 import mplhep
+from matplotlib.dates import DateFormatter
 
 def plot_adc(
         start: datetime.datetime,
@@ -95,6 +96,14 @@ def plot_adc(
             ax=axis,
         )
         axis.set_ylabel(label)
+
+        date_form = DateFormatter("%Y-%m-%d %H:%M")
+        axis.xaxis.set_major_formatter(date_form)
+        plt.xticks(rotation=60, fontsize=18)
+        plt.yticks(fontsize=18)
+
+        #axis.set_xlabel(fontsize=10)
+        #axis.set_xticklabels(rotation=90, fontsize=9)
 
         plt.show()
 
