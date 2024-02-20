@@ -30,6 +30,7 @@ __no_connect_type__ = "check" # Set the type of no connect to implement. For mos
 
 from .etroc1_gui import ETROC1_GUI
 from .etroc2_gui import ETROC2_GUI
+from .ad5593r_gui import AD5593R_GUI
 from .multi_gui import Multi_GUI
 from .script_helper import ScriptHelper
 from .connection_controller import Connection_Controller
@@ -68,6 +69,7 @@ def unset_swap_endian():
 __all__ = [
     "ETROC1_GUI",
     "ETROC2_GUI",
+    "AD5593R_GUI",
     "Multi_GUI",
     "ScriptHelper",
     "Connection_Controller",
