@@ -551,12 +551,11 @@ class i2c_connection():
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile="",show_BLs=True):
+    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile="",show_BLs=True,uBL_vmin=0,uBL_vmax=0,uNW_vmin=0,uNW_vmax=0):
         if(histfile == ""):
             histdir = Path('../ETROC-History')
             histdir.mkdir(exist_ok=True)
             histfile = histdir / 'BaselineHistory.sqlite'
-        
 
         for chip_address, chip_figname, chip_figtitle in zip(self.chip_addresses,chip_fignames,chip_fignames):
             BL_map_THCal,NW_map_THCal,BL_df,offset_map = self.get_auto_cal_maps(chip_address)
@@ -564,8 +563,12 @@ class i2c_connection():
             gs = fig.add_gridspec(1,2)
 
             ax0 = fig.add_subplot(gs[0,0])
+            if(uBL_vmin == 0): BL_vmin = np.min(BL_map_THCal[np.nonzero(BL_map_THCal)])
+            else: BL_vmin = uBL_vmin
+            if(uBL_vmax == 0): BL_vmax = np.max(BL_map_THCal[np.nonzero(BL_map_THCal)])
+            else: BL_vmax = uBL_vmax
             ax0.set_title(f"{chip_figtitle}: BL (DAC LSB)", size=17, loc="right")
-            img0 = ax0.imshow(BL_map_THCal, interpolation='none')
+            img0 = ax0.imshow(BL_map_THCal, interpolation='none',vmin=BL_vmin,vmax=BL_vmax)
             ax0.set_aspect("equal")
             ax0.invert_xaxis()
             ax0.invert_yaxis()
@@ -574,11 +577,15 @@ class i2c_connection():
             hep.cms.text(loc=0, ax=ax0, fontsize=17, text="Preliminary")
             divider = make_axes_locatable(ax0)
             cax = divider.append_axes('right', size="5%", pad=0.05)
-            fig.colorbar(img0, cax=cax, orientation="vertical")
+            fig.colorbar(img0, cax=cax, orientation="vertical")#,boundaries=np.linspace(vmin,vmax,int((vmax-vmin)*30)))
 
             ax1 = fig.add_subplot(gs[0,1])
+            if(uNW_vmin == 0): NW_vmin = np.min(NW_map_THCal[np.nonzero(NW_map_THCal)])
+            else: NW_vmin = uNW_vmin
+            if(uNW_vmax == 0): NW_vmax = np.max(NW_map_THCal[np.nonzero(NW_map_THCal)])
+            else: NW_vmax = uNW_vmax
             ax1.set_title(f"{chip_figtitle}: NW (DAC LSB)", size=17, loc="right")
-            img1 = ax1.imshow(NW_map_THCal, interpolation='none')
+            img1 = ax1.imshow(NW_map_THCal, interpolation='none',vmin=NW_vmin,vmax=NW_vmax)
             ax1.set_aspect("equal")
             ax1.invert_xaxis()
             ax1.invert_yaxis()
@@ -587,7 +594,7 @@ class i2c_connection():
             hep.cms.text(loc=0, ax=ax1, fontsize=17, text="Preliminary")
             divider = make_axes_locatable(ax1)
             cax = divider.append_axes('right', size="5%", pad=0.05)
-            fig.colorbar(img1, cax=cax, orientation="vertical")
+            fig.colorbar(img1, cax=cax, orientation="vertical")#,boundaries=np.linspace(vmin,vmax,int((vmax-vmin)*5)))
 
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 
@@ -620,7 +627,7 @@ class i2c_connection():
             power_mode = "low"
 
         chip: i2c_gui.chips.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
-        
+
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
         column_indexer_handle.set(col)
@@ -648,7 +655,7 @@ class i2c_connection():
             power_mode = "low"
 
         chip: i2c_gui.chips.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
-        
+
         row_indexer_handle,_,_ = chip.get_indexer("row")
         column_indexer_handle,_,_ = chip.get_indexer("column")
 
@@ -1113,10 +1120,10 @@ class i2c_connection():
 
         # Disable TDC
         enable_TDC_handle.set("0")
-        # Disable THCal clock and buffer 
+        # Disable THCal clock and buffer
         CLKEn_THCal_handle.set("0")
         BufEn_THCal_handle.set("0")
-        # Enable bypass and set the BL to the DAC 
+        # Enable bypass and set the BL to the DAC
         Bypass_THCal_handle.set("1")
         DAC_handle.set(hex(0x3ff))
 
@@ -1235,7 +1242,7 @@ class i2c_connection():
         time.sleep(0.2)
         self.peripheral_decoded_register_write("asyStartCalibration", "1", chip=chip)
         print(f"PLL Calibrated for chip: {hex(chip_address)}")
-    
+
     #--------------------------------------------------------------------------#
     #--------------------------------------------------------------------------#
 
@@ -1517,7 +1524,7 @@ def multiple_trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, c
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_NoiseOnly"
-    if(autoBL): BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)    
+    if(autoBL): BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
     # triggerbit_full_Scurve = {row:{col:{} for col in range(16)} for row in range(16)}
     triggerbit_full_Scurve = {row:{col:{attempt:{} for attempt in attempts} for col in range(16)} for row in range(16)}
 
@@ -1534,7 +1541,7 @@ def multiple_trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, c
     row_list, col_list = zip(*scan_list)
     u_cl = np.sort(np.unique(col_list))
     u_rl = np.sort(np.unique(row_list))
-    
+
     for row,col in scan_list:
         for attempt in attempts:
             path_pattern = f"*_Array_Test_Results/{scan_name}_Pixel_C{col}_R{row}"+attempt
