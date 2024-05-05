@@ -5,12 +5,10 @@ import requests
 import schedule
 import json
 import time
+import argparse
+from pathlib import Path
 
-#######################################################
-TIME_LIMIT = 2 # in seconds
-outfile = 'out.json'
-#######################################################
-channels = [f"U  {i}" for i in [0,1,2,3,5,6,7]]
+channels = [f"U  {i}" for i in [0,1,2,3,4,5,6,7]]
 
 def read_single_data():
     url = requests.get('http://192.168.21.26/')
@@ -66,16 +64,52 @@ def bot_send_message(bot_message, dont_send):
     dont_send = True
 
 if __name__=='__main__':
+    parser = argparse.ArgumentParser(
+                    prog='HV Logger',
+                    description='Log output of DESY TB21 NI Crate HV',
+                    )
+
+    parser.add_argument(
+        '-o',
+        '--output-file',
+        type = str,
+        help = 'The name of the json file with HV vals. Default: "out" makes out.json',
+        dest = 'output_file',
+        default = 'out',
+    )
+    parser.add_argument(
+        '-d',
+        '--output-directory',
+        type = Path,
+        help = 'Path to where the json file should be stored. Default: ./',
+        dest = 'output_directory',
+        default = Path("./"),
+    )
+
+    parser.add_argument(
+        '-t',
+        '--time-limit',
+        type = int,
+        help = 'Amount of time to log for. Default: 5',
+        dest = 'time_limit',
+        default = 5,
+    )
+
+    args = parser.parse_args()
+
+    outpath = Path(args.output-directory)
+    outfile = outpath / (args.output-file+'.json')
+
     #chat_id = "-4149555368" #Del grupo donde está el Bot
     #api_key = "7086061035:AAEslZSr3pPEsedeMFgWROmeBKuXljLfSzY"
 
     print('------------------- Start of run ---------------------')
     print(f'Outfile is {outfile}.')
-    print(f'Will be logging for {TIME_LIMIT} seconds.')
+    print(f'Will be logging for {time_limit} seconds.')
     start_time = time.time()
 
     schedule.every(1).seconds.do(read_single_data)
     dont_send = True
     with open(outfile, 'a') as f:
-        while (time.time() - start_time) < TIME_LIMIT:
+        while (time.time() - start_time) < time_limit:
             schedule.run_pending()
