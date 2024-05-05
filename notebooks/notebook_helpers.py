@@ -121,7 +121,7 @@ class i2c_connection():
                     self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=True)
                 else:
                     self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=False)
-            if(int(func_string[-7])): self.set_chip_offsets(chip_address, chip_name, offset=10, chip=chip)
+            if(int(func_string[-7])): self.set_chip_offsets(chip_address, offset=20, chip=chip)
             if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
 
     def __del__(self):
@@ -351,6 +351,9 @@ class i2c_connection():
         lowerCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "lowerCal")
         enable_TDC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "enable_TDC")
         IBSel_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "IBSel")
+        Bypass_THCal_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "Bypass_THCal")
+        TH_offset_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "TH_offset")
+        DAC_handle = chip.get_decoded_indexed_var("ETROC2", "Pixel Config", "DAC")
 
         disDataReadout = "1"
         QInjEn = "0"
@@ -362,7 +365,10 @@ class i2c_connection():
         upperCal = hex(0x3ff)
         lowerCal = hex(0x3ff)
         enable_TDC = "0"
-        IBSel = hex(0)  ## High power mode
+        IBSel        = hex(0)     ## High power mode
+        Bypass_THCal = "1"        ## Byass Mode
+        TH_offset    = hex(0x3f)  ## Max Offset
+        DAC          = hex(0x3ff) ## Max DAC
 
         disDataReadout_handle.set(disDataReadout)
         QInjEn_handle.set(QInjEn)
@@ -381,11 +387,13 @@ class i2c_connection():
         lowerCal_handle.set(lowerCal)
         enable_TDC_handle.set(enable_TDC)
         IBSel_handle.set(IBSel)
-
+        Bypass_THCal_handle.set(Bypass_THCal)
+        TH_offset_handle.set(TH_offset)
+        DAC_handle.set(DAC)
 
         broadcast_handle.set(True)
         chip.write_all_block("ETROC2", "Pixel Config")
-        print(f"Disabled pixels for chip: {hex(chip_address)}")
+        print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
         if(check_broadcast):
             return
 
@@ -448,6 +456,15 @@ class i2c_connection():
                 if int(IBSel_handle.get(), 0) != int(IBSel, 0):
                     broadcast_ok = False
                     break
+                if int(Bypass_THCal_handle.get(), 0) != int(Bypass_THCal, 0):
+                    broadcast_ok = False
+                    break
+                if int(TH_offset_handle.get(), 0) != int(TH_offset, 0):
+                    broadcast_ok = False
+                    break
+                if int(DAC_handle.get(), 0) != int(DAC, 0):
+                    broadcast_ok = False
+                    break
             if not broadcast_ok:
                 break
 
@@ -477,9 +494,12 @@ class i2c_connection():
                     lowerCal_handle.set(lowerCal)
                     enable_TDC_handle.set(enable_TDC)
                     IBSel_handle.set(IBSel)
+                    Bypass_THCal_handle.set(Bypass_THCal)
+                    TH_offset_handle.set(TH_offset)
+                    DAC_handle.set(DAC)
 
                     chip.write_all_block("ETROC2", "Pixel Config")
-        print(f"Disabled pixels (no change in DAC) for chip: {hex(chip_address)}")
+        print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
     # Function 4
     def auto_calibration(self, chip_address, chip_name, chip=None):
@@ -506,7 +526,7 @@ class i2c_connection():
         self.auto_calibration(chip_address, chip_name, chip)
 
     # Function 6
-    def set_chip_offsets(self, chip_address, chip_name, offset=10, chip=None, pixel_list=None, verbose=False):
+    def set_chip_offsets(self, chip_address, offset=10, chip=None, pixel_list=None, verbose=False):
         if(chip==None):
             chip = self.get_chip_i2c_connection(chip_address)
         row_indexer_handle,_,_ = chip.get_indexer("row")
@@ -514,10 +534,10 @@ class i2c_connection():
         if(pixel_list is None):
             for row in tqdm(range(16), desc="Setting Offsets for row", position=0):
                 for col in range(16):
-                    self.set_pixel_offsets(chip_address=chip_address, chip_name=chip_name, row=row, col=col, offset=offset, chip=chip, verbose=verbose, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+                    self.set_pixel_offsets(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip, verbose=verbose, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         else:
             for row,col in pixel_list:
-                self.set_pixel_offsets(chip_address=chip_address, chip_name=chip_name, row=row, col=col, offset=offset, chip=chip, verbose=verbose, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
+                self.set_pixel_offsets(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip, verbose=verbose, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle)
         print(f"Offset set to {hex(offset)} for chip: {hex(chip_address)}")
 
     # Function 7
@@ -689,7 +709,7 @@ class i2c_connection():
             chip: i2c_gui.chips.ETROC2_Chip = self.get_chip_i2c_connection(address)
 
             chip.read_all()
-            chip.save_config(base_dir / f"{datetime.datetime.now().isoformat()}_{name}_{title}.pckl")
+            chip.save_config(base_dir / "{}_{}_{}.pckl".format(datetime.datetime.now().isoformat().replace(":","-"),name,title))
 
     #--------------------------------------------------------------------------#
     ## Broadcast Utils
@@ -925,8 +945,8 @@ class i2c_connection():
         disTrigPath_handle.set("0")
         L1Adelay_handle.set(hex(0x01f5)) # Change L1A delay - circular buffer in ETROC2 pixel
         Bypass_THCal_handle.set("1" if Bypass_THCal else "0")
-        TH_offset_handle.set(hex(0x0a))  # Offset 10 used to add to the auto BL for real
-        QSel_handle.set(hex(0x1b))       # Ensure we inject 27 fC of charge
+        TH_offset_handle.set(hex(0x14))  # Offset 20 used to add to the auto BL for real
+        QSel_handle.set(hex(0x1e))       # Ensure we inject 30 fC of charge
         DAC_handle.set(hex(0x3ff))
         enable_TDC_handle.set("1")
         self.set_TDC_window_vars(chip=chip, triggerWindow=triggerWindow, cbWindow=cbWindow)
@@ -1132,7 +1152,7 @@ class i2c_connection():
 
         if(verbose): print(f"Auto calibration done (enTDC=0 + DAC=1023) for pixel ({row},{col}) on chip: {hex(chip_address)}")
 
-    def set_pixel_offsets(self, chip_address, chip_name, row, col, offset=10, chip=None, verbose=False, row_indexer_handle=None, column_indexer_handle=None):
+    def set_pixel_offsets(self, chip_address, row, col, offset=10, chip=None, verbose=False, row_indexer_handle=None, column_indexer_handle=None):
         if(chip==None and chip_address!=None):
             chip: i2c_gui.chips.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
         elif(chip==None and chip_address==None):
