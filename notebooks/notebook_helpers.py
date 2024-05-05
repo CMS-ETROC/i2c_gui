@@ -532,8 +532,8 @@ class i2c_connection():
         column_indexer_handle.set(col)
         row_indexer_handle.set(row)
         ### WS and pixel initialization
-        self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="low")
-        self.pixel_decoded_register_write("TH_offset", format(0x0a, '06b'), chip=chip)  # Offset used to add to the auto BL for real triggering
+        self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, row_indexer_handle=row_indexer_handle, column_indexer_handle=column_indexer_handle, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="high")
+        self.pixel_decoded_register_write("TH_offset", format(0x14, '06b'), chip=chip)  # Offset used to add to the auto BL for real triggering
         self.pixel_decoded_register_write("RFSel", format(0x00, '02b'), chip=chip)      # Set Largest feedback resistance -> maximum gain
         self.pixel_decoded_register_write("QSel", format(0x1e, '05b'), chip=chip)       # Ensure we inject 30 fC of charge
         print(f"WS Pixel (R0,C14) TH_Offset, RFSel, QSel Initialized for chip: {hex(chip_address)}")
