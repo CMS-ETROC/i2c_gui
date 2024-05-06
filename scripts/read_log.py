@@ -3,20 +3,20 @@ import json
 import pandas as pd
 import argparse
 
-senseV = []
-current = []
-terminalV = []
-#columns = ['U0','U1','U2','U3','U5','U6','U7','time']
-columns = ['U0','U1','U2','U3','U4','U5','U6','U7']
 
 def plotting(inputfile = 'out.json'):
-    dicc = {}
+    senseV = []
+    current = []
+    terminalV = []
+    columns = ['U0','U1','U2','U3','U4','U5','U6','U7','time']
+    #columns = ['U0','U1','U2','U3','U4','U5','U6','U7']
     with open(inputfile, 'r') as f:
         lines = f.readlines()
-        dicc = json.load(inputfile)
+        #dicc = json.load(f)
+        #dicc = []
         
         for line in lines:
-            #dicc = json.loads(line)
+            dicc = json.loads(line)
             #dicc.append(json.loads(line))
             
             values = [float(val[:-2]) for val in dicc["Measured Sense Voltage"]]
@@ -35,18 +35,29 @@ def plotting(inputfile = 'out.json'):
     terminalV_data.columns = columns
     
     # Plotting
-    fig, axes = plt.subplots(len(columns),1, figsize=(10,6*len(ids)))
-    plt.grid(True)
-    plt_index = 0
-    for col in columns:
-        axes[plt_index].plot(senseV_data["time"], senseV_data[col], marker='o', linestyle='-')
-        axes[plt_index].title(f'Values vs Time ({col})')
-        axes[plt_index].xlabel('Time')
-        axes[plt_index].ylabel(f'{col} [uA]')
-        axes[plt_index].xticks(rotation=45)
-        axes[plt_index].tight_layout()
-        plt_index += 1
+    #fig, axes = plt.subplots(len(columns-1),1, figsize=(10,6*len(columns-1)))
+    #plt.grid(True)
+    #plt_index = 0
+    #for col in columns:
+    #    axes[plt_index].plot(senseV_data["time"], senseV_data[col], marker='o', linestyle='-')
+    #    axes[plt_index].title(f'Values vs Time ({col})')
+    #    axes[plt_index].xlabel('Time')
+    #    axes[plt_index].ylabel(f'{col} [uA]')
+    #    axes[plt_index].xticks(rotation=45)
+    #    axes[plt_index].tight_layout()
+    #    plt_index += 1
     #plt.savefig("fig.png")
+    #fig, axes = plt.subplots(2,2, figsize=(10,6))
+    #plt_index = 0
+    #plt.plot(senseV_data["time"], senseV_data[columns[0]], marker='o', linestyle='-')
+    plt.plot(senseV_data["time"], current_data[columns[0]], marker='o', linestyle='-')
+    plt.title(f'Values vs Time ({columns[0]})')
+    plt.xlabel('Time')
+    plt.ylabel(f'{columns[0]} [uA]')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    #plt_index += 1
+    plt.savefig("fig.png")
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(

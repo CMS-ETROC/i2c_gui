@@ -14,7 +14,7 @@ def read_single_data():
     url = requests.get('http://192.168.21.26/')
     soup = BeautifulSoup(url.content, 'html.parser')
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())
-    print(f'>> Log successful at {timestamp}')
+    #print(f'>> Log successful at {timestamp}')
 
     result = soup.find_all("body")[0]
     # Obtenemos todas las filas
@@ -52,7 +52,7 @@ def read_single_data():
                 "Measured Terminal Voltage"]].to_dict(orient="list")
     data["timestamp"] = timestamp
     json.dump(data, f)
-    f.write(',\n')
+    f.write('\n')
 
 def bot_send_message(bot_message, dont_send):
     if dont_send: return
