@@ -97,8 +97,9 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    outpath = Path(args.output-directory)
-    outfile = outpath / (args.output-file+'.json')
+    outpath = Path(args.output_directory)
+    outfile = outpath / (args.output_file+'.json')
+    time_limit = args.time_limit
 
     #chat_id = "-4149555368" #Del grupo donde está el Bot
     #api_key = "7086061035:AAEslZSr3pPEsedeMFgWROmeBKuXljLfSzY"

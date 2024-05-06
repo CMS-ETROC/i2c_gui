@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import json
 import pandas as pd
+import argparse
 
 senseV = []
 current = []
@@ -9,12 +10,14 @@ terminalV = []
 columns = ['U0','U1','U2','U3','U4','U5','U6','U7']
 
 def plotting(inputfile = 'out.json'):
-
+    dicc = {}
     with open(inputfile, 'r') as f:
         lines = f.readlines()
+        dicc = json.load(inputfile)
         
         for line in lines:
-            dicc = json.loads(line)
+            #dicc = json.loads(line)
+            #dicc.append(json.loads(line))
             
             values = [float(val[:-2]) for val in dicc["Measured Sense Voltage"]]
             senseV.append(values+[dicc["timestamp"]])
