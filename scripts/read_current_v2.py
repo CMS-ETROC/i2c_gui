@@ -131,6 +131,8 @@ class DeviceMeasurements():
             supply_model = self._power_supplies[name]["model"]
             if supply_model == "PL303QMD-P":
                 self._power_supplies[name]["handle"].write(f"V{channel} {voltage}")
+            elif supply_model == "E36311A":
+                self._power_supplies[name]["handle"].write(f"SOUR:VOLT {voltage}, (@{channel})")
             elif supply_model == "E36312A":
                 self._power_supplies[name]["handle"].write(f"SOUR:VOLT {voltage}, (@{channel})")
             elif supply_model == "EDU36311A":
@@ -145,6 +147,8 @@ class DeviceMeasurements():
             supply_model = self._power_supplies[name]["model"]
             if supply_model == "PL303QMD-P":
                 self._power_supplies[name]["handle"].write(f"I{channel} {current}")
+            elif supply_model == "E36311A":
+                self._power_supplies[name]["handle"].write(f"SOUR:CURR {current}, (@{channel})")
             elif supply_model == "E36312A":
                 self._power_supplies[name]["handle"].write(f"SOUR:CURR {current}, (@{channel})")
             elif supply_model == "EDU36311A":
@@ -204,6 +208,8 @@ class DeviceMeasurements():
             for channel in self._channels[supply]:
                 if supply_model == "PL303QMD-P":
                     get_ch_state = f'OP{channel}?'  # For CERN Type of Power supply
+                elif supply_model == "E36311A":
+                    get_ch_state = f'OUTP? (@{channel})'
                 elif supply_model == "E36312A":
                     get_ch_state = f'OUTP? (@{channel})'
                 elif supply_model == "EDU36311A":
@@ -222,6 +228,9 @@ class DeviceMeasurements():
             if supply_model == "PL303QMD-P":
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
+            elif supply_model == "E36311A":
+                self._power_supplies[supply]["handle"].write("SYST:RWL")
+                self._power_supplies[supply]["handle"].write("SYST:RWL")
             elif supply_model == "E36312A":
                 self._power_supplies[supply]["handle"].write("SYST:RWL")
                 self._power_supplies[supply]["handle"].write("SYST:RWL")
@@ -266,6 +275,13 @@ class DeviceMeasurements():
                         self._power_supplies[supply]["handle"].write(f"VOLT:SENS:SOUR EXT, (@{channel})")
                     else:  # TODO: Move the exception to another function (the add channel for instance), to avoid exceptions during config
                         raise RuntimeError(f'Unknown Mode option: {self._channels[supply][channel]["config"]["Mode"]}')
+                elif supply_model == "E36311A":
+                    if 'Mode' not in self._channels[supply][channel]["config"] or self._channels[supply][channel]["config"]["Mode"] == "2Wire":
+                        self._power_supplies[supply]["handle"].write(f"VOLT:SENS:SOUR INT, (@{channel})")
+                    # elif self._channels[supply][channel]["config"]["Mode"] == "4Wire":
+                    #     self._power_supplies[supply]["handle"].write(f"VOLT:SENS:SOUR EXT, (@{channel})")
+                    else:  # TODO: Move the exception to another function (the add channel for instance), to avoid exceptions during config
+                        raise RuntimeError(f'Unknown Mode option: {self._channels[supply][channel]["config"]["Mode"]}')
                 # elif supply_model == "EDU36311A":
                 #     if 'Mode' not in self._channels[supply][channel]["config"] or self._channels[supply][channel]["config"]["Mode"] == "2Wire":
                 #         self._power_supplies[supply]["handle"].write(f"VOLT:SENS:SOUR INT, (@{channel})")
@@ -278,6 +294,8 @@ class DeviceMeasurements():
                 self.log_action("Power", "On", f"{supply} {channel}")
                 if supply_model == "PL303QMD-P":
                     self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
+                elif supply_model == "E36311A":
+                    self._power_supplies[supply]["handle"].write(f"OUTP ON, (@{channel})") 
                 elif supply_model == "E36312A":
                     self._power_supplies[supply]["handle"].write(f"OUTP ON, (@{channel})")
                 elif supply_model == "EDU36311A":
@@ -306,6 +324,8 @@ class DeviceMeasurements():
                 self._channels[supply][channel]['on'] = False
                 if supply_model == "PL303QMD-P":
                     self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
+                elif supply_model == "E36311A":
+                    self._power_supplies[supply]["handle"].write(f"OUTP OFF, (@{channel})")
                 elif supply_model == "E36312A":
                     self._power_supplies[supply]["handle"].write(f"OUTP OFF, (@{channel})")
                 elif supply_model == "EDU36311A":
@@ -318,6 +338,8 @@ class DeviceMeasurements():
             supply_model = self._power_supplies[supply]["model"]
             if supply_model == "PL303QMD-P":
                 self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
+            elif supply_model == "E36311A":
+                self._power_supplies[supply]["handle"].write("SYST:LOC")
             elif supply_model == "E36312A":
                 self._power_supplies[supply]["handle"].write("SYST:LOC")
             elif supply_model == "EDU36311A":
@@ -589,28 +611,53 @@ if __name__ == "__main__":
         #     "Mode": "2Wire",
         # })
 
-        device_meas.add_tcp_instrument("TCPIP0::192.168.21.2::5025::SOCKET", "Power1", "Keysight Technologies", "EDU36311A", "Serial")
-        device_meas.add_tcp_instrument("TCPIP0::192.168.21.5::5025::SOCKET", "Power2", "Keysight Technologies", "EDU36311A", "Serial")
-        device_meas.add_channel("Power1", 1, "Digital", config = {
-            "Vset": 1.27,
+        # device_meas.add_tcp_instrument("TCPIP0::192.168.21.2::5025::SOCKET", "Power1", "Keysight Technologies", "EDU36311A", "Serial")
+        # device_meas.add_tcp_instrument("TCPIP0::192.168.21.5::5025::SOCKET", "Power2", "Keysight Technologies", "EDU36311A", "Serial")
+        # device_meas.add_channel("Power1", 1, "Digital", config = {
+        #     "Vset": 1.27,
+        #     "Ilimit": 0.5,
+        # })
+        # device_meas.add_channel("Power1", 2, "Analog", config = {
+        #     "Vset": 1.38,
+        #     "Ilimit": 0.6,
+        # })
+        # device_meas.add_channel("Power1", 3, "VRef", config = {
+        #     "Vset": 1.0,
+        #     "Ilimit": 0.1,
+        # })
+        # device_meas.add_channel("Power2", 1, "WSDigital", config = {
+        #     "Vset": 1.24,
+        #     "Ilimit": 0.1,
+        # })
+        # device_meas.add_channel("Power2", 2, "WSAnalog", config = {
+        #     "Vset": 1.25,
+        #     "Ilimit": 0.1,
+        # })
+        # # device_meas.add_channel("Power2", 3, "NA", config = {
+        # #     "Vset": 0,
+        # #     "Ilimit": 0.01,
+        # # })
+        device_meas.add_tcp_instrument("USB0::10893::4098::MY61003446::0::INSTR", "Power1", "Keysight Technologies", "E36311A", "Serial")
+        device_meas.add_channel("Power1", 1, "Analog", config = {
+            "Vset": 1.38,
+            "Ilimit": 0.7,
+        })
+        device_meas.add_channel("Power1", 2, "Digital", config = {
+            "Vset": 1.24,
             "Ilimit": 0.5,
         })
-        device_meas.add_channel("Power1", 2, "Analog", config = {
-            "Vset": 1.38,
-            "Ilimit": 0.6,
-        })
-        device_meas.add_channel("Power1", 3, "VRef", config = {
-            "Vset": 1.0,
-            "Ilimit": 0.1,
-        })
-        device_meas.add_channel("Power2", 1, "WSDigital", config = {
-            "Vset": 1.24,
-            "Ilimit": 0.1,
-        })
-        device_meas.add_channel("Power2", 2, "WSAnalog", config = {
-            "Vset": 1.25,
-            "Ilimit": 0.1,
-        })
+        # device_meas.add_channel("Power1", 3, "VRef", config = {
+        #     "Vset": 1.0,
+        #     "Ilimit": 0.1,
+        # })
+        # device_meas.add_channel("Power2", 1, "WSDigital", config = {
+        #     "Vset": 1.24,
+        #     "Ilimit": 0.1,
+        # })
+        # device_meas.add_channel("Power2", 2, "WSAnalog", config = {
+        #     "Vset": 1.25,
+        #     "Ilimit": 0.1,
+        # })
         # device_meas.add_channel("Power2", 3, "NA", config = {
         #     "Vset": 0,
         #     "Ilimit": 0.01,
