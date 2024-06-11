@@ -2,6 +2,9 @@ import json
 import logging
 import struct
 import time
+import datetime
+import pandas as pd
+import sqlite3
 import serial
 from crccheck.crc import Crc8
 
@@ -19,6 +22,12 @@ PACKET_LEN = 22
 
 SENSOR_VALUES = {'TEMP': 0, 'HUMID': 0}
 
+ti_hdc1080_template = {
+    'timestamp': [],
+    'temperature': [],
+    'humidity': [],
+    'which_hdc1080': [],
+}
 
 def serial_req(addr):
     result = False
@@ -31,7 +40,7 @@ def serial_req(addr):
     ser.write(tx_data)
     timeout = time.time() + SERIAL_TIMEOUT
     while ser.is_open and time.time() < timeout:
-        time.sleep(0.1)
+        time.sleep(5)
         if ser.inWaiting() > 0:
             rx_data += ser.read(ser.inWaiting())
             if len(rx_data) >= PACKET_LEN:
@@ -55,22 +64,22 @@ def serial_req(addr):
 
 if __name__ == '__main__':
     ser = serial.Serial()
+    outfile = '/media/daq/X9/DESYJune2024/ETROC-History/ti1080_sensor_data.sqlite'
     try:
         logging.info('INIT')
-        f = open('private_config.json')
-        PRIVATE_CONFIG = json.load(f)
-        f.close()
-        sample_interval = 30 
-        ser = serial.Serial("/dev/ttyACM0", 115200, timeout=SERIAL_TIMEOUT)
+        ser = serial.Serial("/dev/ttyACM2", 115200, timeout=SERIAL_TIMEOUT)
         logging.info('LOOP')
-        start_time = time.time()
-        while (time.time() - start_time) < sample_interval:
-            with open('sensor_data.txt', 'w') as f:
-                if serial_req(ADDR_TEMP) and serial_req(ADDR_HUMID):
-                    try:
-                        f.write(f"TEMP: {SENSOR_VALUES['TEMP']} °C, HUMID: {SENSOR_VALUES['HUMID']} %\n")
-                    except Exception:
-                        logging.exception('FILE_WRITE')
+        while True:
+            data = json.loads(json.dumps(ti_hdc1080_template))
+            if serial_req(ADDR_TEMP) and serial_req(ADDR_HUMID):
+                data['timestamp'].append(datetime.datetime.now())
+                data['temperature'].append(SENSOR_VALUES['TEMP'])
+                data['humidity'].append(SENSOR_VALUES['HUMID'])
+                data['which_hdc1080'].append(1)
+
+                data_df = pd.DataFrame(data)
+                with sqlite3.connect(outfile) as sqlconn:
+                    data_df.to_sql('ti_hdc1080', sqlconn, if_exists='append', index=False)
     except Exception:
         logging.exception('MAIN')
     finally:

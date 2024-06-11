@@ -38,7 +38,7 @@ def read_single_data():
             output_rows.append(output_row)
 
     #format_result = output_rows.text
-    data = pd.DataFrame(output_rows);
+    data = pd.DataFrame(output_rows)
     data.columns = ["Channel",
                     "Voltage",
                     "Current",
@@ -98,7 +98,9 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     outpath = Path(args.output_directory)
-    outfile = outpath / (args.output_file+'.json')
+    outdir = outpath / 'HV_logging'
+    outdir.mkdir(exist_ok=True)
+    outfile = outdir / (args.output_file+'.json')
     time_limit = args.time_limit
 
     #chat_id = "-4149555368" #Del grupo donde está el Bot

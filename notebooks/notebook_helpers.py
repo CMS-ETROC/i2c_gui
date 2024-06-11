@@ -571,7 +571,7 @@ class i2c_connection():
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile="",show_BLs=True,uBL_vmin=0,uBL_vmax=0,uNW_vmin=0,uNW_vmax=0):
+    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile="",show_BLs=True,uBL_vmin=0,uBL_vmax=0,uNW_vmin=0,uNW_vmax=16):
         if(histfile == ""):
             histdir = Path('../ETROC-History')
             histdir.mkdir(exist_ok=True)
@@ -600,12 +600,8 @@ class i2c_connection():
             fig.colorbar(img0, cax=cax, orientation="vertical")#,boundaries=np.linspace(vmin,vmax,int((vmax-vmin)*30)))
 
             ax1 = fig.add_subplot(gs[0,1])
-            if(uNW_vmin == 0): NW_vmin = np.min(NW_map_THCal[np.nonzero(NW_map_THCal)])
-            else: NW_vmin = uNW_vmin
-            if(uNW_vmax == 0): NW_vmax = np.max(NW_map_THCal[np.nonzero(NW_map_THCal)])
-            else: NW_vmax = uNW_vmax
             ax1.set_title(f"{chip_figtitle}: NW (DAC LSB)", size=17, loc="right")
-            img1 = ax1.imshow(NW_map_THCal, interpolation='none',vmin=NW_vmin,vmax=NW_vmax)
+            img1 = ax1.imshow(NW_map_THCal, interpolation='none',vmin=uNW_vmin,vmax=uNW_vmax)
             ax1.set_aspect("equal")
             ax1.invert_xaxis()
             ax1.invert_yaxis()
