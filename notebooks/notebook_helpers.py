@@ -1345,7 +1345,7 @@ def pixel_turnon_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_
 def trigger_bit_noisescan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, pedestal_scan_step = 1, attempt='', today='', busyCB=False, tp_tag='', neighbors=False, allon=False, hostname = "192.168.2.3", override_baseline=None, power_mode="high"):
     root = '../ETROC-Data'
     file_pattern = "*FPGA_Data.dat"
-    thresholds = np.arange(-10,20,pedestal_scan_step) # relative to BL
+    thresholds = np.arange(-10,10,pedestal_scan_step) # relative to BL
     scan_name = chip_figname+"_VRef_SCurve_NoiseOnly"
     fpga_time = 3
     if(today==''): today = datetime.date.today().isoformat()
@@ -1675,7 +1675,7 @@ def multiple_trigger_bit_noisescan_plot(i2c_conn, chip_address, chip_figtitle, c
     del triggerbit_full_Scurve
 
 
-def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode='high'):
+def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], attempt='', today='', calibrate=False, hostname = "192.168.2.3", power_mode='high', triggerbit=True):
     if power_mode not in valid_power_modes:
         power_mode = 'low'
     DAC_scan_max = 1020
@@ -1749,7 +1749,10 @@ def pixel_turnoff_points(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a
                         # Condition handling for Binary Search
                         # TDC_data = int(text_list[3])
                         # if(TDC_data>=header_max/2.):
-                        Triggerbits = int(text_list[-2])
+                        if(triggerbit):
+                            Triggerbits = int(text_list[-2])
+                        else:
+                            Triggerbits = int(text_list[3])
                         # print(a,b,header_max,Triggerbits,Triggerbits>=(header_max/2.),line_DAC)
                         if(Triggerbits>=(header_max/2.)):
                             a = DAC
@@ -1839,12 +1842,12 @@ def charge_peakDAC_plot(i2c_conn, chip_address, chip_figtitle, chip_figname, sca
     plt.close()
     del QInj_Peak_DAC_map
 
-def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_flag, hostname = "192.168.2.3", run_options="--compressed_translation --skip_binary"):
+def run_daq(timePerPixel, deadTime, dirname, s_flag, d_flag, a_flag, p_flag, today="test", hostname = "192.168.2.3", run_options="--compressed_translation --skip_binary", ssd_path = "/run/media/daq/T7/"):
 
     total_scan_time = timePerPixel + deadTime
 
     parser = parser_arguments.create_parser()
-    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --start_DAQ_pulse --stop_DAQ_pulse --check_valid_data_start {run_options}".split())
+    (options, args) = parser.parse_args(args=f"-f --useIPC --hostname {hostname} -t {int(total_scan_time)} -o {dirname} -v -w -s {s_flag} -p {p_flag} -d {d_flag} -a {a_flag} --start_DAQ_pulse --stop_DAQ_pulse --check_valid_data_start {run_options} --ssd_path {ssd_path} --run_name {today}".split())
     IPC_queue = multiprocessing.Queue()
     process = multiprocessing.Process(target=run_script.main_process, args=(IPC_queue, options, f'main_process'))
     process.start()
@@ -1861,13 +1864,17 @@ def run_daq(timePerPixel, deadTime, dirname, today, s_flag, d_flag, a_flag, p_fl
 
     process.join()
 
-def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="high", upperlimit_turnoff=-1,timePerPixel=2, deadTime=1, run_options="--compressed_translation --skip_binary"):
-    root = '../ETROC-Data'
+def full_scurve_scan(i2c_conn, chip_address, chip_figname, s_flag, d_flag, a_flag, p_flag, scan_list, verbose=False, QInjEns=[27], pedestal_scan_step=1, attempt='', tp_tag='', today='', allon=False, neighbors=False, hostname = "192.168.2.3", power_mode="high", upperlimit_turnoff=-1,timePerPixel=2, deadTime=1, run_options="--compressed_translation --skip_binary", ssd_path = "", BL_offset=5):
+    if(ssd_path==""):
+        root = '../ETROC-Data'
+    else:
+        root = ssd_path
     file_pattern = "*FPGA_Data.dat"
     scan_name = chip_figname+"_VRef_SCurve_TDC"
     BL_map_THCal,NW_map_THCal,_,_ = i2c_conn.get_auto_cal_maps(chip_address)
 
     if(today==''): today = datetime.date.today().isoformat()
+    todaystub = today + "_Array_Test_Results"
     todaystr = root+"/" + today + "_Array_Test_Results/"
     base_dir = Path(todaystr)
     base_dir.mkdir(exist_ok=True)
@@ -1916,8 +1923,9 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
             if(isinstance(upperlimit_turnoff,dict)):
                 if(turning_point>1000): turning_point = upperlimit_turnoff[QInj]
             # thresholds = np.arange(BL_map_THCal[row][col]+NW_map_THCal[row][col],turning_point,pedestal_scan_step)
-            thresholds = np.arange(BL_map_THCal[row][col]+5,turning_point,pedestal_scan_step)
+            thresholds = np.arange(BL_map_THCal[row][col]+BL_offset,turning_point,pedestal_scan_step)
             i2c_conn.pixel_decoded_register_write("QSel", format(QInj, '05b'), chip)
+            # print("Before DAQ loop", thresholds)
             for DAC in tqdm(thresholds, desc=f'DAC Loop for Pixel ({col},{row}) & Charge {QInj} fC', leave=False):
                 threshold = int(DAC)
                 if threshold < 1:
@@ -1926,7 +1934,7 @@ def full_scurve_scan(i2c_conn, chip_address, chip_figtitle, chip_figname, s_flag
                 i2c_conn.pixel_decoded_register_write("DAC", format(threshold, '010b'), chip=chip)
                 # TH = i2c_conn.pixel_decoded_register_read("TH", "Status", pixel_connected_chip, need_int=True)
                 threshold_name = scan_name+f'_Pixel_C{col}_R{row}_QInj_{QInj}_Threshold_{threshold}'+attempt
-                run_daq(timePerPixel=timePerPixel, deadTime=deadTime, dirname=threshold_name, today=today, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname,run_options=run_options)
+                run_daq(timePerPixel=timePerPixel, deadTime=deadTime, dirname=threshold_name, today=todaystub, s_flag=s_flag, d_flag=d_flag, a_flag=a_flag, p_flag=p_flag, hostname=hostname,run_options=run_options, ssd_path=os.path.abspath(Path(root)))
 
         # Disable
         if(not allon):
