@@ -165,8 +165,8 @@ class DeviceMeasurements():
                 continue
             if '/dev/ttyUSB' in resource.split('::')[0]:
                 continue
-            if '/dev/ttyACM' in resource.split('::')[0]:
-                continue
+            #if '/dev/ttyACM' in resource.split('::')[0]:
+            #    continue
             with self._rm.open_resource(resource) as instrument:
                 try:
                     instrument.baud_rate = self._baudrate
@@ -365,7 +365,7 @@ class DeviceMeasurements():
 
         df = pandas.DataFrame(measurement)
 
-        outfile = self._outdir / 'PowerHistorySEU11May2024.sqlite'
+        outfile = self._outdir / 'PowerHistory_v2.sqlite'
         with sqlite3.connect(outfile) as sqlconn:
             df.to_sql('power_v2', sqlconn, if_exists='append', index=False)
 
@@ -455,8 +455,8 @@ if __name__ == "__main__":
         help = "The termination characters used for writing. CR -> Carriage Return; LF -> Line Feed",
         dest = 'write_termination',
         #default = None,
-        #default = "LF",  # For CERN power supplies
-        default = "CRLF",  # For E36312A power supplies
+        default = "LF",  # For CERN power supplies
+        #default = "CRLF",  # For E36312A power supplies
         choices = [None, "CR", "LF", "CRLF", "LFCR"],
     )
     parser.add_argument(
@@ -465,8 +465,8 @@ if __name__ == "__main__":
         help = "The termination characters used for reading. CR -> Carriage Return; LF -> Line Feed",
         dest = 'read_termination',
         #default = None,
-        #default = "CRLF",  # For CERN power supplies
-        default = "LF",  # For E36312A power supplies
+        default = "CRLF",  # For CERN power supplies
+        #default = "LF",  # For E36312A power supplies
         choices = [None, "CR", "LF", "CRLF", "LFCR"],
     )
     parser.add_argument(
@@ -552,18 +552,19 @@ if __name__ == "__main__":
         # TODO: Parse instruments and channels from a config file so that the code does not change from setup to setup, there would be a config file for each setup
         #device_meas.add_instrument("Power", "THURLBY THANDAR", "PL303QMD-P", "506013")  # TID Top
         #device_meas.add_instrument("WS Power", "THURLBY THANDAR", "PL303QMD-P", "521246")  # TID Bottom
-        #device_meas.add_channel("Power", 1, "Analog", config = {
-        #                                                        "Vset": 1.2 + 0.04,
-        #                                                        "Ilimit": 0.5,
-        #                                                        "IRange": "Low",  # Alternative "High"
-        #                                                        }
-        #)
-        #device_meas.add_channel("Power", 2, "Digital", config = {
-        #                                                        "Vset": 1.2 + 0.09,
-        #                                                        "Ilimit": 0.4,
-        #                                                        "IRange": "Low",  # Alternative "High"
-        #                                                        }
-        #)
+        device_meas.add_instrument("Power", "THURLBY THANDAR", "PL303QMD-P", "410453")  # TID Bottom
+        device_meas.add_channel("Power", 2, "Analog", config = {
+                                                                "Vset": 1.4 + 0.0,
+                                                                "Ilimit": 0.75,
+                                                                "IRange": "High",  # Alternative "High"
+                                                                }
+        )
+        device_meas.add_channel("Power", 1, "Digital", config = {
+                                                                "Vset": 1.2 + 0.05,
+                                                                "Ilimit": 0.7,
+                                                                "IRange": "Low",  # Alternative "High"
+                                                                }
+        )
         #device_meas.add_channel("WS Power", 1, "Analog", config = {
         #                                                        "Vset": 1.2 + 0.01,
         #                                                        "Ilimit": 0.03,
@@ -611,82 +612,82 @@ if __name__ == "__main__":
         #     "Mode": "2Wire",
         # })
 
-        # device_meas.add_tcp_instrument("TCPIP0::192.168.21.2::5025::SOCKET", "Power1", "Keysight Technologies", "EDU36311A", "Serial")
-        # device_meas.add_tcp_instrument("TCPIP0::192.168.21.5::5025::SOCKET", "Power2", "Keysight Technologies", "EDU36311A", "Serial")
-        # device_meas.add_channel("Power1", 1, "Digital", config = {
-        #     "Vset": 1.27,
+        #device_meas.add_tcp_instrument("TCPIP0::192.168.10.5::5025::SOCKET", "Power1", "Keysight Technologies", "EDU36311A", "Serial")
+        #device_meas.add_tcp_instrument("TCPIP0::192.168.10.2::5025::SOCKET", "Power2", "Keysight Technologies", "EDU36311A", "Serial")
+        #device_meas.add_channel("Power1", 1, "Analog", config = {
+        #    "Vset": 1.56,
+        #    "Ilimit": 0.7,
+        #})
+        #device_meas.add_channel("Power1", 2, "Digital", config = {
+        #    "Vset": 1.3,
+        #    "Ilimit": 0.7,
+        #})
+        #device_meas.add_channel("Power1", 3, "VRef", config = {
+        #    "Vset": 1.0,
+        #    "Ilimit": 0.1,
+        #})
+        #device_meas.add_channel("Power2", 1, "WSAnalog", config = {
+        #    "Vset": 1.2,
+        #    "Ilimit": 0.1,
+        #})
+        #device_meas.add_channel("Power2", 2, "WSDigital", config = {
+        #    "Vset": 1.2,
+        #    "Ilimit": 0.1,
+        #})
+        #device_meas.add_channel("Power2", 3, "NA", config = {
+        #    "Vset": 0,
+        #    "Ilimit": 0.01,
+        #})
+
+        # device_meas.add_tcp_instrument("USB0::10893::4098::MY61003445::0::INSTR", "Power1", "Keysight Technologies", "E36311A", "Serial") # Ch0
+        # device_meas.add_tcp_instrument("USB0::10893::4098::MY61003440::0::INSTR", "Power2", "Keysight Technologies", "E36311A", "Serial") # Ch1
+        # device_meas.add_tcp_instrument("USB0::10893::4098::MY61003443::0::INSTR", "Power3", "Keysight Technologies", "E36311A", "Serial") # Ch2
+        # device_meas.add_tcp_instrument("USB0::10893::4098::MY61003446::0::INSTR", "Power4", "Keysight Technologies", "E36311A", "Serial") # Ch3
+        # device_meas.add_tcp_instrument("USB0::10893::4354::MY59152152::0::INSTR", "PowerWS", "Keysight Technologies", "E36312A", "Serial") # WS & Vref
+        # device_meas.add_channel("Power1", 1, "Analog", config = {
+        #     "Vset": 1.38,
+        #     "Ilimit": 0.7,
+        # })
+        # device_meas.add_channel("Power1", 2, "Digital", config = {
+        #     "Vset": 1.24,
         #     "Ilimit": 0.5,
         # })
-        # device_meas.add_channel("Power1", 2, "Analog", config = {
+        # device_meas.add_channel("Power2", 1, "Analog", config = {
         #     "Vset": 1.38,
-        #     "Ilimit": 0.6,
+        #     "Ilimit": 0.7,
         # })
-        # device_meas.add_channel("Power1", 3, "VRef", config = {
+        # device_meas.add_channel("Power2", 2, "Digital", config = {
+        #     "Vset": 1.24,
+        #     "Ilimit": 0.5,
+        # })
+        # device_meas.add_channel("Power3", 1, "Analog", config = {
+        #     "Vset": 1.38,
+        #     "Ilimit": 0.7,
+        # })
+        # device_meas.add_channel("Power3", 2, "Digital", config = {
+        #     "Vset": 1.24,
+        #     "Ilimit": 0.5,
+        # })
+        # device_meas.add_channel("Power4", 1, "Analog", config = {
+        #     "Vset": 1.38,
+        #     "Ilimit": 0.7,
+        # })
+        # device_meas.add_channel("Power4", 2, "Digital", config = {
+        #     "Vset": 1.24,
+        #     "Ilimit": 0.5,
+        # })
+        # device_meas.add_channel("PowerWS", 1, "WSAnalog", config = {
+        #     "Vset": 1.2,
+        #     "Ilimit": 0.3,
+        # })
+        # device_meas.add_channel("PowerWS", 2, "WSDigital", config = {
+        #     "Vset": 1.2,
+        #     "Ilimit": 0.1,
+        # })
+        # device_meas.add_channel("PowerWS", 3, "VRef", config = {
         #     "Vset": 1.0,
         #     "Ilimit": 0.1,
         # })
-        # device_meas.add_channel("Power2", 1, "WSDigital", config = {
-        #     "Vset": 1.24,
-        #     "Ilimit": 0.1,
-        # })
-        # device_meas.add_channel("Power2", 2, "WSAnalog", config = {
-        #     "Vset": 1.25,
-        #     "Ilimit": 0.1,
-        # })
-        # # device_meas.add_channel("Power2", 3, "NA", config = {
-        # #     "Vset": 0,
-        # #     "Ilimit": 0.01,
-        # # })
-        device_meas.add_tcp_instrument("USB0::10893::4098::MY61003445::0::INSTR", "Power1", "Keysight Technologies", "E36311A", "Serial") # Ch0
-        device_meas.add_tcp_instrument("USB0::10893::4098::MY61003440::0::INSTR", "Power2", "Keysight Technologies", "E36311A", "Serial") # Ch1
-        device_meas.add_tcp_instrument("USB0::10893::4098::MY61003443::0::INSTR", "Power3", "Keysight Technologies", "E36311A", "Serial") # Ch2
-        device_meas.add_tcp_instrument("USB0::10893::4098::MY61003446::0::INSTR", "Power4", "Keysight Technologies", "E36311A", "Serial") # Ch3
-        device_meas.add_tcp_instrument("USB0::10893::4354::MY59152152::0::INSTR", "PowerWS", "Keysight Technologies", "E36312A", "Serial") # WS & Vref
-
-        device_meas.add_channel("Power1", 1, "Analog", config = {
-            "Vset": 1.38,
-            "Ilimit": 0.7,
-        })
-        device_meas.add_channel("Power1", 2, "Digital", config = {
-            "Vset": 1.24,
-            "Ilimit": 0.5,
-        })
-        device_meas.add_channel("Power2", 1, "Analog", config = {
-            "Vset": 1.38,
-            "Ilimit": 0.7,
-        })
-        device_meas.add_channel("Power2", 2, "Digital", config = {
-            "Vset": 1.24,
-            "Ilimit": 0.5,
-        })
-        device_meas.add_channel("Power3", 1, "Analog", config = {
-            "Vset": 1.38,
-            "Ilimit": 0.7,
-        })
-        device_meas.add_channel("Power3", 2, "Digital", config = {
-            "Vset": 1.24,
-            "Ilimit": 0.5,
-        })
-        device_meas.add_channel("Power4", 1, "Analog", config = {
-            "Vset": 1.38,
-            "Ilimit": 0.7,
-        })
-        device_meas.add_channel("Power4", 2, "Digital", config = {
-            "Vset": 1.24,
-            "Ilimit": 0.5,
-        })
-        device_meas.add_channel("PowerWS", 1, "WSAnalog", config = {
-            "Vset": 1.2,
-            "Ilimit": 0.3,
-        })
-        device_meas.add_channel("PowerWS", 2, "WSDigital", config = {
-            "Vset": 1.2,
-            "Ilimit": 0.1,
-        })
-        device_meas.add_channel("PowerWS", 3, "VRef", config = {
-            "Vset": 1.0,
-            "Ilimit": 0.1,
-        })
 
         device_meas.find_devices()
 
