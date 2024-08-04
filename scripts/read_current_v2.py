@@ -157,7 +157,7 @@ class DeviceMeasurements():
                 raise RuntimeError("Unknown power supply model for setting current")
 
 
-    def find_devices(self):
+    def find_devices(self, reset_inst=True):
         resources = self._rm.list_resources()
 
         for resource in resources:
@@ -202,8 +202,9 @@ class DeviceMeasurements():
             self._power_supplies[supply]["handle"].read_termination = self._read_termination
 
             self._power_supplies[supply]["handle"].write("*CLS")
-            # self._power_supplies[supply]["handle"].write("*RST?")
-            self._power_supplies[supply]["handle"].write("*RST") # changed for Belgium EDU36311A
+            if(reset_inst):
+                # self._power_supplies[supply]["handle"].write("*RST?")
+                self._power_supplies[supply]["handle"].write("*RST") # changed for Belgium EDU36311A
 
             for channel in self._channels[supply]:
                 if supply_model == "PL303QMD-P":
@@ -487,6 +488,12 @@ if __name__ == "__main__":
         help = 'Turn off the power supplies',
         dest = 'turn_off',
     )
+    parser.add_argument(
+        '--no_reset_inst',
+        action = 'store_false',
+        help = 'Issue RST to intrument',
+        dest = 'reset_inst',
+    )
 
     args = parser.parse_args()
 
@@ -689,7 +696,7 @@ if __name__ == "__main__":
         #     "Ilimit": 0.1,
         # })
 
-        device_meas.find_devices()
+        device_meas.find_devices(reset_inst=args.reset_inst)
 
         if args.turn_on:
             device_meas.turn_on()
