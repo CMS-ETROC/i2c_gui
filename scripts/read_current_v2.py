@@ -137,6 +137,8 @@ class DeviceMeasurements():
                 self._power_supplies[name]["handle"].write(f"SOUR:VOLT {voltage}, (@{channel})")
             elif supply_model == "EDU36311A":
                 self._power_supplies[name]["handle"].write(f"SOUR:VOLT {voltage}, (@{channel})")
+            elif supply_model == "GPP-3060":
+                self._power_supplies[name]["handle"].write(f"SOUR{channel}:VOLT {voltage}")
             else:
                 raise RuntimeError("Unknown power supply model for setting voltage")
 
@@ -153,6 +155,8 @@ class DeviceMeasurements():
                 self._power_supplies[name]["handle"].write(f"SOUR:CURR {current}, (@{channel})")
             elif supply_model == "EDU36311A":
                 self._power_supplies[name]["handle"].write(f"SOUR:CURR {current}, (@{channel})")
+            elif supply_model == "GPP-3060":
+                self._power_supplies[name]["handle"].write(f"SOUR{channel}:CURR {current}")
             else:
                 raise RuntimeError("Unknown power supply model for setting current")
 
@@ -167,6 +171,8 @@ class DeviceMeasurements():
                 continue
             #if '/dev/ttyACM' in resource.split('::')[0]:
             #    continue
+            if 'GPIB' in resource.split('::')[0]:
+                continue
             with self._rm.open_resource(resource) as instrument:
                 try:
                     instrument.baud_rate = self._baudrate
@@ -215,6 +221,8 @@ class DeviceMeasurements():
                     get_ch_state = f'OUTP? (@{channel})'
                 elif supply_model == "EDU36311A":
                     get_ch_state = f'OUTP? (@{channel})'
+                elif supply_model == "GPP-3060":
+                    get_ch_state = f'OUTP{channel}?'
                 else:
                     raise RuntimeError("Unknown power supply model for checking channel status")
                 state: str = self._power_supplies[supply]["handle"].query(get_ch_state)
@@ -222,6 +230,10 @@ class DeviceMeasurements():
                 if state == "0":
                     self._channels[supply][channel]['on'] = False
                 elif state == "1":
+                    self._channels[supply][channel]['on'] = True
+                elif state == "OFF": # GPP-3060
+                    self._channels[supply][channel]['on'] = False
+                elif state == "ON":  # GPP 3060
                     self._channels[supply][channel]['on'] = True
                 else:
                     raise RuntimeError(f"An impossible state was found for {supply} channel {channel}: \"{state}\"")
@@ -238,6 +250,9 @@ class DeviceMeasurements():
             elif supply_model == "EDU36311A":
                 self._power_supplies[supply]["handle"].write("SYST:RWL")
                 self._power_supplies[supply]["handle"].write("SYST:RWL")
+            elif supply_model == "GPP-3060":
+                self._power_supplies[supply]["handle"].write("SYST:REM")
+                self._power_supplies[supply]["handle"].write("SYST:REM")
             else:
                 raise RuntimeError("Unknown power supply type for locking the power supply")
 
@@ -301,6 +316,8 @@ class DeviceMeasurements():
                     self._power_supplies[supply]["handle"].write(f"OUTP ON, (@{channel})")
                 elif supply_model == "EDU36311A":
                     self._power_supplies[supply]["handle"].write(f"OUTP ON, (@{channel})")
+                elif supply_model == "GPP-3060":
+                    self._power_supplies[supply]["handle"].write(f"OUTP{channel} ON")
                 else:
                     raise RuntimeError("Unknown power supply type for turning on the power supply")
 
@@ -331,6 +348,8 @@ class DeviceMeasurements():
                     self._power_supplies[supply]["handle"].write(f"OUTP OFF, (@{channel})")
                 elif supply_model == "EDU36311A":
                     self._power_supplies[supply]["handle"].write(f"OUTP OFF, (@{channel})")
+                elif supply_model == "GPP-3060":
+                    self._power_supplies[supply]["handle"].write(f"OUTP{channel} OFF")
                 else:
                     raise RuntimeError("Unknown power supply type for turning off the power supply")
 
@@ -344,6 +363,8 @@ class DeviceMeasurements():
             elif supply_model == "E36312A":
                 self._power_supplies[supply]["handle"].write("SYST:LOC")
             elif supply_model == "EDU36311A":
+                self._power_supplies[supply]["handle"].write("SYST:LOC")
+            elif supply_model == "GPP-3060":
                 self._power_supplies[supply]["handle"].write("SYST:LOC")
             else:
                 raise RuntimeError("Unknown power supply type for releasing the power supply")
@@ -393,6 +414,9 @@ class DeviceMeasurements():
                 elif supply_model == "EDU36311A":
                     V = self._power_supplies[supply]["handle"].query(f"MEAS:VOLT? (@{channel})")
                     I = self._power_supplies[supply]["handle"].query(f"MEAS:CURR? (@{channel})")
+                elif supply_model == "GPP-3060":
+                    V = self._power_supplies[supply]["handle"].query(f"MEAS{channel}:VOLT?")
+                    I = self._power_supplies[supply]["handle"].query(f"MEAS{channel}:CURR?")
                 else:
                     raise RuntimeError("Unknown power supply type for measurements of the power supply")
                 time = datetime.datetime.now().isoformat(sep=' ')
@@ -584,6 +608,15 @@ if __name__ == "__main__":
         #                                                        "IRange": "Low",  # Alternative "High"
         #                                                        }
         #)
+        #device_meas.add_tcp_instrument("TCPIP0::192.168.10.4::1026::SOCKET", "Power1", "GW Instek", "GPP-3060", "Serial")
+        #device_meas.add_channel("Power1", 1, "Analog", config = {
+        #   "Vset": 1.37,
+        #   "Ilimit": 0.7,
+        #})
+        #device_meas.add_channel("Power1", 2, "Digital", config = {
+        #   "Vset": 1.24,
+        #   "Ilimit": 0.5,
+        #})
 
         # device_meas.add_tcp_instrument("TCPIP0::192.168.3.1::5025::SOCKET", "Power1", "Keysight Technologies", "E36312A", "Serial")
         # device_meas.add_tcp_instrument("TCPIP0::192.168.3.2::5025::SOCKET", "Power2", "Keysight Technologies", "E36312A", "Serial")
