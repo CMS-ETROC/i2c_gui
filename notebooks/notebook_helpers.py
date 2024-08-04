@@ -571,7 +571,19 @@ class i2c_connection():
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-    def save_baselines(self,chip_fignames,fig_path="",histdir="../ETROC-History",histfile="",show_BLs=True,uBL_vmin=0,uBL_vmax=0,uNW_vmin=0,uNW_vmax=16):
+    def save_baselines(self,
+                       chip_fignames,
+                       fig_title="",
+                       fig_path="",
+                       histdir="../ETROC-History",
+                       histfile="",
+                       show_BLs=True,
+                       uBL_vmin=0,
+                       uBL_vmax=0,
+                       uNW_vmin=0,
+                       uNW_vmax=16,
+                       save_notes: str = "",
+                ):
         if(histfile == ""):
             histdir = Path('../ETROC-History')
             histdir.mkdir(exist_ok=True)
@@ -587,7 +599,7 @@ class i2c_connection():
             else: BL_vmin = uBL_vmin
             if(uBL_vmax == 0): BL_vmax = np.max(BL_map_THCal[np.nonzero(BL_map_THCal)])
             else: BL_vmax = uBL_vmax
-            ax0.set_title(f"{chip_figtitle}: BL (DAC LSB)", size=17, loc="right")
+            ax0.set_title(f"{chip_figname}: BL (DAC LSB)\n{fig_title}", size=17, loc="right")
             img0 = ax0.imshow(BL_map_THCal, interpolation='none',vmin=BL_vmin,vmax=BL_vmax)
             ax0.set_aspect("equal")
             ax0.invert_xaxis()
@@ -600,7 +612,7 @@ class i2c_connection():
             fig.colorbar(img0, cax=cax, orientation="vertical")#,boundaries=np.linspace(vmin,vmax,int((vmax-vmin)*30)))
 
             ax1 = fig.add_subplot(gs[0,1])
-            ax1.set_title(f"{chip_figtitle}: NW (DAC LSB)", size=17, loc="right")
+            ax1.set_title(f"{chip_figname}: NW (DAC LSB)\n{fig_title}", size=17, loc="right")
             img1 = ax1.imshow(NW_map_THCal, interpolation='none',vmin=uNW_vmin,vmax=uNW_vmax)
             ax1.set_aspect("equal")
             ax1.invert_xaxis()
@@ -626,6 +638,8 @@ class i2c_connection():
                 fig_path = str(fig_outdir)
             plt.savefig(fig_path+"/BL_NW_"+chip_figname+"_"+timestamp+".png")
             plt.show()
+
+            BL_df.loc[:, "save_notes"] = save_notes
             with sqlite3.connect(histfile) as sqlconn:
                 BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
 
