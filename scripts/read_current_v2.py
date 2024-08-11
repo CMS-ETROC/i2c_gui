@@ -133,6 +133,8 @@ class DeviceMeasurements():
                 self._power_supplies[name]["handle"].write(f"V{channel} {voltage}")
             elif supply_model == "TSX3510P":
                 self._power_supplies[name]["handle"].write(f"V{channel} {voltage}")
+            elif supply_model == "PL330DP":
+                self._power_supplies[name]["handle"].write(f"V{channel} {voltage}")
             elif supply_model == "E36311A":
                 self._power_supplies[name]["handle"].write(f"SOUR:VOLT {voltage}, (@{channel})")
             elif supply_model == "E36312A":
@@ -152,6 +154,8 @@ class DeviceMeasurements():
             if supply_model == "PL303QMD-P":
                 self._power_supplies[name]["handle"].write(f"I{channel} {current}")
             elif supply_model == "TSX3510P":
+                self._power_supplies[name]["handle"].write(f"I{channel} {current}")
+            elif supply_model == "PL330DP":
                 self._power_supplies[name]["handle"].write(f"I{channel} {current}")
             elif supply_model == "E36311A":
                 self._power_supplies[name]["handle"].write(f"SOUR:CURR {current}, (@{channel})")
@@ -221,6 +225,8 @@ class DeviceMeasurements():
                     get_ch_state = f'OP{channel}?'  # For CERN Type of Power supply
                 elif supply_model == "TSX3510P":
                     get_ch_state = f'OP{channel}?'  # For CERN Type of Power supply
+                elif supply_model == "PL330DP":
+                    get_ch_state = f'V{channel}O?'
                 elif supply_model == "E36311A":
                     get_ch_state = f'OUTP? (@{channel})'
                 elif supply_model == "E36312A":
@@ -243,13 +249,17 @@ class DeviceMeasurements():
                     self._channels[supply][channel]['on'] = False
                 elif state == "ON":  # GPP 3060
                     self._channels[supply][channel]['on'] = True
+                elif state == ' 0.00V\n': # PL330DP
+                    self._channels[supply][channel]['on'] = True
                 else:
                     raise RuntimeError(f"An impossible state was found for {supply} channel {channel}: \"{state}\"")
 
             if supply_model == "PL303QMD-P":
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
                 self._power_supplies[supply]["handle"].query("IFLOCK")  # Lock the device
-            if supply_model == "TSX3510P":
+            elif supply_model == "TSX3510P":
+                pass
+            elif supply_model == "PL330DP":
                 pass
             elif supply_model == "E36311A":
                 self._power_supplies[supply]["handle"].write("SYST:RWL")
@@ -322,6 +332,8 @@ class DeviceMeasurements():
                     self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
                 elif supply_model == "TSX3510P":
                     self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
+                elif supply_model == "PL330DP":
+                    self._power_supplies[supply]["handle"].write(f"OP{channel} 1")
                 elif supply_model == "E36311A":
                     self._power_supplies[supply]["handle"].write(f"OUTP ON, (@{channel})")
                 elif supply_model == "E36312A":
@@ -356,6 +368,8 @@ class DeviceMeasurements():
                     self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
                 elif supply_model == "TSX3510P":
                     self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
+                elif supply_model == "PL330DP":
+                    self._power_supplies[supply]["handle"].write(f"OP{channel} 0")
                 elif supply_model == "E36311A":
                     self._power_supplies[supply]["handle"].write(f"OUTP OFF, (@{channel})")
                 elif supply_model == "E36312A":
@@ -373,6 +387,8 @@ class DeviceMeasurements():
             if supply_model == "PL303QMD-P":
                 self._power_supplies[supply]["handle"].query("IFUNLOCK")  # Lock the device
             elif supply_model == "TSX3510P":
+                pass
+            elif supply_model == "PL330DP":
                 pass
             elif supply_model == "E36311A":
                 self._power_supplies[supply]["handle"].write("SYST:LOC")
@@ -425,6 +441,9 @@ class DeviceMeasurements():
                     V = self._power_supplies[supply]["handle"].query(f"V{channel}O?")
                     I = self._power_supplies[supply]["handle"].query(f"I{channel}O?")
                 elif supply_model == "TSX3510P":
+                    V = self._power_supplies[supply]["handle"].query(f"V{channel}O?")
+                    I = self._power_supplies[supply]["handle"].query(f"I{channel}O?")
+                elif supply_model == "PL330DP":
                     V = self._power_supplies[supply]["handle"].query(f"V{channel}O?")
                     I = self._power_supplies[supply]["handle"].query(f"I{channel}O?")
                 elif supply_model == "E36312A":
@@ -630,6 +649,20 @@ if __name__ == "__main__":
         #                                                        "IRange": "Low",  # Alternative "High"
         #                                                        }
         #)
+        #THURLBY-THANDAR,PL330DP,0,1.10
+        device_meas.add_instrument("Power", "THURLBY-THANDAR", "PL330DP", "0")
+        device_meas.add_channel("Power", 1, "Analog", config = {
+                                                                "Vset": 1.2 + 0.0,
+                                                                "Ilimit": 0.75,
+                                                                "IRange": "High",  # Alternative "High"
+                                                                }
+        )
+        device_meas.add_channel("Power", 2, "Digital", config = {
+                                                                "Vset": 1.2 - 0.0,
+                                                                "Ilimit": 0.51,
+                                                                "IRange": "Low",  # Alternative "High"
+                                                                }
+        )
         #device_meas.add_channel("WS Power", 1, "Analog", config = {
         #                                                        "Vset": 1.2 + 0.01,
         #                                                        "Ilimit": 0.03,
