@@ -159,6 +159,7 @@ class DeviceMeasurements():
     def find_devices(self, reset_inst=True):
         resources = self._rm.list_resources()
         flag = True
+        found_supply = False
         for resource in resources:
             flag = True
             found_supply = False
@@ -477,9 +478,12 @@ if __name__ == "__main__":
 
         for resource in resource_list:
             print(resource)
-            # for ignored in ignore_list:
-            #     if ignored in resource:
-            #         continue
+            tmp_flag = False
+            for ignored in ignore_list:
+                if ignored in resource:
+                    tmp_flag = True
+                    break
+            if(tmp_flag): continue
             with rm.open_resource(resource) as instrument:
                 try:
                     instrument.baud_rate = args.baudrate

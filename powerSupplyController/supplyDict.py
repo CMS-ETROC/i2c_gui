@@ -56,6 +56,20 @@ supplyDict = {
         "read_termination":'\r\n',
         "states": {"0": False, "1":True}
     },
+    "TSX1820P":{
+        "set_voltage":"V {voltage}",
+        "set_current":"I {current}",
+        "get_state":'', # IO?
+        "power_on":"OP 1",
+        "power_off":"OP 0",
+        "get_voltage":"VO?",
+        "get_current":"IO?",
+        "set_remote":"",
+        "set_local":"",
+        "write_termination":'\n',
+        "read_termination":'\r\n',
+        "states": {" 0.00A\n": False, "1":True}
+    },
     "PL330DP":{
         "set_voltage":"V{channel} {voltage}",
         "set_current":"I{channel} {current}",
