@@ -69,7 +69,7 @@ supplyDict = {
         "set_remote":"",
         "set_local":"",
         "write_termination":'\n',
-        "read_termination":'\r\n',
+        "read_termination":'\n',
         "states": {" 0.00A\n": False, "1":True}
     },
     "PL330DP":{
