@@ -219,23 +219,28 @@ class DeviceMeasurements():
 
             for channel in self._channels[supply]:
                 if(supply_model in supplyDict.keys()):
-                    if("channel" in supplyDict[supply_model]["get_state"]):
-                        state: str = self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["get_state"].format(channel=channel))
+                    if(supplyDict[supply_model]["get_state"]):
+                        if("channel" in supplyDict[supply_model]["get_state"]):
+                            state: str = self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["get_state"].format(channel=channel))
+                        else:
+                            state: str = self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["get_state"])
                     else:
-                        state: str = self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["get_state"])
+                        state: str = ""
                 else:
                     raise RuntimeError("Unknown power supply model for checking channel status")
                 #state = state.strip()
-                if state in supplyDict[supply_model]["states"]:
-                    self._channels[supply][channel]['on'] = supplyDict[supply_model]["states"][state]
-                elif supply_model == "PL330DP" and state != ' 0.00V\n': # PL330DP
+                if(not state):
                     self._channels[supply][channel]['on'] = True
+                elif state in supplyDict[supply_model]["states"]:
+                    self._channels[supply][channel]['on'] = supplyDict[supply_model]["states"][state]
                 else:
                     raise RuntimeError(f"An impossible state was found for {supply} channel {channel}: \"{state}\"")
 
             if(supplyDict[supply_model]["set_remote"]):
-                self._power_supplies[supply]["handle"].write(supplyDict[supply_model]["set_remote"])  # Lock the device
-                self._power_supplies[supply]["handle"].write(supplyDict[supply_model]["set_remote"])  # Lock the device
+                if(supplyDict[supply_model]["lock_query"]):
+                    self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["set_remote"])  # Lock the device
+                else:
+                    self._power_supplies[supply]["handle"].write(supplyDict[supply_model]["set_remote"])
             else:
                 # print(f"Unknown power supply {supply_model} for locking the power supply, not locking")
                 pass
@@ -337,7 +342,10 @@ class DeviceMeasurements():
             if(supply_model not in supplyDict.keys()):
                 raise RuntimeError("Unknown power supply model for release_devices function")
             if(supplyDict[supply_model]["set_local"]):
-                self._power_supplies[supply]["handle"].write(supplyDict[supply_model]["set_local"])
+                if(supplyDict[supply_model]["lock_query"]):
+                    self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["set_local"])
+                else:
+                    self._power_supplies[supply]["handle"].write(supplyDict[supply_model]["set_local"])
             else:
                 # print(f"Unknown power supply {supply_model} for unlocking the power supply, skipping unlocking")
                 pass
