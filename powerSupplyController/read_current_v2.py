@@ -91,14 +91,14 @@ class DeviceMeasurements():
         if self._interval < 3:
             self._interval = 3
 
-    def add_instrument(self, name: str, manufacturer: str, model: str, serial: str, config: dict[str, str] = {}):
+    def add_instrument(self, resource_str: str, name: str, manufacturer: str, model: str, serial: str, config: dict[str, str] = {}):
         self._power_supplies[name] = {
             "type": "regular",
             "manufacturer": manufacturer,
             "model": model,
             "serial": serial,
             "config": config,
-            "resource": None,
+            "resource": resource_str,
             "handle": None,
         }
 
@@ -161,6 +161,7 @@ class DeviceMeasurements():
         flag = True
         for resource in resources:
             flag = True
+            found_supply = False
             for ignored in ignore_list:
                 if ignored in resource:
                     flag = False
@@ -182,8 +183,17 @@ class DeviceMeasurements():
                             instrument.read_termination = supplyDict[idn_info[1]]["read_termination"]
                         for supply in self._power_supplies:
                             if idn_info[0] == self._power_supplies[supply]["manufacturer"] and idn_info[1] == self._power_supplies[supply]["model"] and idn_info[2] == self._power_supplies[supply]["serial"]:
-                                self._power_supplies[supply]["resource"] = resource
-                                break
+                                if(self._power_supplies[supply]["resource"] and self._power_supplies[supply]["resource"]==resource):
+                                    found_supply = True
+                                    break
+                                elif(self._power_supplies[supply]["resource"] and self._power_supplies[supply]["resource"]!=resource):
+                                    pass
+                                elif(not self._power_supplies[supply]["resource"]):
+                                    self._power_supplies[supply]["resource"] = resource
+                                    found_supply = True
+                                    break
+                        if(not found_supply):
+                            self._power_supplies[supply]["resource"] = None    
                     except:
                         print(f"Could not connect to resource: {resource}")
                         print("  Perhaps the device is not VISA compatible, or termination characters are wrong")
@@ -476,7 +486,7 @@ if __name__ == "__main__":
         device_meas = DeviceMeasurements(outdir = Path(args.output_directory), interval = args.measurement_interval, baudrate = args.baudrate, supplyConfig = supplyConfig,)
         for key,val in supplyConfig.items():
             if(val["type"]=="regular"):
-                device_meas.add_instrument(key, val["manufacturer"], val["model"], val["serial"])
+                device_meas.add_instrument(val["resource"], key, val["manufacturer"], val["model"], val["serial"])
             elif(val["type"]=="tcp"):
                 device_meas.add_tcp_instrument(val["resource"], key, val["manufacturer"], val["model"], val["serial"])
         
