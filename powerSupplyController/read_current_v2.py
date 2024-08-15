@@ -267,7 +267,7 @@ class DeviceMeasurements():
             else:
                 # print(f"Unknown power supply {supply_model} for locking the power supply, not locking")
                 pass
-            if("init" in supplyDict[supply_model].keys()):
+            if("init" in supplyDict[supply_model].keys()) and reset_inst:
                 for init_line in supplyDict[supply_model]["init"]:
                     self._power_supplies[supply]["handle"].write(init_line)
             else:
