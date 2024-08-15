@@ -28,6 +28,7 @@ import sys
 import datetime
 import pandas
 import sqlite3
+import yaml
 from pathlib import Path
 import warnings
 from supplyDict import supplyDict
@@ -37,7 +38,7 @@ import os
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir) 
+sys.path.insert(0, parentdir)
 try:
     from log_action import log_action_v2
 except:
@@ -79,17 +80,30 @@ class DeviceMeasurements():
             self,
             outdir: Path,
             interval: int,
+            config_file: Path,
             baudrate: int = 9600,
-            supplyConfig: dict[str, str] = {},
+            reset_inst: bool = True,
                  ):
         self._rm = pyvisa.ResourceManager()
         self._interval = interval
         self._outdir = outdir
         self._baudrate = baudrate
-        self._supplyConfig = supplyConfig
+        self._config_file = config_file
 
         if self._interval < 3:
             self._interval = 3
+
+        with open(config_file, 'r') as file:
+            config_info = yaml.safe_load(file)
+
+            self.ignore_list = config_info["ignore_list"]
+
+            for key, val in dict(config_info["power_supplies"]).items():
+                self.add_instrument(val["resource"], key, val["manufacturer"], val["model"], val["serial"])
+                for ckey, cval in dict(val["channels"]).items():
+                    self.add_channel(key, cval["channel"], ckey, config=cval)
+
+        self.find_devices(reset_inst = reset_inst)
 
     def add_instrument(self, resource_str: str, name: str, manufacturer: str, model: str, serial: str, config: dict[str, str] = {}):
         self._power_supplies[name] = {
@@ -99,6 +113,7 @@ class DeviceMeasurements():
             "serial": serial,
             "config": config,
             "resource": resource_str,
+            "resource_found": False,
             "handle": None,
         }
 
@@ -110,6 +125,7 @@ class DeviceMeasurements():
             "serial": serial,
             "config": config,
             "resource": resource_str,
+            "resource_found": False,
             "handle": None,
         }
 
@@ -163,7 +179,7 @@ class DeviceMeasurements():
         for resource in resources:
             flag = True
             found_supply = False
-            for ignored in ignore_list:
+            for ignored in self.ignore_list:
                 if ignored in resource:
                     flag = False
                     break
@@ -193,14 +209,16 @@ class DeviceMeasurements():
                                     self._power_supplies[supply]["resource"] = resource
                                     found_supply = True
                                     break
-                        if(not found_supply):
-                            self._power_supplies[supply]["resource"] = None    
+                        if(found_supply):
+                            self._power_supplies[supply]["resource_found"] = True
                     except:
                         print(f"Could not connect to resource: {resource}")
                         print("  Perhaps the device is not VISA compatible, or termination characters are wrong")
                         continue
 
         for supply in self._power_supplies:
+            if not self._power_supplies[supply]["resource_found"]:
+                self._power_supplies[supply]["resource"] = None
             if self._power_supplies[supply]["resource"] is None:
                 raise RuntimeError(f"Unable to find the power supply for {supply}")
 
@@ -260,7 +278,7 @@ class DeviceMeasurements():
                 self._channels[supply][channel]['on'] = True
                 if(supply_model not in supplyDict.keys()):
                     raise RuntimeError("Unknown power supply model for turn_on function")
-                
+
                 voltage = self._channels[supply][channel]["Vset"]
                 if voltage is None:
                     voltage = self._channels[supply][channel]["config"]["Vset"]
@@ -331,7 +349,7 @@ class DeviceMeasurements():
                         self._power_supplies[supply]["handle"].write(supplyDict[supply_model]["power_off"])
                 else:
                     raise RuntimeError("Unknown power supply type for turning off the power supply")
-                
+
                 voltage = 0
                 self.set_channel_voltage(supply, channel, voltage)
                 current = 0.01
@@ -444,6 +462,14 @@ if __name__ == "__main__":
         default = Path("./"),
     )
     parser.add_argument(
+        '-c',
+        '--config',
+        type = Path,
+        help = 'The YAML config file with the devices and device configurations to use',
+        required = True,
+        dest = 'config_file',
+    )
+    parser.add_argument(
         '--turn-on',
         action = 'store_true',
         help = 'Turn on the power supplies',
@@ -479,7 +505,7 @@ if __name__ == "__main__":
         for resource in resource_list:
             print(resource)
             tmp_flag = False
-            for ignored in ignore_list:
+            for ignored in self.ignore_list:
                 if ignored in resource:
                     tmp_flag = True
                     break
@@ -495,18 +521,7 @@ if __name__ == "__main__":
                 except:
                     continue
     else:
-        device_meas = DeviceMeasurements(outdir = Path(args.output_directory), interval = args.measurement_interval, baudrate = args.baudrate, supplyConfig = supplyConfig,)
-        for key,val in supplyConfig.items():
-            if(val["type"]=="regular"):
-                device_meas.add_instrument(val["resource"], key, val["manufacturer"], val["model"], val["serial"])
-            elif(val["type"]=="tcp"):
-                device_meas.add_tcp_instrument(val["resource"], key, val["manufacturer"], val["model"], val["serial"])
-        
-        for key,val in channelConfig.items():
-            for kkey, vval in val.items():
-                device_meas.add_channel(key, vval["channel"], kkey, config=vval["config"])
-
-        device_meas.find_devices(reset_inst=args.reset_inst)
+        device_meas = DeviceMeasurements(outdir = Path(args.output_directory), interval = args.measurement_interval, baudrate = args.baudrate, config_file = Path(args.config_file),reset_inst = args.reset_inst)
 
         if args.turn_on:
             device_meas.turn_on()
