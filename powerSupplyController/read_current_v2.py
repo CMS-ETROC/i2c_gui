@@ -502,10 +502,15 @@ if __name__ == "__main__":
 
         print(resource_list)
 
+        ignore_list = []
+        with open(args.config_file, 'r') as file:
+            config_info = yaml.safe_load(file)
+            ignore_list = config_info["ignore_list"]
+
         for resource in resource_list:
             print(resource)
             tmp_flag = False
-            for ignored in self.ignore_list:
+            for ignored in ignore_list:
                 if ignored in resource:
                     tmp_flag = True
                     break

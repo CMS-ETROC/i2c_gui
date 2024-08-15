@@ -48,19 +48,19 @@ power_supplies:
                 channel: 1
                 Vset: 1.38
                 Ilimit: 0.70
-   Power_4:
-       manufacturer: "THURLBY THANDAR"
-       model: "PL303QMD-P"
-       serial: "410453"
-       resource: "ASRL/dev/ttyACM4::INSTR"
-       channels:
-           Digital:
-               channel: 1
-               Vset: 1.31
-               Ilimit: 0.50
-               IRange: "Low"
-           Analog:
-               channel: 2
-               Vset: 1.46
-               Ilimit: 0.75
-               IRange: "High"
+    Power_4:
+        manufacturer: "THURLBY THANDAR"
+        model: "PL303QMD-P"
+        serial: "410453"
+        resource: "ASRL/dev/ttyACM4::INSTR"
+        channels:
+            Digital:
+                channel: 1
+                Vset: 1.31
+                Ilimit: 0.50
+                IRange: "Low"
+            Analog:
+                channel: 2
+                Vset: 1.46
+                Ilimit: 0.75
+                IRange: "High"
