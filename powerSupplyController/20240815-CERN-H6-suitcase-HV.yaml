@@ -8,7 +8,7 @@ power_supplies:
         channels:
             HV_1:
                 channel: 1
-                Vset: -200
+                Vset: -260
                 Ilimit: 100E-6
     Power_HV_2:
         manufacturer: "KEITHLEY INSTRUMENTS"
@@ -18,7 +18,7 @@ power_supplies:
         channels:
             HV_2:
                 channel: 1
-                Vset: -200
+                Vset: -120
                 Ilimit: 100E-6
     Power_HV_3:
         manufacturer: "KEITHLEY INSTRUMENTS"
@@ -28,7 +28,7 @@ power_supplies:
         channels:
             HV_3:
                 channel: 1
-                Vset: -200
+                Vset: -120
                 Ilimit: 100E-6
     Power_HV_4:
         manufacturer: "KEITHLEY INSTRUMENTS"

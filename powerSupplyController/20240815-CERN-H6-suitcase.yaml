@@ -58,7 +58,7 @@ power_supplies:
                 channel: 1
                 Vset: 1.31
                 Ilimit: 0.50
-                IRange: "Low"
+                IRange: "High"
             Analog:
                 channel: 2
                 Vset: 1.46
