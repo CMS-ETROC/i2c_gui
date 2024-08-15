@@ -75,6 +75,7 @@ class DeviceMeasurements():
     _channels = {}
 
     _rt = None
+    _file_name = "PowerHistory_v2.sqlite"
 
     def __init__(
             self,
@@ -83,12 +84,15 @@ class DeviceMeasurements():
             config_file: Path,
             baudrate: int = 9600,
             reset_inst: bool = True,
+            file_name: str = None,
                  ):
         self._rm = pyvisa.ResourceManager()
         self._interval = interval
         self._outdir = outdir
         self._baudrate = baudrate
         self._config_file = config_file
+        if file_name is not None:
+            self._file_name = file_name
 
         if self._interval < 3:
             self._interval = 3
@@ -384,7 +388,7 @@ class DeviceMeasurements():
     def log_measurement(self):
         measurement = self.do_measurement()
         df = pandas.DataFrame(measurement)
-        outfile = self._outdir / 'PowerHistory_v2.sqlite'
+        outfile = self._outdir / self._file_name
         with sqlite3.connect(outfile) as sqlconn:
             df.to_sql('power_v2', sqlconn, if_exists='append', index=False)
 
@@ -482,6 +486,14 @@ if __name__ == "__main__":
         dest = 'log',
     )
     parser.add_argument(
+        '-f',
+        '--file-name',
+        type = Path,
+        help = 'The file name to save the log into',
+        dest = 'file_name',
+        default = None,
+    )
+    parser.add_argument(
         '--turn-off',
         action = 'store_true',
         help = 'Turn off the power supplies',
@@ -526,7 +538,7 @@ if __name__ == "__main__":
                 except:
                     continue
     else:
-        device_meas = DeviceMeasurements(outdir = Path(args.output_directory), interval = args.measurement_interval, baudrate = args.baudrate, config_file = Path(args.config_file),reset_inst = args.reset_inst)
+        device_meas = DeviceMeasurements(outdir = Path(args.output_directory), interval = args.measurement_interval, baudrate = args.baudrate, config_file = Path(args.config_file),reset_inst = args.reset_inst, file_name = args.file_name)
 
         if args.turn_on:
             device_meas.turn_on()
