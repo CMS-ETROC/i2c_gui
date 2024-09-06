@@ -1,4 +1,4 @@
-ignore_list: ["ttyS", "ttyUSB"]
+ignore_list: ["ttyS", "ttyUSB", "TCPIP"]
 power_supplies:
     Power_1_DIG:
         manufacturer: "THURLBY-THANDAR"
@@ -28,7 +28,7 @@ power_supplies:
         channels:
             Digital:
                 channel: 2
-                Vset: 1.25
+                Vset: 1.28
                 Ilimit: 0.50
             Analog:
                 channel: 1

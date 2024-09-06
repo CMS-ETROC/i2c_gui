@@ -38,5 +38,5 @@ power_supplies:
         channels:
             HV_4:
                 channel: 1
-                Vset: -200
+                Vset: -180
                 Ilimit: 100E-6
