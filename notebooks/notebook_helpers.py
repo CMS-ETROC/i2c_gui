@@ -668,6 +668,8 @@ class i2c_connection():
             ax.set_title(f"{chip_figname}: NW (DAC LSB)\n{fig_title}", size=17, loc="right")
             ax.legend(fontsize=16)
             plt.xticks(range(16), range(16))
+            plt.tight_layout()
+            plt.show()
             fig.savefig(fig_path+"/NW_1D"+chip_figname+"_"+timestamp+".png")
 
     ## Power Mode Functions
