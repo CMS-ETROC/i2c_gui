@@ -650,6 +650,25 @@ class i2c_connection():
 
     #--------------------------------------------------------------------------#
 
+    def make_1d_nw_plot(
+            self,
+            chip_fignames,
+            fig_title="",
+            fig_path="",
+        ):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+        for chip_address, chip_figname in zip(self.chip_addresses,chip_fignames):
+            _, NW_map_THCal, _, _ = self.get_auto_cal_maps(chip_address)
+            fig, ax = plt.subplots(figsize=(10, 9))
+            hep.cms.text(loc=0, ax=ax, fontsize=17, text="ETL ETROC")
+            tmp_hist = hist.Hist(hist.axis.Regular(16, 0, 16, name='nw', label='NW [DAC]'))
+            tmp_hist.fill(pandas.DataFrame(NW_map_THCal).to_numpy().flatten())
+            mean, std = pandas.DataFrame(NW_map_THCal).to_numpy().flatten().mean(), pandas.DataFrame(NW_map_THCal).to_numpy().flatten().std()
+            tmp_hist.plot1d(ax=ax, yerr=False, label=f'Mean: {mean:.2f}, Std: {std:.2f}')
+            ax.set_title(f"{chip_figname}: NW (DAC LSB)\n{fig_title}", size=17, loc="right")
+            ax.legend(fontsize=16)
+            plt.xticks(range(16), range(16))
+            fig.savefig(fig_path+"/NW_1D"+chip_figname+"_"+timestamp+".png")
 
     ## Power Mode Functions
     def set_power_mode(self, chip_address: int, row: int, col: int, power_mode: str = 'high', verbose: bool = False):
