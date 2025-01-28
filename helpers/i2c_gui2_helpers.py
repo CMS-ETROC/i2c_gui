@@ -37,8 +37,7 @@ class i2c_connection():
                      do_set_chip_peripherals: bool = False,
                      do_disable_all_pixels: bool = False,
                      do_auto_calibration: bool = False,
-
-                     func_string = '00000000'):
+                     ):
 
         for chip_address, chip_name, ws_address in zip(self.chip_addresses, self.chip_names, self.ws_addresses):
 
@@ -47,15 +46,15 @@ class i2c_connection():
             if( do_pixel_check ): self.pixel_check(chip_address, chip)
             if( do_basic_peripheral_register_check ): self.basic_peripheral_register_check(chip_address, chip)
             if( do_set_chip_peripherals ): self.set_chip_peripherals(chip_address, chip)
-            if( do_disable_all_pixels ): self.disable_all_pixels(chip_address, chip, check_broadcast=True)
+            if( do_disable_all_pixels ): self.disable_all_pixels(chip_address, chip)
             if( do_auto_calibration ): self.auto_calibration(chip_address, chip_name, chip)
-            if(int(func_string[-6])):
-                if( do_disable_all_pixels ):
-                    self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=True)
-                else:
-                    self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=False)
-            if(int(func_string[-7])): self.set_chip_offsets(chip_address, offset=20, chip=chip)
-            if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
+            # if(int(func_string[-6])):
+            #     if( do_disable_all_pixels ):
+            #         self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=True)
+            #     else:
+            #         self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=False)
+            # if(int(func_string[-7])): self.set_chip_offsets(chip_address, offset=20, chip=chip)
+            # if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
 
     def __del__(self):
         del self.conn
@@ -72,6 +71,12 @@ class i2c_connection():
 
         # logger.setLevel(log_level)
         return self._chips[chip_address]
+
+
+    #--------------------------------------------------------------------------#
+    def get_bl_nw_map(self):
+        return self.BL_df
+
 
     #--------------------------------------------------------------------------#
     def auto_cal_single_pixel(self, chip_address: list[int], row: int, col: int, bl_nw_output: dict,
@@ -162,11 +167,13 @@ class i2c_connection():
                 chip.set_indexer('row', row)
                 chip.set_indexer('column', col)
 
+                chip.read_decoded_value("ETROC2", "Pixel Status", 'PixelID-Row')
+                chip.read_decoded_value("ETROC2", "Pixel Status", 'PixelID-Col')
                 fetched_row = chip.get_decoded_value("ETROC2", "Pixel Status", 'PixelID-Row')
                 fetched_col = chip.get_decoded_value("ETROC2", "Pixel Status", 'PixelID-Col')
 
                 if row != fetched_row or col != fetched_col:
-                    print(chip_address, f"Pixel ({row},{col}) returned ({fetched_row}{fetched_col}), failed consistency check!")
+                    print(chip_address, f"Pixel ({row}, {col}) returned ({fetched_row}, {fetched_col}), failed consistency check!")
                     pixel_flag_fail = True
 
         if not pixel_flag_fail:
@@ -351,3 +358,234 @@ class i2c_connection():
         del bl_nw_dict, bl_nw_df
 
         print(f"Auto calibration finished for chip: {hex(chip_address)}")
+
+    #--------------------------------------------------------------------------#
+    # Function 7
+    def prepare_ws_testing(self, chip_address, ws_address, chip: i2c_gui2.ETROC2_Chip=None):
+
+        if(chip == None and chip_address != None and ws_address != None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address, ws_address)
+        elif(chip == None and (chip_address == None or ws_address == None)):
+            print("Need either a chip or chip+ws address to access registers!")
+
+        chip.set_indexer('row', 0)
+        chip.set_indexer('column', 14)
+
+        ### WS and pixel initialization
+        # self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="high")
+
+        chip.set_decoded_value("ETROC2", "Pixel Config", "TH_offset", 20)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "TH_offset")
+
+        chip.set_decoded_value("ETROC2", "Pixel Config", "RFSel", 0)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "RFSel")
+
+        chip.set_decoded_value("ETROC2", "Pixel Config", "QSel", 30)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "QSel")
+
+        print(f"WS Pixel (R0,C14) has been initialized TH_Offset = 20, RFSel = 0, QSel = 30 for chip: {hex(chip_address)}")
+
+        chip["Waveform Sampler", "Config", "regOut1F"] = 0x22
+        chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        chip["Waveform Sampler", "Config", "regOut1F"] = 0x0b
+        chip.write_register("Waveform Sampler", "Config", "regOut1F")
+
+
+        # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
+        # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
+        # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
+        self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)             # Time Skew Calibration set to 0
+        self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)           # CTRL default = 0x10 for regOut0D
+        self.ws_decoded_register_write("comp_cali", format(0, '03b'), chip=chip)        # Comparator calibration should be off
+        print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
+
+
+
+    #--------------------------------------------------------------------------#
+    def make_BL_NW_2D_maps(self, input_df: pd.DataFrame, given_title: str, note: str):
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        import matplotlib.pyplot as plt
+        import mplhep as hep
+        hep.style.use('CMS')
+
+        ## Make BL and NW 2D map
+        fig = plt.figure(dpi=200, figsize=(20,10))
+        gs = fig.add_gridspec(1,2)
+        ax0 = fig.add_subplot(gs[0,0])
+        ax0.set_title(f"{given_title}: BL (DAC LSB)\n{note}", size=17, loc="right")
+        img0 = ax0.imshow(input_df.baseline, interpolation='none', vmin=input_df.baseline.to_numpy().reshape(-1).min(), vmax=input_df.baseline.to_numpy().reshape(-1).max())
+        ax0.set_aspect("equal")
+        ax0.invert_xaxis()
+        ax0.invert_yaxis()
+        plt.xticks(range(16), range(16), rotation="vertical")
+        plt.yticks(range(16), range(16))
+        hep.cms.text(loc=0, ax=ax0, fontsize=17, text="ETL ETROC")
+        divider = make_axes_locatable(ax0)
+        cax = divider.append_axes('right', size="5%", pad=0.05)
+        fig.colorbar(img0, cax=cax, orientation="vertical")
+
+        ax1 = fig.add_subplot(gs[0,1])
+        ax1.set_title(f"{given_title}: NW (DAC LSB)\n{note}", size=17, loc="right")
+        img1 = ax1.imshow(input_df.noise_width, interpolation='none', vmin=0, vmax=16)
+        ax1.set_aspect("equal")
+        ax1.invert_xaxis()
+        ax1.invert_yaxis()
+        plt.xticks(range(16), range(16), rotation="vertical")
+        plt.yticks(range(16), range(16))
+        hep.cms.text(loc=0, ax=ax1, fontsize=17, text="ETL ETROC")
+        divider = make_axes_locatable(ax1)
+        cax = divider.append_axes('right', size="5%", pad=0.05)
+        fig.colorbar(img1, cax=cax, orientation="vertical")
+
+        plt.tight_layout()
+
+    def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_title: str,):
+        import hist
+        import matplotlib.pyplot as plt
+        import mplhep as hep
+        hep.style.use('CMS')
+
+        fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+        hep.cms.text(loc=0, ax=axes[0], fontsize=17, text="ETL ETROC")
+        bl_hist = hist.Hist(hist.axis.Regular())
+
+
+
+        hep.cms.text(loc=0, ax=axes[1], fontsize=17, text="ETL ETROC")
+        nw_hist = hist.Hist(hist.axis.Regular(16, 0, 16, name='nw', label='NW [DAC]'))
+        nw_array = input_df['noise_width'].to_numpy().flatten()
+        nw_hist.fill(nw_array)
+        nw_hist.plot1d(ax=axes[1], yerr=False)
+
+
+
+    #--------------------------------------------------------------------------#
+    def save_baselines(
+            self,
+            fig_title="",
+            fig_path="",
+            histdir="../ETROC-History",
+            histfile="",
+            show_plots: bool = True,
+            save_notes: str = "",
+        ):
+
+        from pathlib import Path
+
+
+        if(histfile == ""):
+            histdir = Path('../ETROC-History')
+            histdir.mkdir(exist_ok=True)
+            histfile = histdir / 'BaselineHistory.sqlite'
+
+        for idx, chip_address in enumerate(self.chip_addresses):
+
+            current_df = self.BL_df[chip_address]
+            pivot_df = current_df.pivot(index=['row'], columns=['col'], values=['baseline', 'noise_width'])
+
+            if show_plots:
+
+                ## Make BL and NW 2D map
+                self.make_BL_NW_2D_maps(pivot_df, self.chip_names[idx])
+
+                ## Make BL and NW 1D hist
+                self.make_BL_NW_1D_hists(current_df, self.chip_names[idx])
+
+
+
+
+
+        #     timestamp = datetime.datetime.now().st        # for chip_address, chip_figname, chip_figtitle in zip(self.chip_addresses,chip_fignames,chip_fignames):
+        #     BL_map_THCal,NW_map_THCal,BL_df,offset_map = self.get_auto_cal_maps(chip_address)
+        #     fig = plt.figure(dpi=200, figsize=(20,10))
+        #     gs = fig.add_gridspec(1,2)me("%Y-%m-%d_%H-%M")
+
+        #     for x in range(16):
+        #         for y in range(16):
+        #             ax0.text(x,y,f"{BL_map_THCal.T[x,y]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
+        #             ax1.text(x,y,f"{NW_map_THCal.T[x,y]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
+        #     plt.tight_layout()
+        #     if(fig_path == ""):
+        #         fig_outdir = Path('../ETROC-figures')
+        #         fig_outdir = fig_outdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
+        #         fig_outdir.mkdir(exist_ok=True)
+        #         fig_path = str(fig_outdir)
+        #     plt.savefig(fig_path+"/BL_NW_"+chip_figname+"_"+timestamp+".png")
+        #     plt.show()
+
+        #     BL_df.loc[:, "save_notes"] = save_notes
+        #     with sqlite3.connect(histfile) as sqlconn:
+        #         BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
+
+        #     savetxt(histdir / f'{chip_figname}_BL_{timestamp}.csv', BL_map_THCal, delimiter=',')
+        #     savetxt(histdir / f'{chip_figname}_NW_{timestamp}.csv', NW_map_THCal, delimiter=',')
+        #     if not show_BLs:
+        #         plt.close()
+
+
+
+
+
+
+
+
+
+
+    #--------------------------------------------------------------------------#
+    ## Chip Calibration Util Functions
+    def onchipL1A(self, chip_address, chip: i2c_gui2.ETROC2_Chip = None, comm = '00'):
+
+        if(chip == None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'onChipL1AConf', int(comm, base=2))
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'onChipL1AConf')
+
+        print(f"OnChipL1A action {comm} done for chip: {hex(chip_address)}")
+
+    def asyAlignFastcommand(self, chip_address, chip: i2c_gui2.ETROC2_Chip = None):
+
+        if(chip == None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyAlignFastcommand', 1)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyAlignFastcommand')
+        time.sleep(0.1)
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyAlignFastcommand', 0)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyAlignFastcommand')
+
+        print(f"asyAlignFastcommand action done for chip: {hex(chip_address)}")
+
+    def asyResetGlobalReadout(self, chip_address, chip: i2c_gui2.ETROC2_Chip = None):
+
+        if(chip == None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyResetGlobalReadout', 0)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyResetGlobalReadout')
+        time.sleep(0.1)
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyResetGlobalReadout', 1)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyResetGlobalReadout')
+
+        print(f"Reset Global Readout done for chip: {hex(chip_address)}")
+
+    def calibratePLL(self, chip_address, chip: i2c_gui2.ETROC2_Chip = None):
+
+        if(chip == None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+        ### PLL Reset
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset', 0)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset')
+        time.sleep(0.1)
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset', 1)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset')
+
+        ### asyStartCalibration
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration', 0)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration')
+        time.sleep(0.1)
+        chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration', 1)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration')
+
+        print(f"PLL Calibrated for chip: {hex(chip_address)}")
