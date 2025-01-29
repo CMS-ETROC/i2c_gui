@@ -151,6 +151,76 @@ class i2c_connection():
 
 
 
+    def set_TDC_window_vars(self, chip: i2c_gui2.ETROC2_Chip, triggerWindow=True, cbWindow=True):
+        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOATrig", 0x3ff if triggerWindow else 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOATrig", 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOTTrig", 0x1ff if triggerWindow else 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOTTrig", 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "upperCalTrig", 0x3ff if triggerWindow else 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerCalTrig", 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOA", 0x3ff if cbWindow else 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOA", 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOT", 0x1ff if cbWindow else 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOT", 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "upperCal", 0x3ff if cbWindow else 0x000)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerCal", 0x000)
+
+
+
+
+    #--------------------------------------------------------------------------#
+    def config_single_pixel(self, row, col, verbose=False, chip_address=None, chip: i2c_gui2.ETROC2_Chip=None,
+                            QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True, power_mode = "high"):
+
+        valid_power_modes = ['low', '010', '101', 'high']
+
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
+        if(chip == None and chip_address != None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+        elif(chip == None and chip_address == None):
+            print("Need chip address to make a new chip in disable pixel!")
+            return
+
+        chip.set_indexer('row', row)
+        chip.set_indexer('column', col)
+        chip.read_all_block("ETROC2", "Pixel Config")
+
+        pixel_config_dict = {
+            'disDataReadout': 0,
+            'QInjEn_val': 1 if QInjEn else 0,
+            'disTrigPath': 0,
+            'L1Adelay': 0x01f5,
+            'Bypass_THCal_val': 1 if Bypass_THCal else 0,
+            'TH_offset': 0x14,
+            'QSel': 0x1e,
+            'DAC': 0x3ff,
+            'enable_TDC': 1,
+            'IBSel': 0b111,
+        }
+
+        self.set_TDC_window_vars(chip=chip, triggerWindow=triggerWindow, cbWindow=cbWindow)
+
+        if power_mode == "high":
+            pixel_config_dict['IBSel'] = 0b000
+        elif power_mode == "010":
+            pixel_config_dict['IBSel'] = 0b010
+        elif power_mode == "101":
+            pixel_config_dict['IBSel'] = 0b101
+        elif power_mode == "low":
+            pixel_config_dict['IBSel'] = 0b111
+
+        for key, value in pixel_config_dict.items():
+            chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
+        chip.write_all_block("ETROC2", "Pixel Config")
+
+        if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
+
+
+
+
+
+
 
     #--------------------------------------------------------------------------#
     ## Library of basic config functions
@@ -437,9 +507,15 @@ class i2c_connection():
         cax = divider.append_axes('right', size="5%", pad=0.05)
         fig.colorbar(img1, cax=cax, orientation="vertical")
 
+        for col in range(16):
+                for row in range(16):
+                    ax0.text(col,row,f"{input_df.baseline[col][row]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
+                    ax1.text(col,row,f"{input_df.noise_width[col][row]:.0f}", c="white", size=11, rotation=45, fontweight="bold", ha="center", va="center")
+
         plt.tight_layout()
 
-    def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_title: str,):
+
+    def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_title: str, note: str):
         import hist
         import matplotlib.pyplot as plt
         import mplhep as hep
@@ -447,64 +523,56 @@ class i2c_connection():
 
         fig, axes = plt.subplots(1, 2, figsize=(20, 10))
         hep.cms.text(loc=0, ax=axes[0], fontsize=17, text="ETL ETROC")
-        bl_hist = hist.Hist(hist.axis.Regular())
-
-
+        axes[0].set_title(f"{given_title}: BL (DAC LSB)\n{note}", size=17, loc="right")
+        bl_array = input_df['baseline'].to_numpy().flatten()
+        bl_min, bl_max = bl_array.min(), bl_array.max()
+        bl_hist = hist.Hist(hist.axis.Regular(bl_max-bl_min, bl_min, bl_max, name='bl', label='BL [DAC]'))
+        bl_hist.fill(bl_array)
+        mean, std = bl_array.mean(), bl_array.std()
+        bl_hist.plot1d(ax=axes[0], yerr=False, label=f'Mean: {mean:.2f}, Std: {std:.2f}')
+        axes[0].legend()
 
         hep.cms.text(loc=0, ax=axes[1], fontsize=17, text="ETL ETROC")
+        axes[1].set_title(f"{given_title}: NW (DAC LSB)\n{note}", size=17, loc="right")
         nw_hist = hist.Hist(hist.axis.Regular(16, 0, 16, name='nw', label='NW [DAC]'))
         nw_array = input_df['noise_width'].to_numpy().flatten()
         nw_hist.fill(nw_array)
-        nw_hist.plot1d(ax=axes[1], yerr=False)
+        mean, std = nw_array.mean(), nw_array.std()
+        nw_hist.plot1d(ax=axes[1], yerr=False, label=f'Mean: {mean:.2f}, Std: {std:.2f}')
+        axes[1].set_xticks(range(16), range(16))
+        axes[1].legend()
+
+        plt.tight_layout()
 
 
 
     #--------------------------------------------------------------------------#
     def save_baselines(
             self,
-            fig_title="",
-            fig_path="",
             histdir="../ETROC-History",
             histfile="",
-            show_plots: bool = True,
             save_notes: str = "",
         ):
 
         from pathlib import Path
 
-
-        if(histfile == ""):
-            histdir = Path('../ETROC-History')
-            histdir.mkdir(exist_ok=True)
-            histfile = histdir / 'BaselineHistory.sqlite'
+        # if(histfile == ""):
+        #     histdir = Path('../ETROC-History')
+        #     histdir.mkdir(exist_ok=True)
+        #     histfile = histdir / 'BaselineHistory.sqlite'
 
         for idx, chip_address in enumerate(self.chip_addresses):
 
             current_df = self.BL_df[chip_address]
             pivot_df = current_df.pivot(index=['row'], columns=['col'], values=['baseline', 'noise_width'])
 
-            if show_plots:
+            ## Make BL and NW 2D map
+            self.make_BL_NW_2D_maps(pivot_df, self.chip_names[idx], save_notes)
 
-                ## Make BL and NW 2D map
-                self.make_BL_NW_2D_maps(pivot_df, self.chip_names[idx])
-
-                ## Make BL and NW 1D hist
-                self.make_BL_NW_1D_hists(current_df, self.chip_names[idx])
+            ## Make BL and NW 1D hist
+            self.make_BL_NW_1D_hists(current_df, self.chip_names[idx], save_notes)
 
 
-
-
-
-        #     timestamp = datetime.datetime.now().st        # for chip_address, chip_figname, chip_figtitle in zip(self.chip_addresses,chip_fignames,chip_fignames):
-        #     BL_map_THCal,NW_map_THCal,BL_df,offset_map = self.get_auto_cal_maps(chip_address)
-        #     fig = plt.figure(dpi=200, figsize=(20,10))
-        #     gs = fig.add_gridspec(1,2)me("%Y-%m-%d_%H-%M")
-
-        #     for x in range(16):
-        #         for y in range(16):
-        #             ax0.text(x,y,f"{BL_map_THCal.T[x,y]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
-        #             ax1.text(x,y,f"{NW_map_THCal.T[x,y]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
-        #     plt.tight_layout()
         #     if(fig_path == ""):
         #         fig_outdir = Path('../ETROC-figures')
         #         fig_outdir = fig_outdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
@@ -517,8 +585,6 @@ class i2c_connection():
         #     with sqlite3.connect(histfile) as sqlconn:
         #         BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
 
-        #     savetxt(histdir / f'{chip_figname}_BL_{timestamp}.csv', BL_map_THCal, delimiter=',')
-        #     savetxt(histdir / f'{chip_figname}_NW_{timestamp}.csv', NW_map_THCal, delimiter=',')
         #     if not show_BLs:
         #         plt.close()
 
