@@ -37,6 +37,8 @@ class i2c_connection():
                      do_set_chip_peripherals: bool = False,
                      do_disable_all_pixels: bool = False,
                      do_auto_calibration: bool = False,
+                     do_disable_and_calibration: bool = False,
+                     do_prepare_ws_testing: bool = False,
                      ):
 
         for chip_address, chip_name, ws_address in zip(self.chip_addresses, self.chip_names, self.ws_addresses):
@@ -48,13 +50,10 @@ class i2c_connection():
             if( do_set_chip_peripherals ): self.set_chip_peripherals(chip_address, chip)
             if( do_disable_all_pixels ): self.disable_all_pixels(chip_address, chip)
             if( do_auto_calibration ): self.auto_calibration(chip_address, chip_name, chip)
-            # if(int(func_string[-6])):
-            #     if( do_disable_all_pixels ):
-            #         self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=True)
-            #     else:
-            #         self.auto_calibration_and_disable(chip_address, chip_name, chip, check_broadcast=False)
-            # if(int(func_string[-7])): self.set_chip_offsets(chip_address, offset=20, chip=chip)
-            # if(int(func_string[-8])): self.prepare_ws_testing(chip_address, ws_address, chip)
+            if ( do_disable_and_calibration ):
+                self.disable_all_pixels(chip_address, chip)
+                self.auto_calibration(chip_address, chip_name, chip)
+            if( do_prepare_ws_testing ): self.prepare_ws_testing(chip_address, ws_address, chip)
 
     def __del__(self):
         del self.conn
@@ -89,8 +88,8 @@ class i2c_connection():
             print("Need chip address to make a new chip in disable pixel!")
             return
 
-        chip.set_indexer('row', row)
-        chip.set_indexer('column', col)
+        chip.row = row
+        chip.col = col
 
         chip.read_all_block("ETROC2", "Pixel Config")
 
@@ -175,8 +174,16 @@ class i2c_connection():
             chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
 
     #--------------------------------------------------------------------------#
-    def config_single_pixel(self, row, col, verbose=False, chip_address=None, chip: i2c_gui2.ETROC2_Chip=None,
-                            QInjEn=False, Bypass_THCal=True, power_mode = "high"):
+    def config_single_pixel(
+            self, row: int, col: int,
+            chip_address = None,
+            Qsel: int = None,
+            QInjEn: bool = False,
+            Bypass_THCal: bool = True,
+            power_mode: str = "high",
+            chip: i2c_gui2.ETROC2_Chip=None,
+            verbose: bool = False,
+        ):
 
         valid_power_modes = ['low', '010', '101', 'high']
 
@@ -188,8 +195,8 @@ class i2c_connection():
             print("Need chip address to make a new chip in disable pixel!")
             return
 
-        chip.set_indexer('row', row)
-        chip.set_indexer('column', col)
+        chip.row = row
+        chip.col = col
         chip.read_all_block("ETROC2", "Pixel Config")
 
         pixel_config_dict = {
@@ -199,7 +206,7 @@ class i2c_connection():
             'L1Adelay': 0x01f5,
             'Bypass_THCal': 1 if Bypass_THCal else 0,
             'TH_offset': 0x14,
-            'QSel': 0x1e,
+            'QSel': Qsel if Qsel is not None else 0x1e,
             'DAC': 0x3ff,
             'enable_TDC': 1,
             'IBSel': 0b111,
@@ -223,7 +230,7 @@ class i2c_connection():
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-    def config_single_pixel_offset(self, chip_address, row, col, offset = 10, chip: i2c_gui2.ETROC2_Chip = None, verbose = False):
+    def config_single_pixel_offset(self, chip_address, row: int, col: int, offset: int = 20, chip: i2c_gui2.ETROC2_Chip = None, verbose = False):
 
         if(chip == None and chip_address != None):
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
@@ -233,10 +240,10 @@ class i2c_connection():
             return
 
         tmp_df = self.BL_df[chip_address]
-        bl =  tmp_df.loc[(tmp_df['row'] == row) & (tmp_df['col'] == col)]['baseline']
+        bl =  tmp_df.loc[(tmp_df['row'] == row) & (tmp_df['col'] == col)]['baseline'].values[0]
 
-        chip.set_indexer('row', row)
-        chip.set_indexer('column', col)
+        chip.row = row
+        chip.col = col
 
         chip.read_decoded_value("ETROC2", "Pixel Config", "DAC")
         old_DAC = chip.get_decoded_value("ETROC2", "Pixel Config", "DAC")
@@ -246,7 +253,7 @@ class i2c_connection():
         new_DAC = chip.get_decoded_value("ETROC2", "Pixel Config", "DAC")
 
         if verbose:
-            print(f"Offset set to {hex(offset)} (DAC from {old_DAC} to {new_DAC}) for pixel ({row},{col}) (BL={bl}) for chip: {hex(chip_address)}")
+            print(f'Old DAC value: {old_DAC} is changed to New DAC value: {new_DAC} with offset {offset} for pixel ({row},{col}) (BL={bl}) for chip: {hex(chip_address)}')
 
 
 
@@ -263,8 +270,8 @@ class i2c_connection():
 
         for row in range(16):
             for col in range(16):
-                chip.set_indexer('row', row)
-                chip.set_indexer('column', col)
+                chip.row = row
+                chip.col = col
 
                 chip.read_decoded_value("ETROC2", "Pixel Status", 'PixelID-Row')
                 chip.read_decoded_value("ETROC2", "Pixel Status", 'PixelID-Col')
@@ -356,8 +363,8 @@ class i2c_connection():
         if(chip==None):
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
-        chip.set_indexer('row', 0)
-        chip.set_indexer('column', 0)
+        chip.row = 0
+        chip.col = 0
         chip.read_all_block("ETROC2", "Pixel Config")
 
         # Define pixel configuration settings
@@ -388,37 +395,39 @@ class i2c_connection():
         for key, value in pixel_config.items():
             chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
 
-        chip.set_indexer('broadcast', 1)
-        chip.write_all_block("ETROC2", "Pixel Config")
-        chip.set_indexer('broadcast', 0)
-        print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
-        # Verify broadcast
-        print('Verifying Broadcast results')
-        broadcast_ok = True
-        for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
-            for col in range(16):
-                chip.set_indexer('row', row)
-                chip.set_indexer('column', col)
+        try:
+            chip.broadcast = 1
+            chip.write_all_block("ETROC2", "Pixel Config")
+            chip.broadcast = 0
+            print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
-                chip.read_all_block("ETROC2", "Pixel Config")
+            # Verify broadcast
+            print('Verifying Broadcast results')
+            broadcast_ok = True
+            for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
+                for col in range(16):
+                    chip.row = row
+                    chip.col = compile
 
-                for key, value in pixel_config.items():
-                    if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
-                        broadcast_ok = False
+                    chip.read_all_block("ETROC2", "Pixel Config")
+
+                    for key, value in pixel_config.items():
+                        if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
+                            broadcast_ok = False
+                            break
+                    if not broadcast_ok:
                         break
                 if not broadcast_ok:
                     break
-            if not broadcast_ok:
-                break
 
-        # Handle broadcast failure
-        if not broadcast_ok:
-            print("Broadcast failed! \n Will manually disable pixels")
+        except:
+            ### Broadcast failed
+            print("Broadcast failed! Will manually disable pixels\n")
             for row in tqdm(range(16), desc="Disabling row", position=0):
                 for col in range(16):
-                    chip.set_indexer('row', row)
-                    chip.set_indexer('column', col)
+                    chip.row = row
+                    chip.col = col
 
                     chip.read_all_block("ETROC2", "Pixel Config")
 
@@ -467,8 +476,8 @@ class i2c_connection():
         elif(chip == None and (chip_address == None or ws_address == None)):
             print("Need either a chip or chip+ws address to access registers!")
 
-        chip.set_indexer('row', 0)
-        chip.set_indexer('column', 14)
+        chip.row = 0
+        chip.col = 14
 
         ### WS and pixel initialization
         # self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="high")
@@ -493,15 +502,24 @@ class i2c_connection():
         # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
         # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
         # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
-        self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)             # Time Skew Calibration set to 0
-        self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)           # CTRL default = 0x10 for regOut0D
+
+
+        chip.set_decoded_value("Waveform Sampler", "Config", 'DDT', 0)        # Time Skew Calibration set to 0
+        chip.write_decoded_value("Waveform Sampler", "Config", 'DDT')
+
+        chip.set_decoded_value("Waveform Sampler", "Config", 'CTRL', 2)       # CTRL default = 0x10 for regOut0D
+        chip.write_decoded_value("Waveform Sampler", "Config", 'CTRL')
+
+
+        self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)
+        self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)
         self.ws_decoded_register_write("comp_cali", format(0, '03b'), chip=chip)        # Comparator calibration should be off
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
 
 
 
     #--------------------------------------------------------------------------#
-    def make_BL_NW_2D_maps(self, input_df: pd.DataFrame, given_title: str, note: str):
+    def make_BL_NW_2D_maps(self, input_df: pd.DataFrame, given_title: str, note: str, save_path, timestamp):
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         import matplotlib.pyplot as plt
         import mplhep as hep
@@ -542,9 +560,10 @@ class i2c_connection():
                     ax1.text(col,row,f"{input_df.noise_width[col][row]:.0f}", c="white", size=11, rotation=45, fontweight="bold", ha="center", va="center")
 
         plt.tight_layout()
+        fig.savefig(save_path / f'BL_NW_2D_map_{timestamp}.png')
 
 
-    def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_title: str, note: str):
+    def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_title: str, note: str, save_path, timestamp):
         import hist
         import matplotlib.pyplot as plt
         import mplhep as hep
@@ -572,55 +591,55 @@ class i2c_connection():
         axes[1].legend()
 
         plt.tight_layout()
-
+        fig.savefig(save_path / f'BL_NW_1D_hist_{timestamp}.png')
 
 
     #--------------------------------------------------------------------------#
     def save_baselines(
             self,
-            histdir="../ETROC-History",
-            histfile="",
             save_notes: str = "",
         ):
 
         from pathlib import Path
+        import sqlite3
 
-        # if(histfile == ""):
-        #     histdir = Path('../ETROC-History')
-        #     histdir.mkdir(exist_ok=True)
-        #     histfile = histdir / 'BaselineHistory.sqlite'
+        save_mother_path = Path('../ETROC-History')
+        save_mother_path.mkdir(exist_ok=True, parents=True)
+        outfile = save_mother_path / 'BaselineHistory.sqlite'
+
+        fig_outdir = Path('../ETROC-figures')
+        fig_outdir = fig_outdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
+        fig_outdir.mkdir(exist_ok=True, parents=True)
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 
         for idx, chip_address in enumerate(self.chip_addresses):
 
             current_df = self.BL_df[chip_address]
             pivot_df = current_df.pivot(index=['row'], columns=['col'], values=['baseline', 'noise_width'])
 
+            ### Save baseline into SQL
+            current_df.loc[:, "save_notes"] = save_notes
+            with sqlite3.connect(outfile) as sqlconn:
+                current_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
+
             ## Make BL and NW 2D map
-            self.make_BL_NW_2D_maps(pivot_df, self.chip_names[idx], save_notes)
+            self.make_BL_NW_2D_maps(pivot_df, self.chip_names[idx], save_notes, fig_outdir, timestamp)
 
             ## Make BL and NW 1D hist
-            self.make_BL_NW_1D_hists(current_df, self.chip_names[idx], save_notes)
-
-
-        #     if(fig_path == ""):
-        #         fig_outdir = Path('../ETROC-figures')
-        #         fig_outdir = fig_outdir / (datetime.date.today().isoformat() + '_Array_Test_Results')
-        #         fig_outdir.mkdir(exist_ok=True)
-        #         fig_path = str(fig_outdir)
-        #     plt.savefig(fig_path+"/BL_NW_"+chip_figname+"_"+timestamp+".png")
-        #     plt.show()
-
-        #     BL_df.loc[:, "save_notes"] = save_notes
-        #     with sqlite3.connect(histfile) as sqlconn:
-        #         BL_df.to_sql('baselines', sqlconn, if_exists='append', index=False)
-
-        #     if not show_BLs:
-        #         plt.close()
+            self.make_BL_NW_1D_hists(current_df, self.chip_names[idx], save_notes, fig_outdir, timestamp)
 
 
     #--------------------------------------------------------------------------#
-    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=True, verbose=True, power_mode="high"):
-
+    def enable_select_pixels_in_chips(
+            self,
+            pixel_list: list[tuple],
+            Qsel: int = None,
+            QInjEn: bool = True,
+            Bypass_THCal: bool = True,
+            power_mode: str = "high",
+            verbose: bool = False,
+        ):
             valid_power_modes = ['low', '010', '101', 'high']
 
             if power_mode not in valid_power_modes:
@@ -631,21 +650,21 @@ class i2c_connection():
                 chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
                 for row, col in tqdm(pixel_list):
-                    self.config_single_pixel(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip,
-                                             QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, power_mode=power_mode)
+                    self.config_single_pixel(row=row, col=col, chip_address=chip_address, Qsel=Qsel, QInjEn=QInjEn,
+                                             Bypass_THCal=Bypass_THCal, power_mode=power_mode, chip=chip, verbose=verbose)
 
 
-        # Function 6
-    def set_chip_offsets(self, chip_address, offset=10, chip: i2c_gui2.ETROC2_Chip=None, pixel_list=None, verbose=False):
-        if(chip==None):
+    def set_chip_offsets(self, chip_address, pixel_list: list[tuple] = None, offset: int = 20, chip: i2c_gui2.ETROC2_Chip=None, verbose=False):
+
+        if(chip == None):
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
-        if(pixel_list is None):
-            for row in tqdm(range(16), desc="Setting Offsets for row", position=0):
-                for col in range(16):
-                    self.set_pixel_offsets(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip, verbose=verbose)
-        else:
-            for row,col in pixel_list:
-                self.set_pixel_offsets(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip, verbose=verbose)
+
+        if pixel_list is None:
+            raise ValueError('Please specify the pixel of interests in the input argument')
+
+        for row,col in pixel_list:
+            self.config_single_pixel_offset(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip, verbose=verbose)
+
         print(f"Offset set to {hex(offset)} for chip: {hex(chip_address)}")
 
 
