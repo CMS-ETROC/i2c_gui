@@ -396,54 +396,49 @@ class i2c_connection():
         for key, value in pixel_config.items():
             chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
 
-        chip.broadcast = True
-        chip.write_all_block("ETROC2", "Pixel Config")
-        chip.broadcast = False
-        print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
+        try:
+            chip.broadcast = True
+            chip.write_all_block("ETROC2", "Pixel Config")
+            chip.broadcast = False
+            print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
-        # try:
-        #     chip.broadcast = True
-        #     chip.write_all_block("ETROC2", "Pixel Config")
-        #     chip.broadcast = False
-        #     print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
+            # Verify broadcast
+            # print('Verifying Broadcast results')
+            # broadcast_ok = True
+            # for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
+            #     for col in range(16):
+            #         chip.row = row
+            #         chip.col = col
 
-        #     # Verify broadcast
-        #     print('Verifying Broadcast results')
-        #     broadcast_ok = True
-        #     for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
-        #         for col in range(16):
-        #             chip.row = row
-        #             chip.col = compile
+            #         chip.read_all_block("ETROC2", "Pixel Config")
 
-        #             chip.read_all_block("ETROC2", "Pixel Config")
+            #         for key, value in pixel_config.items():
+            #             if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
+            #                 broadcast_ok = False
+            #                 break
+            #         if not broadcast_ok:
+            #             break
+            #     if not broadcast_ok:
+            #         break
 
-        #             for key, value in pixel_config.items():
-        #                 if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
-        #                     broadcast_ok = False
-        #                     break
-        #             if not broadcast_ok:
-        #                 break
-        #         if not broadcast_ok:
-        #             break
+        except Exception as inst:
+            ### Broadcast failed
+            print(inst)
+            print("Broadcast failed! Will manually disable pixels\n")
+            chip.broadcast = False
+            for row in tqdm(range(16), desc="Disabling row", position=0):
+                for col in range(16):
+                    chip.row = row
+                    chip.col = col
 
-        # except Exception as inst:
-        #     ### Broadcast failed
-        #     print(inst)
-        #     print("Broadcast failed! Will manually disable pixels\n")
-        #     chip.broadcast = False
-        #     for row in tqdm(range(16), desc="Disabling row", position=0):
-        #         for col in range(16):
-        #             chip.row = row
-        #             chip.col = col
+                    chip.read_all_block("ETROC2", "Pixel Config")
 
-        #             chip.read_all_block("ETROC2", "Pixel Config")
+                    for key, value in pixel_config.items():
+                        chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
 
-        #             for key, value in pixel_config.items():
-        #                 chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
+                    chip.write_all_block("ETROC2", "Pixel Config")
 
-        #             chip.write_all_block("ETROC2", "Pixel Config")
-
-        #     print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
+            print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
 
     #--------------------------------------------------------------------------#
