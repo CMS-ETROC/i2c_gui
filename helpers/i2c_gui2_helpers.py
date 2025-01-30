@@ -395,48 +395,54 @@ class i2c_connection():
         for key, value in pixel_config.items():
             chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
 
+        chip.broadcast = True
+        chip.write_all_block("ETROC2", "Pixel Config")
+        chip.broadcast = False
+        print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
-        try:
-            chip.broadcast = 1
-            chip.write_all_block("ETROC2", "Pixel Config")
-            chip.broadcast = 0
-            print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
-            # Verify broadcast
-            print('Verifying Broadcast results')
-            broadcast_ok = True
-            for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
-                for col in range(16):
-                    chip.row = row
-                    chip.col = compile
+        # try:
+        #     chip.broadcast = True
+        #     chip.write_all_block("ETROC2", "Pixel Config")
+        #     chip.broadcast = False
+        #     print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
-                    chip.read_all_block("ETROC2", "Pixel Config")
+        #     # Verify broadcast
+        #     print('Verifying Broadcast results')
+        #     broadcast_ok = True
+        #     for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
+        #         for col in range(16):
+        #             chip.row = row
+        #             chip.col = compile
 
-                    for key, value in pixel_config.items():
-                        if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
-                            broadcast_ok = False
-                            break
-                    if not broadcast_ok:
-                        break
-                if not broadcast_ok:
-                    break
+        #             chip.read_all_block("ETROC2", "Pixel Config")
 
-        except:
-            ### Broadcast failed
-            print("Broadcast failed! Will manually disable pixels\n")
-            for row in tqdm(range(16), desc="Disabling row", position=0):
-                for col in range(16):
-                    chip.row = row
-                    chip.col = col
+        #             for key, value in pixel_config.items():
+        #                 if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
+        #                     broadcast_ok = False
+        #                     break
+        #             if not broadcast_ok:
+        #                 break
+        #         if not broadcast_ok:
+        #             break
 
-                    chip.read_all_block("ETROC2", "Pixel Config")
+        # except Exception as inst:
+        #     ### Broadcast failed
+        #     print(inst)
+        #     print("Broadcast failed! Will manually disable pixels\n")
+        #     for row in tqdm(range(16), desc="Disabling row", position=0):
+        #         for col in range(16):
+        #             chip.row = row
+        #             chip.col = col
 
-                    for key, value in pixel_config.items():
-                        chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
+        #             chip.read_all_block("ETROC2", "Pixel Config")
 
-                    chip.write_all_block("ETROC2", "Pixel Config")
+        #             for key, value in pixel_config.items():
+        #                 chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
 
-            print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
+        #             chip.write_all_block("ETROC2", "Pixel Config")
+
+        #     print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
 
     #--------------------------------------------------------------------------#
