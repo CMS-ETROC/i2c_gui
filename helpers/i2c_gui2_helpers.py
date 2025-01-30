@@ -2,6 +2,7 @@ import i2c_gui2
 import logging
 import datetime
 import time
+import sys
 
 import numpy as np
 import pandas as pd
@@ -18,8 +19,8 @@ class i2c_connection():
         # 2-tuple of binary numbers represented as strings ("0","1")
         # Here "0" is the "fcClkDelayEn" and "1" is the fcDataDelayEn
         ## Logger
-        log_level=30
-        logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
+        log_level = 10
+        logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s', stream=sys.stdout, force=True)
         logger = logging.getLogger("Script_Logger")
         self.chip_logger = logging.getLogger("Chip_Logger")
         self.conn = i2c_gui2.USB_ISS_Helper(port, clock, dummy_connect = False)
@@ -400,7 +401,6 @@ class i2c_connection():
         chip.broadcast = False
         print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
-
         # try:
         #     chip.broadcast = True
         #     chip.write_all_block("ETROC2", "Pixel Config")
@@ -430,6 +430,7 @@ class i2c_connection():
         #     ### Broadcast failed
         #     print(inst)
         #     print("Broadcast failed! Will manually disable pixels\n")
+        #     chip.broadcast = False
         #     for row in tqdm(range(16), desc="Disabling row", position=0):
         #         for col in range(16):
         #             chip.row = row
@@ -516,11 +517,8 @@ class i2c_connection():
         chip.set_decoded_value("Waveform Sampler", "Config", 'CTRL', 2)       # CTRL default = 0x10 for regOut0D
         chip.write_decoded_value("Waveform Sampler", "Config", 'CTRL')
 
-
-        self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)
-        self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)
-        self.ws_decoded_register_write("comp_cali", format(0, '03b'), chip=chip)        # Comparator calibration should be off
-        print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
+        chip.set_decoded_value("Waveform Sampler", "Config", 'comp_cali', 0)       # Comparator calibration should be off
+        chip.write_decoded_value("Waveform Sampler", "Config", 'comp_cali')
 
 
 
