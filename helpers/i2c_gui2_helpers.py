@@ -149,28 +149,34 @@ class i2c_connection():
 
         if(verbose): print(f"Auto calibration done (enTDC=0 + DAC=1023) for pixel ({row},{col}) on chip: {hex(chip_address)}")
 
+    #--------------------------------------------------------------------------#
+    def set_TDC_window_ranges(self, chip: i2c_gui2.ETROC2_Chip, window_dict: dict = None):
 
+        if window_dict is None:
+            window = {
+                "upperTOATrig": 0x3ff,
+                "lowerTOATrig": 0x000,
+                "upperTOTTrig": 0x1ff,
+                "lowerTOTTrig": 0x000,
+                "upperCalTrig": 0x3ff,
+                "lowerCalTrig": 0x000,
+                "upperTOA": 0x3ff,
+                "lowerTOA": 0x000,
+                "upperTOT": 0x1ff,
+                "lowerTOT": 0x000,
+                "upperCal": 0x3ff,
+                "lowerCal": 0x000,
+            }
 
-    def set_TDC_window_vars(self, chip: i2c_gui2.ETROC2_Chip, triggerWindow=True, cbWindow=True):
-        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOATrig", 0x3ff if triggerWindow else 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOATrig", 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOTTrig", 0x1ff if triggerWindow else 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOTTrig", 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "upperCalTrig", 0x3ff if triggerWindow else 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerCalTrig", 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOA", 0x3ff if cbWindow else 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOA", 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "upperTOT", 0x1ff if cbWindow else 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerTOT", 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "upperCal", 0x3ff if cbWindow else 0x000)
-        chip.set_decoded_value("ETROC2", "Pixel Config", "lowerCal", 0x000)
+        else:
+            window = window_dict
 
-
-
+        for key, value in window.items():
+            chip.set_decoded_value("ETROC2", "Pixel Config", key, value)
 
     #--------------------------------------------------------------------------#
     def config_single_pixel(self, row, col, verbose=False, chip_address=None, chip: i2c_gui2.ETROC2_Chip=None,
-                            QInjEn=False, Bypass_THCal=True, triggerWindow=True, cbWindow=True, power_mode = "high"):
+                            QInjEn=False, Bypass_THCal=True, power_mode = "high"):
 
         valid_power_modes = ['low', '010', '101', 'high']
 
@@ -188,10 +194,10 @@ class i2c_connection():
 
         pixel_config_dict = {
             'disDataReadout': 0,
-            'QInjEn_val': 1 if QInjEn else 0,
+            'QInjEn': 1 if QInjEn else 0,
             'disTrigPath': 0,
             'L1Adelay': 0x01f5,
-            'Bypass_THCal_val': 1 if Bypass_THCal else 0,
+            'Bypass_THCal': 1 if Bypass_THCal else 0,
             'TH_offset': 0x14,
             'QSel': 0x1e,
             'DAC': 0x3ff,
@@ -199,7 +205,7 @@ class i2c_connection():
             'IBSel': 0b111,
         }
 
-        self.set_TDC_window_vars(chip=chip, triggerWindow=triggerWindow, cbWindow=cbWindow)
+        self.set_TDC_window_ranges(chip=chip)
 
         if power_mode == "high":
             pixel_config_dict['IBSel'] = 0b000
@@ -216,8 +222,31 @@ class i2c_connection():
 
         if(verbose): print(f"Enabled pixel ({row},{col}) for chip: {hex(chip_address)}")
 
+    #--------------------------------------------------------------------------#
+    def config_single_pixel_offset(self, chip_address, row, col, offset = 10, chip: i2c_gui2.ETROC2_Chip = None, verbose = False):
 
+        if(chip == None and chip_address != None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
+        elif(chip == None and chip_address == None):
+            print("Need chip address to make a new chip in disable pixel!")
+            return
+
+        tmp_df = self.BL_df[chip_address]
+        bl =  tmp_df.loc[(tmp_df['row'] == row) & (tmp_df['col'] == col)]['baseline']
+
+        chip.set_indexer('row', row)
+        chip.set_indexer('column', col)
+
+        chip.read_decoded_value("ETROC2", "Pixel Config", "DAC")
+        old_DAC = chip.get_decoded_value("ETROC2", "Pixel Config", "DAC")
+
+        chip.set_decoded_value("ETROC2", "Pixel Config", "DAC", bl+offset)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "DAC")
+        new_DAC = chip.get_decoded_value("ETROC2", "Pixel Config", "DAC")
+
+        if verbose:
+            print(f"Offset set to {hex(offset)} (DAC from {old_DAC} to {new_DAC}) for pixel ({row},{col}) (BL={bl}) for chip: {hex(chip_address)}")
 
 
 
@@ -336,18 +365,18 @@ class i2c_connection():
             "disDataReadout": 1,
             "QInjEn": 0,
             "disTrigPath": 1,
-            "upperTOATrig": 0x000,
+            "upperTOATrig": 0x3ff,
             "lowerTOATrig": 0x000,
             "upperTOTTrig": 0x1ff,
-            "lowerTOTTrig": 0x1ff,
+            "lowerTOTTrig": 0x000,
             "upperCalTrig": 0x3ff,
-            "lowerCalTrig": 0x3ff,
-            "upperTOA": 0x000,
+            "lowerCalTrig": 0x000,
+            "upperTOA": 0x3ff,
             "lowerTOA": 0x000,
             "upperTOT": 0x1ff,
-            "lowerTOT": 0x1ff,
+            "lowerTOT": 0x000,
             "upperCal": 0x3ff,
-            "lowerCal": 0x3ff,
+            "lowerCal": 0x000,
             "enable_TDC": 0,
             "IBSel": 0,  # High power mode
             "Bypass_THCal": 1,  # Bypass Mode
@@ -589,11 +618,35 @@ class i2c_connection():
         #         plt.close()
 
 
+    #--------------------------------------------------------------------------#
+    def enable_select_pixels_in_chips(self, pixel_list, QInjEn=True, Bypass_THCal=True, verbose=True, power_mode="high"):
+
+            valid_power_modes = ['low', '010', '101', 'high']
+
+            if power_mode not in valid_power_modes:
+                power_mode = "low"
+
+            for chip_address in self.chip_addresses:
+
+                chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+                for row, col in tqdm(pixel_list):
+                    self.config_single_pixel(row=row, col=col, verbose=verbose, chip_address=chip_address, chip=chip,
+                                             QInjEn=QInjEn, Bypass_THCal=Bypass_THCal, power_mode=power_mode)
 
 
-
-
-
+        # Function 6
+    def set_chip_offsets(self, chip_address, offset=10, chip: i2c_gui2.ETROC2_Chip=None, pixel_list=None, verbose=False):
+        if(chip==None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+        if(pixel_list is None):
+            for row in tqdm(range(16), desc="Setting Offsets for row", position=0):
+                for col in range(16):
+                    self.set_pixel_offsets(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip, verbose=verbose)
+        else:
+            for row,col in pixel_list:
+                self.set_pixel_offsets(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip, verbose=verbose)
+        print(f"Offset set to {hex(offset)} for chip: {hex(chip_address)}")
 
 
 
