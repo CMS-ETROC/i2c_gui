@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import pandas as pd
 
+from pathlib import Path
 from tqdm import tqdm
 
 class i2c_connection():
@@ -519,6 +520,7 @@ class i2c_connection():
 
     #--------------------------------------------------------------------------#
     def make_BL_NW_2D_maps(self, input_df: pd.DataFrame, given_title: str, note: str, save_path, timestamp):
+
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         import matplotlib.pyplot as plt
         import mplhep as hep
@@ -599,7 +601,7 @@ class i2c_connection():
             save_notes: str = "",
         ):
 
-        from pathlib import Path
+
         import sqlite3
 
         save_mother_path = Path('../ETROC-History')
@@ -726,3 +728,48 @@ class i2c_connection():
         chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration')
 
         print(f"PLL Calibrated for chip: {hex(chip_address)}")
+
+
+    #--------------------------------------------------------------------------#
+    def i2c_dumping(
+        self,
+        outdir: Path,
+        chip_name: str,
+        fname: str,
+        full: bool,
+        chip: i2c_gui2.ETROC2_Chip = None,
+    ):
+
+        start_time = time.time()
+
+        if full:
+            chip.read_all()
+        else:
+            chip.read_all_efficient()
+
+        end_time = time.time()
+        chip.save_config(outdir / f"{chip_name}_{fname}{'_full' if full else ''}.pckl")
+
+        print("--- %s seconds ---" % (end_time - start_time))
+
+    def i2c_loading(
+        self,
+        outdir: Path,
+        chip_name: str,
+        fname: str,
+        full: bool,
+        chip: i2c_gui2.ETROC2_Chip = None,
+    ):
+
+        chip.load_config(outdir / f"{chip_name}_{fname}{'_full' if full else ''}.pckl")
+
+        start_time = time.time()
+
+        if full:
+            chip.write_all()
+        else:
+            chip.write_all_efficient()
+
+        end_time = time.time()
+
+        print("--- %s seconds ---" % (end_time - start_time))
