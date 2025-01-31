@@ -17,6 +17,10 @@ class i2c_connection():
         self.chip_addresses = chip_addresses
         self.ws_addresses = ws_addresses
         self.chip_names = chip_names
+
+        self.fc_clk_delay = {chip_address: 1 for chip_address in self.chip_addresses}
+        self.fc_data_delay = {chip_address: 1 for chip_address in self.chip_addresses}
+
         # 2-tuple of binary numbers represented as strings ("0","1")
         # Here "0" is the "fcClkDelayEn" and "1" is the fcDataDelayEn
         ## Logger
@@ -258,6 +262,59 @@ class i2c_connection():
             print(f'Old DAC value: {old_DAC} is changed to New DAC value: {new_DAC} with offset {offset} for pixel ({row},{col}) (BL={bl}) for chip: {hex(chip_address)}')
 
 
+    #--------------------------------------------------------------------------#
+    ## Power Mode Functions
+    def config_power_mode(self, chip_address: int, scan_list: list[tuple], power_mode: str = 'high', verbose: bool = False):
+
+        valid_power_modes = ['low', '010', '101', 'high']
+
+        if power_mode not in valid_power_modes:
+            power_mode = "low"
+
+        chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+        IBSel = 0b111
+
+        if power_mode == "high":
+            IBSel = 0b000
+        elif power_mode == "010":
+            IBSel = 0b010
+        elif power_mode == "101":
+            IBSel = 0b101
+        elif power_mode == "low":
+            IBSel = 0b111
+
+        for row, col in scan_list:
+            chip.row = row
+            chip.col = col
+
+            chip.set_decoded_value("ETROC2", "Pixel Config", "IBSel", IBSel)
+            chip.write_decoded_value("ETROC2", "Pixel Config", "IBSel")
+
+            if(verbose):
+                print(f"Set pixel ({row},{col}) to power mode: {IBSel}")
+
+
+    #--------------------------------------------------------------------------#
+    def config_fc_data_delay(self, chip_address: int, fc_clk_delay: int, fc_data_delay: int):
+
+        if fc_clk_delay > 1 or fc_clk_delay < 0:
+            raise ValueError('fc_clk_delay value must be 0 or 1')
+
+        if fc_data_delay > 1 or fc_data_delay < 0:
+            raise ValueError('fc_data_delay value must be 0 or 1')
+
+        self.fc_clk_delay[chip_address] = fc_clk_delay
+        self.fc_data_delay[chip_address] = fc_data_delay
+
+        chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+        chip.set_decoded_value("ETROC2", "Peripheral Config", "fcClkDelayEn", fc_clk_delay)
+        chip.set_decoded_value("ETROC2", "Peripheral Config", "fcDataDelayEn", fc_data_delay)
+
+        chip.write_all_block("ETROC2", "Peripheral Config")
+
+        print(f"FC delays has been changed for the chip: {hex(chip_address)}")
 
 
     #--------------------------------------------------------------------------#
@@ -350,8 +407,8 @@ class i2c_connection():
         chip.set_decoded_value("ETROC2", "Peripheral Config", "PLL_ENABLEPLL", 1)        # "Enable PLL mode, active high. Debugging use only."
         chip.set_decoded_value("ETROC2", "Peripheral Config", "chargeInjectionDelay", 0x0a) # User tunable delay of Qinj pulse
         chip.set_decoded_value("ETROC2", "Peripheral Config", "triggerGranularity", 0x01)   # only for trigger bit
-        chip.set_decoded_value("ETROC2", "Peripheral Config", "fcClkDelayEn", 1)
-        chip.set_decoded_value("ETROC2", "Peripheral Config", "fcDataDelayEn", 1)
+        chip.set_decoded_value("ETROC2", "Peripheral Config", "fcClkDelayEn", self.fc_clk_delay[chip_address])
+        chip.set_decoded_value("ETROC2", "Peripheral Config", "fcDataDelayEn", self.fc_data_delay[chip_address])
 
         chip.write_all_block("ETROC2", "Peripheral Config")
 
@@ -374,18 +431,18 @@ class i2c_connection():
             "disDataReadout": 1,
             "QInjEn": 0,
             "disTrigPath": 1,
-            "upperTOATrig": 0x3ff,
+            "upperTOATrig": 0x000,
             "lowerTOATrig": 0x000,
             "upperTOTTrig": 0x1ff,
-            "lowerTOTTrig": 0x000,
+            "lowerTOTTrig": 0x1ff,
             "upperCalTrig": 0x3ff,
-            "lowerCalTrig": 0x000,
-            "upperTOA": 0x3ff,
+            "lowerCalTrig": 0x3ff,
+            "upperTOA": 0x000,
             "lowerTOA": 0x000,
             "upperTOT": 0x1ff,
-            "lowerTOT": 0x000,
+            "lowerTOT": 0x1ff,
             "upperCal": 0x3ff,
-            "lowerCal": 0x000,
+            "lowerCal": 0x3ff,
             "enable_TDC": 0,
             "IBSel": 0,  # High power mode
             "Bypass_THCal": 1,  # Bypass Mode
