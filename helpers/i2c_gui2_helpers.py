@@ -790,13 +790,14 @@ class i2c_connection():
     #--------------------------------------------------------------------------#
     def i2c_dumping(
         self,
+        chip_address: int,
+        ws_address: int,
         outdir: Path,
         chip_name: str,
         fname: str,
         full: bool,
-        chip: i2c_gui2.ETROC2_Chip = None,
     ):
-
+        chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address, ws_address)
         start_time = time.time()
 
         if full:
@@ -811,13 +812,14 @@ class i2c_connection():
 
     def i2c_loading(
         self,
+        chip_address: int,
+        ws_address: int,
         outdir: Path,
         chip_name: str,
         fname: str,
         full: bool,
-        chip: i2c_gui2.ETROC2_Chip = None,
     ):
-
+        chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address, ws_address)
         chip.load_config(outdir / f"{chip_name}_{fname}{'_full' if full else ''}.pckl")
 
         start_time = time.time()
