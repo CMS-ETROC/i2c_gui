@@ -557,18 +557,51 @@ class i2c_connection():
         self.pixel_decoded_register_write("RFSel", format(0x00, '02b'), chip=chip)      # Set Largest feedback resistance -> maximum gain
         self.pixel_decoded_register_write("QSel", format(0x1e, '05b'), chip=chip)       # Ensure we inject 30 fC of charge
         print(f"WS Pixel (R0,C14) TH_Offset, RFSel, QSel Initialized for chip: {hex(chip_address)}")
+
+        self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
+        self.ws_decoded_register_write("sel2", "0", chip=chip)  
+        self.ws_decoded_register_write("sel3", "0", chip=chip)  
+
         regOut1F_handle = chip.get_display_var("Waveform Sampler", "Config", "regOut1F")
         regOut1F_handle.set("0x22")
         chip.write_register("Waveform Sampler", "Config", "regOut1F")
         regOut1F_handle.set("0x0b")
         chip.write_register("Waveform Sampler", "Config", "regOut1F")
-        # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
-        # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
-        # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
+
+        self.ws_decoded_register_write("en_clk", "0", chip=chip)  
+        self.ws_decoded_register_write("en_clk", "1", chip=chip)  
+
+        self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
+        self.ws_decoded_register_write("mem_rstn", "1", chip=chip)                      # 0: reset memory
+
+        self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
+        self.ws_decoded_register_write("clk_gen_rstn", "1", chip=chip)                  # 0: reset clock generation
+
         self.ws_decoded_register_write("DDT", format(0, '016b'), chip=chip)             # Time Skew Calibration set to 0
         self.ws_decoded_register_write("CTRL", format(0x2, '02b'), chip=chip)           # CTRL default = 0x10 for regOut0D
         self.ws_decoded_register_write("comp_cali", format(0, '03b'), chip=chip)        # Comparator calibration should be off
         print(f"WS Pixel Peripherals Set for chip: {hex(chip_address)}")
+
+    def disable_ws(self, chip_address, ws_address, chip=None):
+        if(chip==None and chip_address!=None and ws_address!=None):
+            chip = self.get_chip_i2c_connection(chip_address, ws_address)
+        elif(chip==None and (chip_address==None or ws_address==None)): 
+            print("Need either a chip or chip+ws address to access registers!")
+        row_indexer_handle,_,_ = chip.get_indexer("row")
+        column_indexer_handle,_,_ = chip.get_indexer("column")
+        row = 0
+        col = 14
+        column_indexer_handle.set(col)
+        row_indexer_handle.set(row)
+
+        self.pixel_decoded_register_write("RFSel", format(0x02, '02b'), chip=chip)
+        self.pixel_decoded_register_write("QInjEn", "0", chip=chip)
+        self.pixel_decoded_register_write("disDataReadout", "1", chip=chip)
+        self.pixel_decoded_register_write("disTrigPath", "1", chip=chip)
+
+        self.ws_decoded_register_write("en_clk", "0", chip=chip)  
+
+        print(f"WS + (0,14) Disabled for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
     def save_baselines(self,
