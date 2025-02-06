@@ -40,7 +40,7 @@ class i2c_connection():
     def config_chips(self,
                      do_pixel_check: bool = False,
                      do_basic_peripheral_register_check: bool = False,
-                     do_set_chip_peripherals: bool = False,
+                     do_set_chip_peripherals: bool = True,
                      do_disable_all_pixels: bool = False,
                      do_auto_calibration: bool = False,
                      do_disable_and_calibration: bool = False,
