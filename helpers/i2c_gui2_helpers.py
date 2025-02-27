@@ -576,7 +576,7 @@ class i2c_connection():
 
 
     #--------------------------------------------------------------------------#
-    def make_BL_NW_2D_maps(self, input_df: pd.DataFrame, given_title: str, note: str, save_path, timestamp):
+    def make_BL_NW_2D_maps(self, input_df: pd.DataFrame, given_chip_name: str, note: str, save_path, timestamp):
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         import matplotlib.pyplot as plt
@@ -587,7 +587,7 @@ class i2c_connection():
         fig = plt.figure(dpi=200, figsize=(20,10))
         gs = fig.add_gridspec(1,2)
         ax0 = fig.add_subplot(gs[0,0])
-        ax0.set_title(f"{given_title}: BL (DAC LSB)\n{note}", size=17, loc="right")
+        ax0.set_title(f"{given_chip_name}: BL (DAC LSB)\n{note}", size=17, loc="right")
         img0 = ax0.imshow(input_df.baseline, interpolation='none', vmin=input_df.baseline.to_numpy().reshape(-1).min(), vmax=input_df.baseline.to_numpy().reshape(-1).max())
         ax0.set_aspect("equal")
         ax0.invert_xaxis()
@@ -600,7 +600,7 @@ class i2c_connection():
         fig.colorbar(img0, cax=cax, orientation="vertical")
 
         ax1 = fig.add_subplot(gs[0,1])
-        ax1.set_title(f"{given_title}: NW (DAC LSB)\n{note}", size=17, loc="right")
+        ax1.set_title(f"{given_chip_name}: NW (DAC LSB)\n{note}", size=17, loc="right")
         img1 = ax1.imshow(input_df.noise_width, interpolation='none', vmin=0, vmax=16)
         ax1.set_aspect("equal")
         ax1.invert_xaxis()
@@ -618,10 +618,10 @@ class i2c_connection():
                     ax1.text(col,row,f"{input_df.noise_width[col][row]:.0f}", c="white", size=11, rotation=45, fontweight="bold", ha="center", va="center")
 
         plt.tight_layout()
-        fig.savefig(save_path / f'BL_NW_2D_map_{timestamp}.png')
+        fig.savefig(save_path / f'{given_chip_name}_BL_NW_2D_map_{timestamp}.png')
 
 
-    def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_title: str, note: str, save_path, timestamp):
+    def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_chip_name: str, note: str, save_path, timestamp):
         import hist
         import matplotlib.pyplot as plt
         import mplhep as hep
@@ -629,7 +629,7 @@ class i2c_connection():
 
         fig, axes = plt.subplots(1, 2, figsize=(20, 10))
         hep.cms.text(loc=0, ax=axes[0], fontsize=17, text="ETL ETROC")
-        axes[0].set_title(f"{given_title}: BL (DAC LSB)\n{note}", size=17, loc="right")
+        axes[0].set_title(f"{given_chip_name}: BL (DAC LSB)\n{note}", size=17, loc="right")
         bl_array = input_df['baseline'].to_numpy().flatten()
         bl_min, bl_max = bl_array.min(), bl_array.max()
         bl_hist = hist.Hist(hist.axis.Regular(bl_max-bl_min, bl_min, bl_max, name='bl', label='BL [DAC]'))
@@ -639,7 +639,7 @@ class i2c_connection():
         axes[0].legend()
 
         hep.cms.text(loc=0, ax=axes[1], fontsize=17, text="ETL ETROC")
-        axes[1].set_title(f"{given_title}: NW (DAC LSB)\n{note}", size=17, loc="right")
+        axes[1].set_title(f"{given_chip_name}: NW (DAC LSB)\n{note}", size=17, loc="right")
         nw_hist = hist.Hist(hist.axis.Regular(16, 0, 16, name='nw', label='NW [DAC]'))
         nw_array = input_df['noise_width'].to_numpy().flatten()
         nw_hist.fill(nw_array)
@@ -649,7 +649,7 @@ class i2c_connection():
         axes[1].legend()
 
         plt.tight_layout()
-        fig.savefig(save_path / f'BL_NW_1D_hist_{timestamp}.png')
+        fig.savefig(save_path / f'{given_chip_name}_BL_NW_1D_hist_{timestamp}.png')
 
 
     #--------------------------------------------------------------------------#
