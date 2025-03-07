@@ -359,7 +359,6 @@ class i2c_connection():
 
         for peripheralRegisterKey in peripheralRegisterKeys:
             # Fetch the register
-            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
             data_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
 
             # Make the flipped bits
@@ -370,7 +369,6 @@ class i2c_connection():
             chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")  # Implicit read after write
 
             # Perform second read to verify the persistence of the change
-            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
             data_new_1_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
             chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
             data_new_2_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
@@ -378,7 +376,6 @@ class i2c_connection():
             # Undo the change to recover the original register value, and check for consistency
             chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"] = data_PeriCfgX
             chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
             data_recover_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
 
             # Handle what we learned from the tests
