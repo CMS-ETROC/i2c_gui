@@ -359,23 +359,27 @@ class i2c_connection():
 
         for peripheralRegisterKey in peripheralRegisterKeys:
             # Fetch the register
-            data_PeriCfgX = chip.get_decoded_value("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            data_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
+
             # Make the flipped bits
             data_modified_PeriCfgX = data_PeriCfgX ^ 0xff
 
             # Set the register with the value
-            chip.set_decoded_value("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}", data_modified_PeriCfgX)
-            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}", readback_check=True)  # Implicit read after write
+            chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"] = data_modified_PeriCfgX
+            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")  # Implicit read after write
 
             # Perform second read to verify the persistence of the change
-            data_new_1_PeriCfgX = chip.get_decoded_value("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
             chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
-            data_new_2_PeriCfgX = chip.get_decoded_value("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            data_new_1_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
+            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            data_new_2_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
 
             # Undo the change to recover the original register value, and check for consistency
-            chip.set_decoded_value("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}", data_PeriCfgX)
-            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}", readback_check=True)
-            data_recover_PeriCfgX = chip.get_decoded_value("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"] = data_PeriCfgX
+            chip.write_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            chip.read_register("ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}")
+            data_recover_PeriCfgX = chip["ETROC2", "Peripheral Config", f"PeriCfg{peripheralRegisterKey}"]
 
             # Handle what we learned from the tests
             # print(f"PeriCfg{peripheralRegisterKey:2}", data_bin_PeriCfgX, "To", data_bin_new_1_PeriCfgX,  "To", data_bin_new_2_PeriCfgX, "To", data_bin_recover_PeriCfgX)
