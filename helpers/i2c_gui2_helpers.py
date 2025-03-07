@@ -157,7 +157,7 @@ class i2c_connection():
         if(verbose): print(f"Auto calibration done (enTDC=0 + DAC=1023) for pixel ({row},{col}) on chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
-    def set_TDC_window_ranges(self, chip: i2c_gui2.ETROC2_Chip, window_dict: dict = None):
+    def config_TDC_window_ranges_in_memory(self, chip: i2c_gui2.ETROC2_Chip, window_dict: dict = None):
 
         if window_dict is None:
             window = {
@@ -220,7 +220,7 @@ class i2c_connection():
             'IBSel': 0b111,
         }
 
-        self.set_TDC_window_ranges(chip=chip)
+        self.config_TDC_window_ranges_in_memory(chip=chip)
 
         if power_mode == "high":
             pixel_config_dict['IBSel'] = 0b000
