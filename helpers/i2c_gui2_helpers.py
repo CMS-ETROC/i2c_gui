@@ -124,14 +124,16 @@ class i2c_connection():
 
         # Wait for the calibration to be done correctly
         retry_counter = 0
-        chip.read_all_block("ETROC2", "Pixel Status")
+        chip.read_decoded_value("ETROC2", "Pixel Status", "ScanDone")
         while chip.get_decoded_value("ETROC2", "Pixel Status", "ScanDone") != 1:
             time.sleep(0.01)
-            chip.read_all_block("ETROC2", "Pixel Status")
+            chip.read_decoded_value("ETROC2", "Pixel Status", "ScanDone")
             retry_counter += 1
             if retry_counter == 5 and chip.get_decoded_value("ETROC2", "Pixel Status", "ScanDone") != 1:
                 print(f"Retry counter reaches at 5! // Auto_Calibration Scan has failed for row {row}, col {col}!!")
                 break
+
+        chip.read_all_block("ETROC2", "Pixel Status")
 
         # Save outputs
         bl_nw_output['row'].append(row)
