@@ -311,10 +311,12 @@ class i2c_connection():
 
         chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
+        chip.read_register("ETROC2", "Peripheral Config", "PeriCfg18")
+
         chip.set_decoded_value("ETROC2", "Peripheral Config", "fcClkDelayEn", fc_clk_delay)
         chip.set_decoded_value("ETROC2", "Peripheral Config", "fcDataDelayEn", fc_data_delay)
 
-        chip.write_all_block("ETROC2", "Peripheral Config")
+        chip.write_register("ETROC2", "Peripheral Config", "PeriCfg18")
 
         print(f"FC delays has been changed for the chip: {hex(chip_address)}")
 
@@ -334,8 +336,7 @@ class i2c_connection():
                 chip.row = row
                 chip.col = col
 
-                chip.read_decoded_value("ETROC2", "Pixel Status", 'PixelID-Row')
-                chip.read_decoded_value("ETROC2", "Pixel Status", 'PixelID-Col')
+                chip.read_decoded_value("ETROC2", "Pixel Status", 'PixelID')
                 fetched_row = chip.get_decoded_value("ETROC2", "Pixel Status", 'PixelID-Row')
                 fetched_col = chip.get_decoded_value("ETROC2", "Pixel Status", 'PixelID-Col')
 
@@ -464,29 +465,22 @@ class i2c_connection():
             print(f"Disabled pixels (Bypass, TH-3f DAC-3ff) for chip: {hex(chip_address)}")
 
             # Verify broadcast
-            # print('Verifying Broadcast results')
-            # broadcast_ok = True
-            # for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
-            #     for col in range(16):
-            #         chip.row = row
-            #         chip.col = col
+            print('Verifying Broadcast results')
+            for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
+                for col in range(16):
+                    chip.row = row
+                    chip.col = col
 
-            #         chip.read_all_block("ETROC2", "Pixel Config")
+                    chip.read_all_block("ETROC2", "Pixel Config")
 
-            #         for key, value in pixel_config.items():
-            #             if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
-            #                 broadcast_ok = False
-            #                 break
-            #         if not broadcast_ok:
-            #             break
-            #     if not broadcast_ok:
-            #         break
+                    for key, value in pixel_config.items():
+                        if chip.get_decoded_value("ETROC2", "Pixel Config", key) != value:
+                            raise RuntimeError("Failed to verify broadcast results")
 
-        except Exception as inst:
+        except RuntimeError as err:
             ### Broadcast failed
-            print(inst)
+            print(err)
             print("Broadcast failed! Will manually disable pixels\n")
-            chip.broadcast = False
             for row in tqdm(range(16), desc="Disabling row", position=0):
                 for col in range(16):
                     chip.row = row
@@ -545,12 +539,15 @@ class i2c_connection():
         ### WS and pixel initialization
         # self.enable_pixel_modular(row=row, col=col, verbose=True, chip_address=chip_address, chip=chip, QInjEn=True, Bypass_THCal=False, triggerWindow=True, cbWindow=True, power_mode="high")
 
+        chip.read_decoded_value("ETROC2", "Pixel Config", "TH_offset")
         chip.set_decoded_value("ETROC2", "Pixel Config", "TH_offset", 20)
         chip.write_decoded_value("ETROC2", "Pixel Config", "TH_offset")
 
+        chip.read_decoded_value("ETROC2", "Pixel Config", "RFSel")
         chip.set_decoded_value("ETROC2", "Pixel Config", "RFSel", 0)
         chip.write_decoded_value("ETROC2", "Pixel Config", "RFSel")
 
+        chip.read_decoded_value("ETROC2", "Pixel Config", "QSel")
         chip.set_decoded_value("ETROC2", "Pixel Config", "QSel", 30)
         chip.write_decoded_value("ETROC2", "Pixel Config", "QSel")
 
@@ -561,21 +558,24 @@ class i2c_connection():
         chip["Waveform Sampler", "Config", "regOut1F"] = 0x0b
         chip.write_register("Waveform Sampler", "Config", "regOut1F")
 
-
         # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
         # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
         # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
 
-
+        chip.read_decoded_value("Waveform Sampler", "Config", 'DDT')
         chip.set_decoded_value("Waveform Sampler", "Config", 'DDT', 0)        # Time Skew Calibration set to 0
         chip.write_decoded_value("Waveform Sampler", "Config", 'DDT')
 
+        chip.read_register("Waveform Sampler", "Config", "regOut0D")
         chip.set_decoded_value("Waveform Sampler", "Config", 'CTRL', 2)       # CTRL default = 0x10 for regOut0D
         chip.write_decoded_value("Waveform Sampler", "Config", 'CTRL')
-
         chip.set_decoded_value("Waveform Sampler", "Config", 'comp_cali', 0)       # Comparator calibration should be off
         chip.write_decoded_value("Waveform Sampler", "Config", 'comp_cali')
 
+
+    ## To be filled
+    def disable_ws_testing():
+        pass
 
 
     #--------------------------------------------------------------------------#
@@ -737,6 +737,7 @@ class i2c_connection():
         if(chip == None):
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
+        chip.read_decoded_value("ETROC2", "Peripheral Config", 'onChipL1AConf')
         chip.set_decoded_value("ETROC2", "Peripheral Config", 'onChipL1AConf', int(comm, base=2))
         chip.write_decoded_value("ETROC2", "Peripheral Config", 'onChipL1AConf')
 
@@ -747,6 +748,7 @@ class i2c_connection():
         if(chip == None):
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
+        chip.read_decoded_value("ETROC2", "Peripheral Config", 'asyAlignFastcommand')
         chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyAlignFastcommand', 1)
         chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyAlignFastcommand')
         time.sleep(0.1)
@@ -760,6 +762,7 @@ class i2c_connection():
         if(chip == None):
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
+        chip.read_decoded_value("ETROC2", "Peripheral Config", 'asyResetGlobalReadout')
         chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyResetGlobalReadout', 0)
         chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyResetGlobalReadout')
         time.sleep(0.1)
@@ -774,6 +777,7 @@ class i2c_connection():
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
 
         ### PLL Reset
+        chip.read_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset')
         chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset', 0)
         chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset')
         time.sleep(0.1)
@@ -781,6 +785,7 @@ class i2c_connection():
         chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyPLLReset')
 
         ### asyStartCalibration
+        chip.read_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration')
         chip.set_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration', 0)
         chip.write_decoded_value("ETROC2", "Peripheral Config", 'asyStartCalibration')
         time.sleep(0.1)
