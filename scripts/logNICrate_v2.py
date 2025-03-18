@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
 import pandas as pd
 import requests
-import schedule
+# import schedule
+import signal
 import time
 import argparse
 import sqlite3
@@ -33,7 +34,7 @@ def read_single_data():
 
     for row in rows:
         ### Check there are no errors ##
-        #if 'Current too high' in str(row): 
+        #if 'Current too high' in str(row):
         #    bot_send_message(str(row), dont_send)
 
         if not any(ch in str(row) for ch in channels):
@@ -55,15 +56,15 @@ def read_single_data():
                     "Sense Current_uA",
                     "Terminal Voltage",
                     "Status"]
-    
+
     data = data[["Channel",
                 "Sense Voltage",
                 "Sense Current_uA",
                 "Terminal Voltage"]]
-    
+
     data["timestamp"] = timestamp
     data = data[1:9]
-    
+
     ### Surgery
     data['Channel'] = range(8)
     data['Channel'] = data['Channel'].astype('uint8')
@@ -87,6 +88,9 @@ def read_single_data():
 #     response = requests.get(send_text)
 #     print(response)
 #     dont_send = True
+
+global exit_loop
+exit_loop = False
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
@@ -123,8 +127,8 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     outpath = Path(args.output_directory)
-    log_time = args.time_limit
-    time_limit = log_time + 1
+    # log_time = args.time_limit
+    time_limit = args.time_limit
 
     #chat_id = "-4149555368" #Del grupo donde está el Bot
     #api_key = "7086061035:AAEslZSr3pPEsedeMFgWROmeBKuXljLfSzY"
@@ -132,8 +136,23 @@ if __name__=='__main__':
     print('------------------- Start of run ---------------------')
     print(f'Output is saved to {outpath}')
     print(f'Will be logging for every {time_limit} seconds.')
-    start_time = time.time()
+    # start_time = time.time()
 
-    schedule.every(log_time).seconds.do(read_single_data)
-    while (time.time() - start_time) < time_limit:
-        schedule.run_pending()
+
+    # schedule.every(log_time).seconds.do(read_single_data)
+    # while (time.time() - start_time) < time_limit:
+    #     schedule.run_pending()
+
+
+    def signal_handler(sig, frame):
+        global exit_loop
+        print("Exiting gracefully")
+        exit_loop = True
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    while not exit_loop:
+        read_single_data()
+        time.sleep(args.time_limit)
+
+    signal.pause()
