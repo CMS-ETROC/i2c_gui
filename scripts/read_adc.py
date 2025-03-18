@@ -1,7 +1,7 @@
 #############################################################################
 # zlib License
 #
-# (C) 2023 Cristóvão Beirão da Cruz e Silva <cbeiraod@cern.ch>
+# (C) 2025 Cristóvão Beirão da Cruz e Silva <cbeiraod@cern.ch>
 #
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
@@ -34,14 +34,7 @@ try:
 except:
     from scripts.log_action import log_action_v2
 
-try:
-    from ..i2c_gui import ScriptHelper
-    from ..i2c_gui import Connection_Controller
-    from ..i2c_gui import chips
-except:
-    from i2c_gui import ScriptHelper
-    from i2c_gui import Connection_Controller
-    from i2c_gui import chips
+import i2c_gui2
 
 # This class from stackoverflow Q 474528
 class RepeatedTimer(object):
@@ -98,53 +91,29 @@ class ADCMeasurements():
         if self._interval < 2:
             self._interval = 2
 
-        self._logger = logging.getLogger("Script_Logger")
-
-        self._script_helper = ScriptHelper(self._logger)
-
-        ## USB ISS connection
-        self._conn = Connection_Controller(self._script_helper)
-        self._conn.connection_type = "USB-ISS"
-        self._conn.handle.port = self._port
-        self._conn.handle.clk = 100
-
-        self._conn.connect()
-
-        self._chip = chips.AD5593R_Chip(self._script_helper, self._conn)
-        self._chip.config_i2c_address(self._i2c_address)
+        logging.basicConfig(format='%(asctime)s - %(levelname)s:%(name)s:%(message)s')
+        self._logger = logging.getLogger("ADC_Logger")
+        self._conn = i2c_gui2.USB_ISS_Helper(self._port, 100, dummy_connect = False)
+        self._chip = i2c_gui2.AD5593R_Chip(self._i2c_address, self._conn, self._logger)
 
         for i in range(9):  # Channel 8 is temperature
             self._adc_channels[i] = False
         for i in range(8):
             self._dac_channels[i] = False
 
-        self._registers = [
-            "ADC_SEQ",
-            "GEN_CTRL_REG",
-            "ADC_CONFIG",
-            "DAC_CONFIG",
-            "PULLDWN_CONFIG",
-            "LDAC_MODE",
-            "PD_REF_CTRL",
-                    ]
-
-        self._handle = {}
-        for name in self._registers:
-            self._handle[name] = self._chip.get_display_var("AD5593R", "Config_RD", name)
-            self._chip.read_register("AD5593R", "Config_RD", name, no_message=True)
-
         # Enable internal VRef if we are using it (internal to the ADC)
-        value = int(self._handle["PD_REF_CTRL"].get(), 0)
+        self._chip.read_register("AD5593R", "Config_RD", "PD_REF_CTRL")
+        value = self._chip["AD5593R", "Config_RD", "PD_REF_CTRL"]
         if self._internal_vref:
             value = value | 0b0000_0010_0000_0000
         else:
             value = value & 0b1111_1101_1111_1111
-        self._handle["PD_REF_CTRL"].set(value)
+        self._chip["AD5593R", "Config_RD", "PD_REF_CTRL"] = value
         self._chip.write_register("AD5593R", "Config_RD", "PD_REF_CTRL")
 
         self.set_dac_value(0)
 
-        self._handle["LDAC_MODE"].set(0x0000)  # alternative is 0x0001, but in this mode you need to write LDAC_MODE with 0x0002 to update the DAC output
+        self._chip["AD5593R", "Config_RD", "LDAC_MODE"] = 0x0000  # alternative is 0x0001, but in this mode you need to write LDAC_MODE with 0x0002 to update the DAC output
         self._chip.write_register("AD5593R", "Config_RD", "LDAC_MODE")
 
         # Use ADC buffer if not using the SMA adaptor PCB
@@ -152,16 +121,16 @@ class ADCMeasurements():
         value = 0b000000_0_0_0_0_0_0_0000  #  Disable ADC buffer
         value = 0b000000_0_1_0_0_0_0_0000  #  Enable ADC buffer and keep it always powered
         #value = 0b000000_1_1_0_0_0_0_0000  #  Enable ADC buffer and only power during conversion
-        self._handle["GEN_CTRL_REG"].set(value)
+        self._chip["AD5593R", "Config_RD", "GEN_CTRL_REG"] = value
         self._chip.write_register("AD5593R", "Config_RD", "GEN_CTRL_REG")
 
 
         adc_reg = 0
         dac_reg = 0
         pulldown_reg = 0x00ff
-        self._handle["DAC_CONFIG"].set(dac_reg)
-        self._handle["ADC_CONFIG"].set(adc_reg)
-        self._handle["PULLDWN_CONFIG"].set(pulldown_reg)
+        self._chip["AD5593R", "Config_RD", "DAC_CONFIG"] = dac_reg
+        self._chip["AD5593R", "Config_RD", "ADC_CONFIG"] = adc_reg
+        self._chip["AD5593R", "Config_RD", "PULLDWN_CONFIG"] = pulldown_reg
         self._chip.write_register("AD5593R", "Config_RD", "DAC_CONFIG")
         self._chip.write_register("AD5593R", "Config_RD", "ADC_CONFIG")
         self._chip.write_register("AD5593R", "Config_RD", "PULLDWN_CONFIG")
@@ -180,13 +149,13 @@ class ADCMeasurements():
     def add_adc_pin(self, pin: int):
         if pin not in self._adc_channels or pin == 8:
             raise RuntimeError(f"An invalid pin was selected: {pin}")
-        
+
         self._adc_channels[pin] = True
 
     def remove_adc_pin(self, pin: int):
         if pin not in self._adc_channels or pin == 8:
             raise RuntimeError(f"An invalid pin was selected: {pin}")
-        
+
         self._adc_channels[pin] = False
 
     def add_temperature(self):
@@ -198,13 +167,13 @@ class ADCMeasurements():
     def add_dac_pin(self, pin: int):
         if pin not in self._dac_channels:
             raise RuntimeError(f"An invalid pin was selected: {pin}")
-        
+
         self._dac_channels[pin] = True
 
     def remove_dac_pin(self, pin: int):
         if pin not in self._dac_channels:
             raise RuntimeError(f"An invalid pin was selected: {pin}")
-        
+
         self._dac_channels[pin] = False
 
     def configure(self):
@@ -222,9 +191,9 @@ class ADCMeasurements():
                 pulldown_reg = (pulldown_reg & (0xffff - (1 << pin)))
                 self._num_measurements += 1
 
-        self._handle["DAC_CONFIG"].set(dac_reg)
-        self._handle["ADC_CONFIG"].set(adc_reg)
-        self._handle["PULLDWN_CONFIG"].set(pulldown_reg)
+        self._chip["AD5593R", "Config_RD", "DAC_CONFIG"] = dac_reg
+        self._chip["AD5593R", "Config_RD", "ADC_CONFIG"] = adc_reg
+        self._chip["AD5593R", "Config_RD", "PULLDWN_CONFIG"] = pulldown_reg
 
         if self._adc_channels[8]:  #  Enable temperature in the ADC sequence if it is chosen
             adc_reg = adc_reg | 0x100
@@ -244,10 +213,8 @@ class ADCMeasurements():
         if pin not in self._dac_channels:
             raise RuntimeError(f"An invalid pin was selected: {pin}")
 
-
-        tmp_handle = self._chip.get_display_var("AD5593R", "DAC_RD", f"DAC{pin}")
-        tmp_handle.set(value & 0xfff)
-        self._chip.write_register("AD5593R", "DAC_RD", f"DAC{pin}", write_check=False, no_message=True)
+        self._chip["AD5593R", "DAC_RD", f"DAC{pin}"] = value
+        self._chip.write_register("AD5593R", "DAC_RD", f"DAC{pin}", readback_check=False, no_message=True)
 
     def start_log(self):
         time.sleep(0.5)
@@ -376,7 +343,7 @@ if __name__ == "__main__":
                                     i2c_address = args.i2c_address,
                                     internal_vref = args.internal_vref,
                                   )
-    
+
     device_meas.add_temperature()
     device_meas.add_adc_pin(0)
     device_meas.add_dac_pin(0)
