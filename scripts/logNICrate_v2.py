@@ -11,13 +11,28 @@ from pathlib import Path
 channels = [f"{i}" for i in range(0,8)]
 
 def convert_voltage(value):
-    if 'V' in value:
-        return float(value.replace(' V', '')) * 1
-    elif 'mV' in value:
-        return float(value.replace(' mV', '')) * 1e-3
-    elif 'uV' in value:
-        return float(value.replace(' uV', '')) * 1e-6
-    return value
+    if isinstance(value, (int, float)):  # Handle numeric input directly
+        return value
+    elif isinstance(value, str):
+        if value.endswith(" V"):
+            return float(value.removesuffix(" V")) * 1
+        elif value.endswith(" mV"):
+            return float(value.removesuffix(" mV")) * 1e-3
+        elif value.endswith(" uV"):
+            return float(value.removesuffix(" uV")) * 1e-6
+    raise ValueError(f"Invalid voltage format: {value}")  # Handle unexpected inputs
+
+def convert_current(value):
+    if isinstance(value, (int, float)):  # Handle numeric input directly
+        return value
+    elif isinstance(value, str):
+        if value.endswith(" A"):
+            return float(value.removesuffix(" A")) * 1
+        elif value.endswith(" mA"):
+            return float(value.removesuffix(" mA")) * 1e-3
+        elif value.endswith(" uA"):
+            return float(value.removesuffix(" uA")) * 1e-6
+    raise ValueError(f"Invalid voltage format: {value}")  # Handle unexpected inputs
 
 def read_single_data():
     url = requests.get('http://192.168.21.26/')
@@ -72,7 +87,7 @@ def read_single_data():
     data['Sense Voltage'] = data['Sense Voltage'].astype('float32')
     data['Terminal Voltage'] = data['Terminal Voltage'].apply(convert_voltage)
     data['Terminal Voltage'] = data['Terminal Voltage'].astype('float32')
-    data['Sense Current_uA'] = data['Sense Current_uA'].str.replace(' uA', '', regex=False).astype(float)
+    data['Sense Current_uA'] = data['Sense Current_uA'].apply(convert_current)
     data['Sense Current_uA'] = data['Sense Current_uA'].astype('float32')
 
     outfile = outpath / 'HV_History.sqlite'
