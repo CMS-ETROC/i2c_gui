@@ -32,7 +32,7 @@ def convert_current(value):
             return float(value.removesuffix(" mA")) * 1e-3
         elif value.endswith(" uA"):
             return float(value.removesuffix(" uA")) * 1e-6
-    raise ValueError(f"Invalid voltage format: {value}")  # Handle unexpected inputs
+    raise ValueError(f"Invalid current format: {value}")  # Handle unexpected inputs
 
 def read_single_data():
     url = requests.get('http://192.168.21.26/')
