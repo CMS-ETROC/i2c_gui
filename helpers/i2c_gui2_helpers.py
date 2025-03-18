@@ -658,13 +658,13 @@ class i2c_connection():
     #--------------------------------------------------------------------------#
     def save_baselines(
             self,
+            hist_dir: str = "../ETROC-History",
             save_notes: str = "",
         ):
 
-
         import sqlite3
 
-        save_mother_path = Path('../ETROC-History')
+        save_mother_path = Path(hist_dir)
         save_mother_path.mkdir(exist_ok=True, parents=True)
         outfile = save_mother_path / 'BaselineHistory.sqlite'
 
