@@ -729,6 +729,40 @@ class i2c_connection():
         print(f"Offset set to {hex(offset)} for chip: {hex(chip_address)}")
 
 
+    def set_chip_offsets_broadcast(self, chip_address, offset: int = 20, chip: i2c_gui2.ETROC2_Chip = None):
+
+        if(chip==None):
+            chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address)
+
+        chip.row = 0
+        chip.col = 0
+
+        chip.read_decoded_value("ETROC2", "Pixel Config", "TH_offset")
+        chip.set_decoded_value("ETROC2", "Pixel Config", "TH_offset", offset)
+
+        try:
+            chip.broadcast = True
+            chip.write_decoded_value("ETROC2", "Pixel Config", "TH_offset")
+            chip.broadcast = False
+
+            print('Verifying Broadcast results')
+            for row in tqdm(range(16), desc="Checking broadcast for row", position=0):
+                for col in range(16):
+                    chip.row = row
+                    chip.col = col
+
+                    chip.read_decoded_value("ETROC2", "Pixel Config", "TH_offset")
+                    if chip.get_decoded_value("ETROC2", "Pixel Config", "TH_offset") != offset:
+                        raise RuntimeError("Failed to verify broadcast results")
+
+        except RuntimeError as err:
+            print(err)
+            col_list, row_list = np.meshgrid(np.arange(16),np.arange(16))
+            scan_list = list(zip(row_list.flatten(),col_list.flatten()))
+            for row,col in scan_list:
+                self.config_single_pixel_offset(chip_address=chip_address, row=row, col=col, offset=offset, chip=chip)
+
+        print(f"Offset set to {hex(offset)} for chip: {hex(chip_address)}")
 
     #--------------------------------------------------------------------------#
     ## Chip Calibration Util Functions
