@@ -35,9 +35,16 @@ def convert_current(value):
     raise ValueError(f"Invalid current format: {value}")  # Handle unexpected inputs
 
 def read_single_data():
-    url = requests.get('http://192.168.21.26/')
-    soup = BeautifulSoup(url.content, 'html.parser')
-    # timestamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())
+    while True:
+        try:
+            url = requests.get('http://192.168.21.26/')
+            soup = BeautifulSoup(url.content, 'html.parser')
+            break
+
+        except requests.exceptions.ConnectionError as e:
+            print(f'Request failed: {e}. Retrying in 5 seconds.')
+            time.sleep(5)
+
     timestamp = pd.Timestamp.now().isoformat(sep=' ', timespec='seconds')
 
     #print(f'>> Log successful at {timestamp}')
