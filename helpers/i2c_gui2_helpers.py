@@ -542,35 +542,44 @@ class i2c_connection():
         chip.read_decoded_value("ETROC2", "Pixel Config", "TH_offset")
         chip.set_decoded_value("ETROC2", "Pixel Config", "TH_offset", 20)
         chip.write_decoded_value("ETROC2", "Pixel Config", "TH_offset")
+        print("TH_Offset", chip.get_decoded_value("ETROC2", "Pixel Config", "TH_offset"))
 
         chip.read_decoded_value("ETROC2", "Pixel Config", "RFSel")
         chip.set_decoded_value("ETROC2", "Pixel Config", "RFSel", 0)
         chip.write_decoded_value("ETROC2", "Pixel Config", "RFSel")
+        print("RFsel", chip.get_decoded_value("ETROC2", "Pixel Config", "RFSel"))
 
         chip.read_decoded_value("ETROC2", "Pixel Config", "QSel")
         chip.set_decoded_value("ETROC2", "Pixel Config", "QSel", 30)
         chip.write_decoded_value("ETROC2", "Pixel Config", "QSel")
+        print("QSel", chip.get_decoded_value("ETROC2", "Pixel Config", "QSel"))
 
         print(f"WS Pixel (R0,C14) has been initialized TH_Offset = 20, RFSel = 0, QSel = 30 for chip: {hex(chip_address)}")
 
-        chip["Waveform Sampler", "Config", "regOut1F"] = 0x22
-        chip.write_register("Waveform Sampler", "Config", "regOut1F")
-        chip["Waveform Sampler", "Config", "regOut1F"] = 0x0b
-        chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        # chip.read_register("Waveform Sampler", "Config", "regOut1F")
+        # chip["Waveform Sampler", "Config", "regOut1F"] = 0x22
+        # chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        # print("After 1F 22", hex(chip["Waveform Sampler", "Config", f"regOut1F"]))
+        # chip["Waveform Sampler", "Config", "regOut1F"] = 0x0b
+        # chip.write_register("Waveform Sampler", "Config", "regOut1F")
+        # print("After 1F 0b", hex(chip["Waveform Sampler", "Config", f"regOut1F"]))
 
-        # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
-        # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
-        # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
+        # # self.ws_decoded_register_write("mem_rstn", "0", chip=chip)                      # 0: reset memory
+        # # self.ws_decoded_register_write("clk_gen_rstn", "0", chip=chip)                  # 0: reset clock generation
+        # # self.ws_decoded_register_write("sel1", "0", chip=chip)                          # 0: Bypass mode, 1: VGA mode
 
-        chip.read_decoded_value("Waveform Sampler", "Config", 'DDT')
-        chip.set_decoded_value("Waveform Sampler", "Config", 'DDT', 0)        # Time Skew Calibration set to 0
-        chip.write_decoded_value("Waveform Sampler", "Config", 'DDT')
+        # chip.read_decoded_value("Waveform Sampler", "Config", 'DDT')
+        # chip.set_decoded_value("Waveform Sampler", "Config", 'DDT', 0)        # Time Skew Calibration set to 0
+        # chip.write_decoded_value("Waveform Sampler", "Config", 'DDT')
+        # print("DDT", chip.get_decoded_value("Waveform Sampler", "Config", "DDT"))
 
-        chip.read_register("Waveform Sampler", "Config", "regOut0D")
-        chip.set_decoded_value("Waveform Sampler", "Config", 'CTRL', 2)       # CTRL default = 0x10 for regOut0D
-        chip.write_decoded_value("Waveform Sampler", "Config", 'CTRL')
-        chip.set_decoded_value("Waveform Sampler", "Config", 'comp_cali', 0)       # Comparator calibration should be off
-        chip.write_decoded_value("Waveform Sampler", "Config", 'comp_cali')
+        # chip.read_register("Waveform Sampler", "Config", "regOut0D")
+        # chip.set_decoded_value("Waveform Sampler", "Config", 'CTRL', 2)       # CTRL default = 0x10 for regOut0D
+        # chip.write_decoded_value("Waveform Sampler", "Config", 'CTRL')
+        # chip.set_decoded_value("Waveform Sampler", "Config", 'comp_cali', 0)       # Comparator calibration should be off
+        # chip.write_decoded_value("Waveform Sampler", "Config", 'comp_cali')
+        # print("CTRL", chip.get_decoded_value("Waveform Sampler", "Config", "CTRL"))
+        # print("comp_cali", chip.get_decoded_value("Waveform Sampler", "Config", "comp_cali"))
 
 
     ## To be filled
