@@ -43,6 +43,7 @@ def read_single_data():
 
         except requests.exceptions.ConnectionError as e:
             print(f'Request failed: {e}. Retrying in 5 seconds.')
+            print(pd.Timestamp.now().isoformat(sep=' ', timespec='seconds'))
             time.sleep(5)
 
     timestamp = pd.Timestamp.now().isoformat(sep=' ', timespec='seconds')
