@@ -526,12 +526,17 @@ class i2c_connection():
 
     #--------------------------------------------------------------------------#
     # Function 7
-    def prepare_ws_testing(self, chip_address, ws_address, chip: i2c_gui2.ETROC2_Chip=None):
+    def prepare_ws_testing(self, chip_address, ws_address, chip: i2c_gui2.ETROC2_Chip=None, RFSel=0, QSel=30, QInjDelay=0x0a):
 
         if(chip == None and chip_address != None and ws_address != None):
             chip: i2c_gui2.ETROC2_Chip = self.get_chip_i2c_connection(chip_address, ws_address)
         elif(chip == None and (chip_address == None or ws_address == None)):
             print("Need either a chip or chip+ws address to access registers!")
+
+        chip.read_decoded_value("ETROC2", "Peripheral Config", "chargeInjectionDelay")
+        chip.set_decoded_value("ETROC2", "Peripheral Config", "chargeInjectionDelay", QInjDelay)
+        chip.write_decoded_value("ETROC2", "Peripheral Config", "chargeInjectionDelay")
+        print("chargeInjectionDelay", chip.get_decoded_value("ETROC2", "Peripheral Config", "chargeInjectionDelay"))
 
         chip.row = 0
         chip.col = 14
@@ -545,16 +550,17 @@ class i2c_connection():
         print("TH_Offset", chip.get_decoded_value("ETROC2", "Pixel Config", "TH_offset"))
 
         chip.read_decoded_value("ETROC2", "Pixel Config", "RFSel")
-        chip.set_decoded_value("ETROC2", "Pixel Config", "RFSel", 0)
+        print("Before RFsel", chip.get_decoded_value("ETROC2", "Pixel Config", "RFSel"))
+        chip.set_decoded_value("ETROC2", "Pixel Config", "RFSel", RFSel)
         chip.write_decoded_value("ETROC2", "Pixel Config", "RFSel")
-        print("RFsel", chip.get_decoded_value("ETROC2", "Pixel Config", "RFSel"))
+        print("After RFsel", chip.get_decoded_value("ETROC2", "Pixel Config", "RFSel"))
 
         chip.read_decoded_value("ETROC2", "Pixel Config", "QSel")
-        chip.set_decoded_value("ETROC2", "Pixel Config", "QSel", 30)
+        chip.set_decoded_value("ETROC2", "Pixel Config", "QSel", QSel)
         chip.write_decoded_value("ETROC2", "Pixel Config", "QSel")
         print("QSel", chip.get_decoded_value("ETROC2", "Pixel Config", "QSel"))
 
-        print(f"WS Pixel (R0,C14) has been initialized TH_Offset = 20, RFSel = 0, QSel = 30 for chip: {hex(chip_address)}")
+        print(f"WS Pixel (R0,C14) has been initialized TH_Offset = 20, RFSel = {RFSel}, QSel = {QSel} for chip: {hex(chip_address)}")
 
         # chip.read_register("Waveform Sampler", "Config", "regOut1F")
         # chip["Waveform Sampler", "Config", "regOut1F"] = 0x22
