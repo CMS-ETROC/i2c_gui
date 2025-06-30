@@ -642,6 +642,7 @@ class i2c_connection():
     def make_BL_NW_1D_hists(self, input_df: pd.DataFrame, given_chip_name: str, note: str, save_path, timestamp):
         import hist
         import matplotlib.pyplot as plt
+        import matplotlib.ticker as ticker
         import mplhep as hep
         hep.style.use('CMS')
 
@@ -649,8 +650,7 @@ class i2c_connection():
         hep.cms.text(loc=0, ax=axes[0], fontsize=17, text="ETL ETROC")
         axes[0].set_title(f"{given_chip_name}: BL (DAC LSB)\n{note}", size=17, loc="right")
         bl_array = input_df['baseline'].to_numpy().flatten()
-        bl_min, bl_max = bl_array.min(), bl_array.max()
-        bl_hist = hist.Hist(hist.axis.Regular(bl_max-bl_min, bl_min, bl_max, name='bl', label='BL [DAC]'))
+        bl_hist = hist.Hist(hist.axis.Regular(128, 0, 1024, name='bl', label='BL [DAC]'))
         bl_hist.fill(bl_array)
         mean, std = bl_array.mean(), bl_array.std()
         bl_hist.plot1d(ax=axes[0], yerr=False, label=f'Mean: {mean:.2f}, Std: {std:.2f}')
@@ -663,7 +663,8 @@ class i2c_connection():
         nw_hist.fill(nw_array)
         mean, std = nw_array.mean(), nw_array.std()
         nw_hist.plot1d(ax=axes[1], yerr=False, label=f'Mean: {mean:.2f}, Std: {std:.2f}')
-        axes[1].set_xticks(range(16), range(16))
+        axes[1].xaxis.set_major_locator(ticker.MultipleLocator(1))
+        axes[1].xaxis.set_minor_locator(ticker.NullLocator())
         axes[1].legend()
 
         plt.tight_layout()
