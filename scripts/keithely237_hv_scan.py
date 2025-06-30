@@ -1,10 +1,11 @@
-import asyncio, time
+import asyncio, time, argparse
 import pandas as pd
 
 # Devices
 from prologix_gpib_async import AsyncPrologixGpibEthernetController
+from pathlib import Path
 
-async def main():
+async def main(args):
     voltage = range(10, 280, 10)
     current = []
 
@@ -73,9 +74,28 @@ async def main():
             }
 
             df = pd.DataFrame(tmp_dict)
-            df.to_csv('ET2.03_BA_NH2.csv', index=False)
+            df['current'] = df['current'] * -1e9
+            df = df.round({'HV': 1, 'current': 2})
+
+            outdir = Path('../../IVscan')
+            outdir.mkdir(exist_ok=True)
+            df.to_csv(outdir / args.output, index=False)
 
     except (ConnectionError, ConnectionRefusedError):
         print("Could not connect to remote target. Is the device connected?")
 
-asyncio.run(main())
+parser = argparse.ArgumentParser(
+        prog='Control Keithely 237',
+        description='Remote control script for Keithely 237 source meter',
+)
+
+parser.add_argument(
+    '-o',
+    '--output',
+    help = 'output file name',
+    dest = 'output',
+)
+
+args = parser.parse_args()
+
+asyncio.run(main(args))
