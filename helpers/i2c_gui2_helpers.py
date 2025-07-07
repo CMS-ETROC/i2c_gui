@@ -630,10 +630,18 @@ class i2c_connection():
         cax = divider.append_axes('right', size="5%", pad=0.05)
         fig.colorbar(img1, cax=cax, orientation="vertical")
 
+        bl_threshold = 0.55 * (input_df.baseline.values.max() - input_df.baseline.values.min()) + input_df.baseline.values.min()
+
         for col in range(16):
-                for row in range(16):
-                    ax0.text(col,row,f"{input_df.baseline[col][row]:.0f}", c="white", size=10, rotation=45, fontweight="bold", ha="center", va="center")
-                    ax1.text(col,row,f"{input_df.noise_width[col][row]:.0f}", c="white", size=11, rotation=45, fontweight="bold", ha="center", va="center")
+            for row in range(16):
+
+                bl_value = int(input_df.baseline[col][row])
+                nw_value = int(input_df.noise_width[col][row])
+                bl_text_color = 'black' if bl_value > bl_threshold else 'white'
+                nw_text_color = 'black' if nw_value > 9 else 'white'
+
+                ax0.text(col,row, bl_value, c=bl_text_color, size=10, rotation=45, fontweight="bold", ha="center", va="center")
+                ax1.text(col,row, nw_value, c=nw_text_color, size=11, rotation=45, fontweight="bold", ha="center", va="center")
 
         plt.tight_layout()
         fig.savefig(save_path / f'{given_chip_name}_BL_NW_2D_map_{timestamp}.png')
