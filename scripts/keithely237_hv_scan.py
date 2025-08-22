@@ -5,8 +5,27 @@ import pandas as pd
 from prologix_gpib_async import AsyncPrologixGpibEthernetController
 from pathlib import Path
 
+testmode = False
+hybrid = 'hpk'
+
 async def main(args):
-    voltage = range(10, 280, 10)
+
+    if testmode:
+        voltage = range(10, 40, 10)
+        measurement_time = 5
+    else:
+        voltage = range(10, 280, 10)
+        measurement_time = 60
+
+    if hybrid == 'hpk':
+        current_limit = -1E-6
+        digit = -1e9
+    elif hybrid == 'fbk':
+        current_limit = -1E-4
+        digit = -1e6
+    else:
+        exit()
+
     current = []
 
     try:
@@ -38,11 +57,11 @@ async def main(args):
                 output = await gpib_device.read()
                 formatted_output = float(output.rstrip().decode('ascii'))
 
-                if formatted_output < -1E-6:
+                if formatted_output < current_limit:
                     current.append(formatted_output)
                     break
                 else:
-                    time.sleep(60)
+                    time.sleep(measurement_time)
                     await gpib_device.write(b"G4,2,0X")
                     output = await gpib_device.read()
                     formatted_output = float(output.rstrip().decode('ascii'))
@@ -74,7 +93,7 @@ async def main(args):
             }
 
             df = pd.DataFrame(tmp_dict)
-            df['current'] = df['current'] * -1e9
+            df['current'] = df['current'] * digit
             df = df.round({'HV': 1, 'current': 2})
 
             outdir = Path('../../IVscan')
