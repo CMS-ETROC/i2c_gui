@@ -1,5 +1,6 @@
 import asyncio, time, argparse
 import pandas as pd
+import numpy as np
 
 # Devices
 from prologix_gpib_async import AsyncPrologixGpibEthernetController
@@ -26,46 +27,63 @@ async def main(args):
     else:
         exit()
 
-    current = []
+    current_data = []
+    voltage_data = []
+
+    gpib_device = None  # Initialize device to None for the finally block
 
     try:
-        async with AsyncPrologixGpibEthernetController("192.168.2.40", pad=22) as gpib_device:
-            version = await gpib_device.version()
-            print("Controller version:", version)
+        gpib_device = AsyncPrologixGpibEthernetController("192.168.2.40", pad=22)
 
-            await gpib_device.write(b'U1X') ## Print Error state
-            print(await gpib_device.read())
+        version = await gpib_device.version()
+        print("Controller version:", version)
 
-            await gpib_device.write(b'U0X') ## Print Model number and firmware revision
-            print(await gpib_device.read())
+        await gpib_device.write(b'U1X') ## Print Error state
+        print(await gpib_device.read())
 
-            ## B: Bias
-            ## B(level),(range),(delay)
-            ## level: voltage
-            ## range: 4: 1100V mode
-            ## delay: 0: no delay
-            await gpib_device.write(b"B-5.0,4,0X") ## B(Voltage level),(range 4: 1100V mode),(delay)
-            await gpib_device.write(b"N1X") ## Turn on output
+        await gpib_device.write(b'U0X') ## Print Model number and firmware revision
+        print(await gpib_device.read())
 
-            for ivol in voltage:
-                command_string = f"B-{ivol},4,0X"
-                command_bytes = command_string.encode('ascii')
-                await gpib_device.write(command_bytes)
-                time.sleep(0.5)
+        ## B: Bias
+        ## B(level),(range),(delay)
+        ## level: voltage
+        ## range: 4: 1100V mode
+        ## delay: 0: no delay
+        await gpib_device.write(b"B-5.0,4,0X") ## B(Voltage level),(range 4: 1100V mode),(delay)
+        await gpib_device.write(b"N1X") ## Turn on output
 
-                await gpib_device.write(b"G4,2,0X")
-                output = await gpib_device.read()
-                formatted_output = float(output.rstrip().decode('ascii'))
+        for ivol in voltage:
+            command_string = f"B-{ivol},4,0X"
+            command_bytes = command_string.encode('ascii')
+            await gpib_device.write(command_bytes)
+            await asyncio.sleep(0.5)
 
-                if formatted_output < current_limit:
-                    current.append(formatted_output)
-                    break
-                else:
-                    time.sleep(measurement_time)
+            await gpib_device.write(b"G4,2,0X")
+            output = await gpib_device.read()
+            formatted_output = float(output.rstrip().decode('ascii'))
+
+            if formatted_output < current_limit:
+                current_data.append(formatted_output)
+                voltage_data.append(ivol)
+                break
+
+            else:
+                readings_for_median = []
+                start_time = time.monotonic()
+                while time.monotonic() - start_time < measurement_time:
                     await gpib_device.write(b"G4,2,0X")
                     output = await gpib_device.read()
                     formatted_output = float(output.rstrip().decode('ascii'))
-                    current.append(formatted_output)
+                    readings_for_median.append(formatted_output)
+                    await asyncio.sleep(0.1)
+
+                if not readings_for_median:
+                    print(f"Warning: No valid readings for voltage {ivol} V. Skipping.")
+                    continue
+
+                median_current = np.median(readings_for_median)
+                current_data.append(median_current)
+                voltage_data.append(ivol)
 
             ## G: Get output
             ## G(items),(format),(lines)
@@ -82,26 +100,34 @@ async def main(args):
             #print(float(output.rstrip().decode('ascii'))) ## Remove \r\n characters and convert byte_string to float
             #time.sleep(0.5)
 
-            await gpib_device.write(b"N0X") ## Turn off output
-            await gpib_device.write(b"B-5.0,4,0X") ## B(Voltage level),(range 4: 1100V mode),(delay)
-
-            voltage = voltage[:len(current)]
-
-            tmp_dict = {
-                'HV': voltage,
-                'current': current,
-            }
-
-            df = pd.DataFrame(tmp_dict)
-            df['current'] = df['current'] * digit
-            df = df.round({'HV': 1, 'current': 2})
-
-            outdir = Path('../../IVscan')
-            outdir.mkdir(exist_ok=True)
-            df.to_csv(outdir / args.output, index=False)
+    except KeyboardInterrupt:
+        print("\n--- Keyboard interrupt detected. Proceeding to cleanup and save data. ---")
 
     except (ConnectionError, ConnectionRefusedError):
         print("Could not connect to remote target. Is the device connected?")
+
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+    finally:
+        if gpib_device and gpib_device.is_connected():
+            print("Cleaning up: Turning off output and resetting voltage.")
+            await gpib_device.write(b"N0X")  # Turn off output
+            await gpib_device.write(b"B-5.0,4,0X")  # Reset to a safe voltage
+            await gpib_device.close()
+
+    tmp_dict = {
+        'HV': voltage_data,
+        'current': current_data,
+    }
+
+    df = pd.DataFrame(tmp_dict)
+    df['current'] = df['current'] * digit
+    df = df.round({'HV': 1, 'current': 2})
+
+    outdir = Path('../../IVscan')
+    outdir.mkdir(exist_ok=True)
+    df.to_csv(outdir / args.output, index=False)
 
 parser = argparse.ArgumentParser(
         prog='Control Keithely 237',
