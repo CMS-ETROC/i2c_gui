@@ -49,59 +49,59 @@ async def main(args):
             await gpib_device.write(b"B-5.0,4,0X") ## B(Voltage level),(range 4: 1100V mode),(delay)
             await gpib_device.write(b"N1X") ## Turn on output
 
-        try:
-            for ivol in voltage:
-                command_string = f"B-{ivol},4,0X"
-                await gpib_device.write(command_string.encode('ascii'))
-                await asyncio.sleep(0.5)
+            try:
+                for ivol in voltage:
+                    command_string = f"B-{ivol},4,0X"
+                    await gpib_device.write(command_string.encode('ascii'))
+                    await asyncio.sleep(0.5)
 
-                await gpib_device.write(b"G4,2,0X")
-                output = await gpib_device.read()
-                formatted_output = float(output.rstrip().decode('ascii'))
+                    await gpib_device.write(b"G4,2,0X")
+                    output = await gpib_device.read()
+                    formatted_output = float(output.rstrip().decode('ascii'))
 
-                if formatted_output < current_limit:
-                    current_data.append(formatted_output)
-                    voltage_data.append(ivol)
-                    break
+                    if formatted_output < current_limit:
+                        current_data.append(formatted_output)
+                        voltage_data.append(ivol)
+                        break
 
-                else:
-                    readings_for_median = []
-                    start_time = time.monotonic()
-                    while time.monotonic() - start_time < measurement_time:
-                        await gpib_device.write(b"G4,2,0X")
-                        output = await gpib_device.read()
-                        formatted_output = float(output.rstrip().decode('ascii'))
-                        readings_for_median.append(formatted_output)
-                        await asyncio.sleep(0.1)
+                    else:
+                        readings_for_median = []
+                        start_time = time.monotonic()
+                        while time.monotonic() - start_time < measurement_time:
+                            await gpib_device.write(b"G4,2,0X")
+                            output = await gpib_device.read()
+                            formatted_output = float(output.rstrip().decode('ascii'))
+                            readings_for_median.append(formatted_output)
+                            await asyncio.sleep(0.1)
 
-                    if not readings_for_median:
-                        print(f"Warning: No valid readings for voltage {ivol} V. Skipping.")
-                        continue
+                        if not readings_for_median:
+                            print(f"Warning: No valid readings for voltage {ivol} V. Skipping.")
+                            continue
 
-                    median_current = np.median(readings_for_median)
-                    current_data.append(median_current)
-                    voltage_data.append(ivol)
+                        median_current = np.median(readings_for_median)
+                        current_data.append(median_current)
+                        voltage_data.append(ivol)
 
-                ## G: Get output
-                ## G(items),(format),(lines)
-                ## items: 1: source value, 4: Measure value
-                ## format: 2: ASCII data, no prefix or suffix
-                ## lines: 0: One line of dc data per talk
-                #await gpib_device.write(b"G1,2,0X") ## "-0015.0E+00\r\n", output format = 2
-                #output = await gpib_device.read()
-                #print(float(output.rstrip().decode('ascii'))) ## Remove \r\n characters and convert byte_string to float
-                #time.sleep(0.5)
+                    ## G: Get output
+                    ## G(items),(format),(lines)
+                    ## items: 1: source value, 4: Measure value
+                    ## format: 2: ASCII data, no prefix or suffix
+                    ## lines: 0: One line of dc data per talk
+                    #await gpib_device.write(b"G1,2,0X") ## "-0015.0E+00\r\n", output format = 2
+                    #output = await gpib_device.read()
+                    #print(float(output.rstrip().decode('ascii'))) ## Remove \r\n characters and convert byte_string to float
+                    #time.sleep(0.5)
 
-                #await gpib_device.write(b"G4,2,0X") ## "-0.03671E-09\r\n", output format = 2
-                #output = await gpib_device.read()
-                #print(float(output.rstrip().decode('ascii'))) ## Remove \r\n characters and convert byte_string to float
-                #time.sleep(0.5)
+                    #await gpib_device.write(b"G4,2,0X") ## "-0.03671E-09\r\n", output format = 2
+                    #output = await gpib_device.read()
+                    #print(float(output.rstrip().decode('ascii'))) ## Remove \r\n characters and convert byte_string to float
+                    #time.sleep(0.5)
 
-        except KeyboardInterrupt:
-            print("\n--- Keyboard interrupt detected. Proceeding to cleanup and save data. ---")
+            except KeyboardInterrupt:
+                print("\n--- Keyboard interrupt detected. Proceeding to cleanup and save data. ---")
 
-        await gpib_device.write(b"N0X")  # Turn off output
-        await gpib_device.write(b"B-5.0,4,0X")  # Reset to a safe voltage
+            await gpib_device.write(b"N0X")  # Turn off output
+            await gpib_device.write(b"B-5.0,4,0X")  # Reset to a safe voltage
 
     except (ConnectionError, ConnectionRefusedError):
         print("Could not connect to remote target. Is the device connected?")
