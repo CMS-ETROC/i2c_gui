@@ -279,10 +279,14 @@ class DeviceMeasurements():
             supply_model = self._power_supplies[supply]["model"]
 
             for channel in self._channels[supply]:
-                self._channels[supply][channel]['on'] = True
                 if(supply_model not in supplyDict.keys()):
                     raise RuntimeError("Unknown power supply model for turn_on function")
 
+                ### Temporary solution to control individual channel
+                if not self._channels[supply][channel]["config"]["turn_on"]:
+                    continue
+
+                self._channels[supply][channel]['on'] = True
                 voltage = self._channels[supply][channel]["Vset"]
                 if voltage is None:
                     voltage = self._channels[supply][channel]["config"]["Vset"]
@@ -410,7 +414,7 @@ class DeviceMeasurements():
             for channel in self._channels[supply]:
                 V = self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["get_voltage"].format(channel=channel))
                 I = self._power_supplies[supply]["handle"].query(supplyDict[supply_model]["get_current"].format(channel=channel))
-                time = datetime.datetime.now().isoformat(sep=' ')
+                time = datetime.datetime.now().isoformat(sep=' ', timespec='seconds')
 
                 channel_name = self._channels[supply][channel]["alias"]
                 if channel_name is None:
