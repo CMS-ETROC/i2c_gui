@@ -13,12 +13,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def run_i2c(i2c_port, chip_addresses, ws_addresses, chip_names, output_path):
+def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path, do_pixelID_check: bool = False, do_peripheral_check: bool = False):
 
     try:
         i2c_conn = wrapper_i2cGui2.i2c_connection(i2c_port, chip_addresses, ws_addresses, chip_names)
     except:
-        raise RuntimeError("Failed to create I2C GUI Conn Object. Please reconnect the cable to SB-ISS module")
+        raise RuntimeError("Failed to create I2C GUI Conn Object. Please reconnect the cable to USB-ISS module")
 
     try:
         for chip_address in chip_addresses[:]:
@@ -34,22 +34,25 @@ def run_i2c(i2c_port, chip_addresses, ws_addresses, chip_names, output_path):
         chip = i2c_conn.get_chip_i2c_connection(chip_address, ws_address)
 
         # Pixel ID Check
-        # pixel_check_result = i2c_conn.pixel_check(chip_address, chip)
-        # if pixel_check_result:
-        #     logger.info("SUCCESS: Pixel ID Check")
-        # else:
-        #     logger.error("FAILURE: Pixel ID Check")
+        if do_pixelID_check:
+            pixel_check_result = i2c_conn.pixel_check(chip_address, chip)
+            if pixel_check_result:
+                logger.info("SUCCESS: Pixel ID Check")
+            else:
+                logger.error("FAILURE: Pixel ID Check")
 
         # # Peripheral Register Check
-        # peri_reg_result = i2c_conn.basic_peripheral_register_check(chip_address, chip)
-        # if peri_reg_result:
-        #     logger.info("SUCCESS: Peri Reg Check")
-        # else:
-        #     logger.error("FAILURE: Peri Reg Check")
+        if do_peripheral_check:
+            peri_reg_result = i2c_conn.basic_peripheral_register_check(chip_address, chip)
+            if peri_reg_result:
+                logger.info("SUCCESS: Peri Reg Check")
+            else:
+                logger.error("FAILURE: Peri Reg Check")
 
         i2c_conn.set_chip_peripherals(chip_address, chip)
         i2c_conn.disable_all_pixels(chip_address, 'high', chip)
 
+        # Select all pixels
         pixels_of_interest = [(r, c) for r in range(16) for c in range(16)]
 
         i2c_conn.auto_calibration_select_pixels(chip_address, chip_name, chip, pixels=pixels_of_interest)
@@ -71,6 +74,8 @@ if __name__ == "__main__":
             description='PlaceHolder',
     )
 
+    parser.register('type', 'hex', lambda s: int(s, 16))
+
     parser.add_argument(
         '--boardName',
         metavar = 'NAME',
@@ -89,12 +94,46 @@ if __name__ == "__main__":
         dest = 'port',
     )
 
+    parser.add_argument(
+        '--outDir',
+        metavar = 'DIR',
+        type = str,
+        help = 'path to the output directory to store outputs',
+        default = '/home/daq/ETROC2/ETROC-History/EMI_EMC',
+        dest = 'outDir',
+    )
+
+    parser.add_argument(
+        '--address',
+        metavar = 'ADDR',
+        type='hex',
+        help = 'main I2C address of the ETROC chip',
+        default = 0x60,
+        dest = 'address',
+    )
+
+    parser.add_argument(
+        '--wsAddress',
+        metavar = 'ADDR',
+        type='hex',
+        help = 'I2C address of the waveform sampler of the ETROC chip',
+        default = 0x40,
+        dest = 'address',
+    )
+
+    parser.add_argument(
+        '--doChecks',
+        type='store_true',
+        help = 'If the I2C checks should be performed',
+        dest = 'doChecks',
+    )
+
     args = parser.parse_args()
 
     i2c_port = args.port
-    chip_addresses = [0x60]
-    ws_addresses = [0x40]
+    chip_addresses = [args.address]
+    ws_addresses = [args.wsAddress]
     chip_names = [f"{args.boardName}"]
-    output_path = f"/home/daq/ETROC2/ETROC-History/EMI_EMC/{args.boardName}"
+    output_path = f"{args.outDir}/{args.boardName}"
 
-    run_i2c(i2c_port, chip_addresses, ws_addresses, chip_names, output_path)
+    run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path, do_pixelID_check=args.doChecks, do_peripheral_check=args.doChecks)
