@@ -71,6 +71,8 @@ if __name__ == "__main__":
             description='PlaceHolder',
     )
 
+    parser.register('type', 'hex', lambda s: int(s, 16))
+
     parser.add_argument(
         '--boardName',
         metavar = 'NAME',
@@ -89,12 +91,39 @@ if __name__ == "__main__":
         dest = 'port',
     )
 
+    parser.add_argument(
+        '--outDir',
+        metavar = 'DIR',
+        type = str,
+        help = 'path to the output directory to store outputs',
+        default = '/home/daq/ETROC2/ETROC-History/EMI_EMC',
+        dest = 'outDir',
+    )
+
+    parser.add_argument(
+        '--address',
+        metavar = 'ADDR',
+        type='hex',
+        help = 'main I2C address of the ETROC chip',
+        default = 0x60,
+        dest = 'address',
+    )
+
+    parser.add_argument(
+        '--wsAddress',
+        metavar = 'ADDR',
+        type='hex',
+        help = 'I2C address of the waveform sampler of the ETROC chip',
+        default = 0x40,
+        dest = 'address',
+    )
+
     args = parser.parse_args()
 
     i2c_port = args.port
-    chip_addresses = [0x60]
-    ws_addresses = [0x40]
+    chip_addresses = [args.address]
+    ws_addresses = [args.wsAddress]
     chip_names = [f"{args.boardName}"]
-    output_path = f"/home/daq/ETROC2/ETROC-History/EMI_EMC/{args.boardName}"
+    output_path = f"{args.outDir}/{args.boardName}"
 
     run_i2c(i2c_port, chip_addresses, ws_addresses, chip_names, output_path)
