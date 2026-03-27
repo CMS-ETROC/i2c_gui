@@ -13,7 +13,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path, do_pixelID_check: bool = False, do_peripheral_check: bool = False):
+def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path,
+                                 do_pixelID_check: bool = False, do_peripheral_check: bool = False, exit_after_pll_fc_cabliration: bool = False):
 
     try:
         i2c_conn = wrapper_i2cGui2.i2c_connection(i2c_port, chip_addresses, ws_addresses, chip_names)
@@ -29,6 +30,9 @@ def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_na
         logger.info("SUCCESS: PLL and FC calibration")
     except Exception as e:
         raise RuntimeError(f"An error, {e}, occured during first pll/fc calibration")
+
+    if exit_after_pll_fc_cabliration:
+        sys.exit(1)
 
     for chip_address, chip_name, ws_address in zip(chip_addresses, chip_names, ws_addresses):
         chip = i2c_conn.get_chip_i2c_connection(chip_address, ws_address)
@@ -128,6 +132,13 @@ if __name__ == "__main__":
         dest = 'doChecks',
     )
 
+    parser.add_argument(
+        '--pllFCcalibration',
+        type='store_true',
+        help = 'Perform PLL and FC calibration only',
+        dest = 'pllFCcalibration',
+    )
+
     args = parser.parse_args()
 
     i2c_port = args.port
@@ -136,4 +147,6 @@ if __name__ == "__main__":
     chip_names = [f"{args.boardName}"]
     output_path = f"{args.outDir}/{args.boardName}"
 
-    run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path, do_pixelID_check=args.doChecks, do_peripheral_check=args.doChecks)
+    run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path,
+                                 do_pixelID_check=args.doChecks, do_peripheral_check=args.doChecks,
+                                 exit_after_pll_fc_cabliration=args.pllFCcalibration)
