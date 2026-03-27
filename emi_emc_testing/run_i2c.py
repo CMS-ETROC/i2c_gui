@@ -122,7 +122,7 @@ if __name__ == "__main__":
         type='hex',
         help = 'I2C address of the waveform sampler of the ETROC chip',
         default = 0x40,
-        dest = 'address',
+        dest = 'wsAddress',
     )
 
     parser.add_argument(
