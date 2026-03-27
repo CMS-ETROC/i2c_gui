@@ -127,14 +127,14 @@ if __name__ == "__main__":
 
     parser.add_argument(
         '--doChecks',
-        type='store_true',
+        action = 'store_true',
         help = 'If the I2C checks should be performed',
         dest = 'doChecks',
     )
 
     parser.add_argument(
         '--pllFCcalibration',
-        type='store_true',
+        action = 'store_true',
         help = 'Perform PLL and FC calibration only',
         dest = 'pllFCcalibration',
     )
