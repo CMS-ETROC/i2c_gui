@@ -1,7 +1,7 @@
 import wrapper_i2cGui2
 import argparse
 import logging
-import sys
+import sys, time
 from datetime import datetime
 
 # Configure logging
@@ -79,10 +79,16 @@ def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_na
 
     logger.info("Printing Invalid FC counter")
     for chip_address in chip_addresses:
+        invalid_fc_values = []
         chip = i2c_conn.get_chip_i2c_connection(chip_address)
-        chip.read_decoded_value("ETROC2", "Peripheral Status", 'invalidFCCount')
-        value_invalidFCCount = chip.get_decoded_value("ETROC2", "Peripheral Status", "invalidFCCount")
-        logger.info(f"Chip {hex(chip_address)} Invalid FC Counter: {value_invalidFCCount}")
+
+        for i in range(3):
+            chip.read_decoded_value("ETROC2", "Peripheral Status", 'invalidFCCount')
+            value_invalidFCCount = chip.get_decoded_value("ETROC2", "Peripheral Status", "invalidFCCount")
+            invalid_fc_values.append(value_invalidFCCount)
+            time.sleep(0.3)
+
+        logger.info(f"Chip {hex(chip_address)} Invalid FC Counter: {invalid_fc_values}")
 
 
 if __name__ == "__main__":
