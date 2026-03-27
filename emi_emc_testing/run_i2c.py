@@ -13,7 +13,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path,
+def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path, offset,
                                  do_pixelID_check: bool = False, do_peripheral_check: bool = False, exit_after_pll_fc_cabliration: bool = False):
 
     try:
@@ -71,6 +71,20 @@ def run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_na
     logger.info("Testing Pixels: %s", pixel_for_test)
     i2c_conn.enable_select_pixels_in_chips(pixel_for_test, Qsel=30, QInjEn=True, Bypass_THCal=True, power_mode='high', verbose=False)
 
+    logger.info("Set the offset for enabled pixels")
+    for chip_address in chip_addresses:
+        chip = i2c_conn.get_chip_i2c_connection(chip_address)
+        i2c_conn.set_chip_offsets(chip_address, pixel_list=pixel_for_test, offset=offset, chip=chip, verbose=False)
+        del chip
+
+    logger.info("Printing Invalid FC counter")
+    for chip_address in chip_addresses:
+        chip = i2c_conn.get_chip_i2c_connection(chip_address)
+        chip.read_decoded_value("ETROC2", "Peripheral Status", 'invalidFCCount')
+        value_invalidFCCount = chip.get_decoded_value("ETROC2", "Peripheral Status", "invalidFCCount")
+        logger.info(f"Chip {hex(chip_address)} Invalid FC Counter: {value_invalidFCCount}")
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
@@ -126,6 +140,16 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        '--offset',
+        metavar = 'NUM',
+        type= int,
+        help = 'Offset value to set the threshold = BL + offset',
+        default = 10,
+        dest = 'offset',
+    )
+
+
+    parser.add_argument(
         '--doChecks',
         action = 'store_true',
         help = 'If the I2C checks should be performed',
@@ -147,6 +171,6 @@ if __name__ == "__main__":
     chip_names = [f"{args.boardName}"]
     output_path = f"{args.outDir}/{args.boardName}"
 
-    run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path,
+    run_i2c_baselines_for_emiemc(i2c_port, chip_addresses, ws_addresses, chip_names, output_path, args.offset,
                                  do_pixelID_check=args.doChecks, do_peripheral_check=args.doChecks,
                                  exit_after_pll_fc_cabliration=args.pllFCcalibration)
