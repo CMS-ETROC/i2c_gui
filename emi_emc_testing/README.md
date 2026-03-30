@@ -50,16 +50,14 @@ cd ../
 You need to open three terminals. One for running scripts, the other terminals for constellation Satellites. Also, all terminals must load the same python environment.
 
 - Tab 1 (EtrocTransmitter Satellite)
-
-
-`cd Constellation`
-`SatelliteEtrocTransmitter -g <group_name> -n One`
+```cd Constellation
+SatelliteEtrocTransmitter -g <group_name> -n One
+```
 
 - Tab 2 (EtrocReceiver Satellite)
-
-
-`cd Constellation`
-`SatelliteEtrocReceiver -g <group_name> -n One`
+```cd Constellation
+SatelliteEtrocReceiver -g <group_name> -n One
+```
 
 - Tab 3
 
