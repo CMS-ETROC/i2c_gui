@@ -6,19 +6,21 @@ The user only tested this with python version 3.13.1. Python 3.13.1 can be insta
 
 Starting from your base directory. First clone git repos in the following:
 
-Clone i2c package
-`git clone git@github.com:CMS-ETROC/i2c_gui.git -b i2c_gui_2 --depth=1`
+- Clone i2c package
+```git clone git@github.com:CMS-ETROC/i2c_gui.git -b i2c_gui_2 --depth=1```
 
-Clone ETROC DAQ based on constellation
-`git clone git@github.com:CMS-ETROC/Constellation.git -b ETROC2v2 --depth=1`
+- Clone ETROC DAQ based on constellation
+```git clone git@github.com:CMS-ETROC/Constellation.git -b ETROC2v2 --depth=1```
 
-Clone KC705 firmware (The user must be a member of CMS-ETROC git organization)
-`git clone git@github.com:CMS-ETROC/ETROC2TestFirmware.git -b SEU2025 --depth=5`
-`cd ETROC2TestFirmware`
-`git checkout a620653`
-`cd ../`
+- Clone KC705 firmware (The user must be a member of CMS-ETROC git organization)
+```
+git clone git@github.com:CMS-ETROC/ETROC2TestFirmware.git -b SEU2025 --depth=5
+cd ETROC2TestFirmware
+git checkout a620653
+cd ../
+```
 
-Assuming that the user is using pyenv environment.
+<!-- Assuming that the user is using pyenv environment.
 `pyenv shell 3.13.1`
 
 Either the user can use venv environment.
@@ -56,4 +58,4 @@ While both satellites are online, you run scripts in Tab 3.
 `python run_i2c.py -h`
 
 - To run constellation
-`python run_constellation -h`
+`python run_constellation -h` -->
