@@ -41,10 +41,10 @@ cd ../
 `pip install -r i2c_gui/emi_emc_testing/emirequirements.txt`
 
 - Install Constellation via pip
-
-
-`cd Constellation`
-`pip install "ConstellationDAQ[cli]" -e .`
+```
+cd Constellation
+pip install "ConstellationDAQ[cli]" -e .
+```
 
 ## Preparation
 You need to open three terminals. One for running scripts, the other terminals for constellation Satellites. Also, all terminals must load the same python environment.
