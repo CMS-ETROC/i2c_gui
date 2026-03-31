@@ -238,6 +238,10 @@ class i2c_connection:
 
             # Store in the instance state
             self.BL_df[addr] = bl_nw_df
+
+            self.logger.info(f"  === {chip_name} BL & NW summary ===")
+            self.logger.info(f"    Baseline mean: {self.BL_df[addr]['baseline'].mean():.2f}, std: {self.BL_df[addr]['baseline'].std():.2f}")
+            self.logger.info(f"    Noise width mean: {self.BL_df[addr]['noise_width'].mean():.2f}, std: {self.BL_df[addr]['noise_width'].std():.2f}")
             self.logger.info(f'  Finished auto-calibration for {chip_name} ({hex(addr)})...')
 
     def batch_enable_pixels(self, pixel_list: list[tuple], Qsel: int = 0x1e,
