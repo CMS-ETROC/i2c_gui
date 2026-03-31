@@ -36,9 +36,9 @@ class i2c_connection:
             format='%(asctime)s - %(levelname)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("Script_Logger")
 
-        self.i2c_logger = logging.getLogger("I2C_logger")
+        self.i2c_logger = logging.getLogger("Chip_Logger")
         self.i2c_logger.propagate = False  # Prevent logs from bubbling up to the main console
         if not self.i2c_logger.handlers:
             self.i2c_logger.addHandler(logging.NullHandler())
