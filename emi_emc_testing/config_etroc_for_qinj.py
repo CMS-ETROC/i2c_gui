@@ -44,27 +44,26 @@ def config_for_qinj(
 
         # Inject the loaded DataFrames directly into the wrapper's memory
         for addr, chip_name in zip(chip_addrs, names):
-            print(historical_dfs[chip_name])
-            # if not historical_dfs[chip_name].empty:
-            #     i2c_conn.BL_df[addr] = historical_dfs[chip_name]
-            # else:
-            #     raise RuntimeError(f"Cannot proceed: Missing historical baseline data for {chip_name}")
+            if not historical_dfs[chip_name].empty:
+                i2c_conn.BL_df[addr] = historical_dfs[chip_name]
+            else:
+                raise RuntimeError(f"Cannot proceed: Missing historical baseline data for {chip_name}")
 
     else:
         pass
-        # pixels_of_interest = [(r, c) for r in range(16) for c in range(16)]
-        # i2c_conn.batch_auto_calibrate_chip(pixels_of_interest)
+        pixels_of_interest = [(r, c) for r in range(16) for c in range(16)]
+        i2c_conn.batch_auto_calibrate_chip(pixels_of_interest)
 
-        # ### Save calibration results
-        # for _, df in i2c_conn.BL_df.items():
-        #     plotter.save_baselines(df, hist_dir=cfg['output_path'], save_notes=history_note)
+        ### Save calibration results
+        for _, df in i2c_conn.BL_df.items():
+            plotter.save_baselines(df, hist_dir=cfg['output_path'], save_notes=history_note)
 
     ### Config pixels for qinj
-    # pixels_for_qinj = [(2, 2), (2, 10), (10, 2), (10, 10), (5, 5), (5, 13), (13, 5), (13, 13)]
-    # i2c_conn.batch_enable_pixels(pixels_for_qinj, Qsel=cfg['qsel'], offset=cfg['offset'])
+    pixels_for_qinj = [(2, 2), (2, 10), (10, 2), (10, 10), (5, 5), (5, 13), (13, 5), (13, 13)]
+    i2c_conn.batch_enable_pixels(pixels_for_qinj, Qsel=cfg['qsel'], offset=cfg['offset'])
 
-    # ### Print Invalid FC, good case: counter didn't change!
-    # i2c_conn.batch_check_invalid_fc()
+    ### Print Invalid FC, good case: counter didn't change!
+    i2c_conn.batch_check_invalid_fc()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ETROC2 YAML-based Config Tool')
