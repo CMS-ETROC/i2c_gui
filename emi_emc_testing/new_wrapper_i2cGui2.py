@@ -38,6 +38,11 @@ class i2c_connection:
         )
         self.logger = logging.getLogger(__name__)
 
+        self.i2c_logger = logging.getLogger("I2C_logger")
+        self.i2c_logger.propagate = False  # Prevent logs from bubbling up to the main console
+        if not self.i2c_logger.handlers:
+            self.i2c_logger.addHandler(logging.NullHandler())
+
     # ==========================================
     # THE GATEKEEPER
     # ==========================================
@@ -50,7 +55,7 @@ class i2c_connection:
                 ws_addr = None
 
             # Use self.logger here instead of self.chip_logger
-            self._chips[addr] = i2c_gui2.ETROC2_Chip(addr, ws_addr, self.conn, self.logger)
+            self._chips[addr] = i2c_gui2.ETROC2_Chip(addr, ws_addr, self.conn, self.i2c_logger)
 
         return self._chips[addr]
 
