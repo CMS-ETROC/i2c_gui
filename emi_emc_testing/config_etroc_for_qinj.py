@@ -1,8 +1,8 @@
 import yaml
 import argparse
-import new_wrapper_i2cGui2
-import load_bl_history
-import plotter
+from src import new_wrapper_i2cGui2
+from src import load_bl_history
+from src import plotter
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
