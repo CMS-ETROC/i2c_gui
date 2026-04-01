@@ -499,3 +499,15 @@ class i2c_connection:
         for addr in self.chip_addresses:
             fc_values = self.check_invalid_fc(addr)
             self.logger.info(f"  Chip {hex(addr)} Invalid FC Counter: {fc_values}")
+
+
+    # --------------------------------------------------------------------------
+    def set_dac(self, addr: int, row: int, col: int, dac: int):
+        """Set DAC value for pixel"""
+
+        chip = self._resolve_chip(addr)
+        chip.row, chip.col = row, col
+
+        chip.read_decoded_value("ETROC2", "Pixel Config", "DAC")
+        chip.set_decoded_value("ETROC2", "Pixel Config", "DAC", dac)
+        chip.write_decoded_value("ETROC2", "Pixel Config", "DAC")
