@@ -1,0 +1,19 @@
+[EtrocTransmitter]
+
+[EtrocTransmitter.One]
+fast_command_memo = "Start QInj Triggerbit BCR"
+polarity = 0x4023
+active_channel = 0x0001
+timestamp = 0x0000
+triggerbit_delay = 0x1de6
+fc_delays = 0x0000 # register 4
+data_delays_01 = 0x0000 # register 5
+# data_delays_23 = 0x0000 # register 6
+# counter_duration = 0x0000 # register 7
+
+[EtrocReceiver]
+
+[EtrocReceiver.One]
+output_path = "/home/daq/ETROC2/ETROC-Data/qinj_test"
+translate = 1
+skip_fillers = 1
