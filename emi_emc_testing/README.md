@@ -85,7 +85,16 @@ constellation.EtrocTransmitter.set_fc_phase_channel_delay([value, channel])
 Once you find the right delay, you can copy and paste the register values into toml files.
 
 ## How to run Waveform Sampler
-**To be updated**
+You need to open two terminals. One for running scripts, the other terminal for constellation Satellites. Also, all terminals must load the same python environment. I2C library is merged into a waveform satellite, so all the i2c configuration is also in toml file. Note that **reading waveform sampler data via i2c is slow, it takes about 12 seconds for each waveform!** So please give enough time to collect waveform, also for some reason, it is not guaranteed that every waveform has a charge injection pulse.
 
-## How to run S-curve scan
-**To be updated**
+### - Tab 1 (EtrocWaveform Satellite)
+```
+cd Constellation
+SatelliteEtrocWaveform -g <group_name> -n One
+```
+
+### - Tab 2
+```
+cd i2c_gui/emi_emc_testing
+python run_qinj_constellation.py --group <group_name> --config <path to toml> --outDir <output directory name> --daq_time <daq run time in seconds>
+```
