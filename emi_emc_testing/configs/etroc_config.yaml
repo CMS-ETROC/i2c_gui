@@ -1,0 +1,11 @@
+port: "/dev/ttyACM0"
+chips:
+  - name: Board_1
+    addr: 0x60
+    ws_addr: 0x40
+
+power_mode: "high"
+qsel: 0x1e
+offset: 10
+
+output_path: "/home/daq/ETROC2/ETROC-History/EMI_EMC"
