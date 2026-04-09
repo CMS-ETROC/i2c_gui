@@ -383,3 +383,39 @@ Full scan finished without issue. Used the regular frequencies and for injected 
 - $7 mA$
 - $8 mA$
 - $9 mA$
+
+
+# Help - Tip&Tricks
+
+## Docker Setup
+[TODO]
+
+## Docker
+Jordi configured all the code to run inside docker, mkaes setup and portability a bit easier, but adds a layer of indirection to run commands.
+
+/home/electricos/ETROC2_NoiseCampaign
+Using docker compose
+docker-compose.yml
+
+Runs the docker container and puts temrinal inside the container (if we close/exit this, the container is closed, so keep this running for however long is needed to run the tests):
+`docker compose run --rm noise`
+
+Inside docker go to the data directory which is the host /home/electricos/ETROC2_NoiseCampaign mounted to /data:
+`cd /data`
+
+Inside data, we can run the regular commands, from Jordi scripts which are reorganised from Jongho run scripts.
+
+
+From another terminal, to open a connection to the container:
+`docker exec -it [container_name] /bin/bash`
+
+To get container name, try tab completion, if not works, use the command:
+`docker ps`
+
+## Constellation
+
+With a terminal to the docker container, run the satellites (receiver/trnasmitter).
+`SatelliteEtrocReceiver -g [gname] -n K2`
+`SatelliteEtrocTransmitter -g [gname] -n K2`
+
+gname should match, here we hard code in some places gname to `IFCA`
