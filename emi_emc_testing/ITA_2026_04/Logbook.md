@@ -393,18 +393,24 @@ Full scan finished without issue. Used the regular frequencies and for injected 
 ## Docker
 Jordi configured all the code to run inside docker, mkaes setup and portability a bit easier, but adds a layer of indirection to run commands.
 
-/home/electricos/ETROC2_NoiseCampaign
-Using docker compose
-docker-compose.yml
+We are using docker compose to help manage the docker commands, if not, some commands become very long.
+There is a docker compose config file, where a lot of details are defined.
+The "home" directory for docker and docker compose is `/home/electricos/ETROC2_NoiseCampaign`.
+The docker compose config file can be found in this directory as `docker-compose.yml`.
 
-Runs the docker container and puts temrinal inside the container (if we close/exit this, the container is closed, so keep this running for however long is needed to run the tests):
+To run the docker container and put terminal inside the container (if we close/exit this, the container is closed, so keep this running for however long is needed to run the tests):
 `docker compose run --rm noise`
 
 Inside docker go to the data directory which is the host /home/electricos/ETROC2_NoiseCampaign mounted to /data:
 `cd /data`
 
-Inside data, we can run the regular commands, from Jordi scripts which are reorganised from Jongho run scripts.
-
+Inside data directory, we can run the regular commands, scripts (from Jordi) which are reorganised from Jongho run scripts.
+To run baseline autocalibration, normally from the specific subdirectory: `python ../scripts/etroc2-sc.py --config et20p1_Pair5.yaml --do-checks autocal --save-note [note]`
+To run QInj/noise:
+ - Make sure baselines have been acquired first
+ - Then configure pixels for QInj: `python ../scripts/etroc2-sc.py --config et20p1_Pair5.yaml --do-checks qinj --qinj-en`
+ - Or configure pixels for noise: `python ../scripts/etroc2-sc.py --config et20p1_Pair5.yaml --do-checks qinj --no-qinj-en`
+ - Then run DAQ data taking: `python ../scripts/etroc2-daq.py --group [gname] --config qinj_external_trig.toml --outdir [DIR]`
 
 From another terminal, to open a connection to the container:
 `docker exec -it [container_name] /bin/bash`
@@ -419,3 +425,9 @@ With a terminal to the docker container, run the satellites (receiver/trnasmitte
 `SatelliteEtrocTransmitter -g [gname] -n K2`
 
 gname should match, here we hard code in some places gname to `IFCA`
+
+## Quick Analysis Scripts
+
+Inside docker container, inside the data storage (/data/*) run the analysis scripts:
+- Baseline analysis: `../scripts/plot_bl_noise.py [folder] [board_name] --output-dir [dir]`
+- QInj analysis: `../scripts/plot_daq_observables.py [folder] --output-dir [dir]`
