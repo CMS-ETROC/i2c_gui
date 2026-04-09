@@ -107,7 +107,7 @@ Attempted to set up an overnight run scanning both frequency and multiple power 
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260407_VDDA_Overnight
 
 Due to an issue with the power amplifier/monitor, only the first few points (~4) are good, i.e. 100 kHz at [1, 3, 5, 30] mA.
@@ -122,7 +122,7 @@ Retrying QInj, same settings as first run (i.e. same frequency list an $10\,mA$)
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_10mA
 
 First attempt ran well, but a few frequency points are missing because ETROC communication failed:
@@ -145,7 +145,7 @@ Repeating QInj, same settings as first run but reduced power ($5 mA$). With fixe
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_5mA
 
 Ran well, but a few frequency points are missing because ETROC communication failed:
@@ -167,7 +167,7 @@ Repeating QInj, same settings as first run but reduced power ($3 mA$). With fixe
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_3mA
 
 Ran well, no frequency points are missing due to ETROC communication failures
@@ -182,7 +182,7 @@ Repeating QInj, same settings as first run but increased power ($20 mA$). With f
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_20mA
 
 Ran well, but a few frequency points are missing due to ETROC communication failures
@@ -200,7 +200,7 @@ Repeating QInj, same settings as first run but different power settings power, t
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_several (later moved into the respective directories for the respective power level)
 
 Ran well, but a few frequency points are still missing due to ETROC communication failures, mostly at $10 mA$:
@@ -224,7 +224,7 @@ Repeating QInj, same settings as first run but different power settings power, t
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_several (later moved into the respective directories for the respective power level)
 
 Ran well, but a few frequency points are still missing due to ETROC communication failures, only at $10 mA$:
@@ -244,7 +244,7 @@ Repeating QInj, same settings as first run but different power settings power, t
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_several (later moved into the respective directories for the respective power level)
 
 Ran well, but a few frequency points are still missing due to ETROC communication failures, only at $10 mA$:
@@ -263,7 +263,7 @@ Repeating QInj, same settings as first run but different power settings power, t
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_several (later moved into the respective directories for the respective power level)
 
 Ran well, but a few frequency points are still missing due to ETROC communication failures, only at $10 mA$:
@@ -280,7 +280,7 @@ Repeating QInj, same settings as first run but different power settings power, t
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_QInj/qinj_fixed_several (later moved into the respective directories for the respective power level)
 
 Ran well, no frequency points are still missing due to ETROC communication failures
@@ -295,7 +295,7 @@ Repeating Baseline+noisewidth scan, but this time do the full thing at once.
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_BLNW/
 
 $50 MHz$ at $10 mA$ failed very frequently. We were not able to run it. Tried to do $20 mA$ directly, since it worked before and then tried to complete with $7 mA$.
@@ -310,7 +310,7 @@ Performing QInj, in self trigger with QInj disabled, same frequency list as befo
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_Noise/noise_offset8_st_3mA
 
 All frequencies without issue except $50 MHz$, which failed
@@ -325,7 +325,7 @@ Performing QInj, in self trigger with QInj disabled, same frequency list as befo
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_Noise/noise_offset8_st_5mA
 
 Some issues with frequencies:
@@ -353,7 +353,7 @@ Performing QInj, in self trigger with QInj disabled, same frequency list as befo
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDA_Noise/noise_offset8_st_10mA
 
 Some issues with frequencies:
@@ -372,7 +372,7 @@ Changed to VDDD noise injection, setting up an overnight baeline+Noise width run
   * VRef : External $1\,V$
 * HV:
   * Bias Voltage: $200\,V$
-  * Leakage Current: $28\,\mu A$
+  * Leakage Current: $32\,\mu A$
 * Storage directory: /home/electricos/ETROC2_NoiseCampaign/20260408_VDDD_BLNW/
 
 Full scan finished without issue. Used the regular frequencies and for injected current, we had the following list:
